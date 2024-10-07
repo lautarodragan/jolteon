@@ -12,6 +12,11 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
+      - run: curl --version
+      - run: type curl
+      - run: type sh
+
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs
       - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -y
 
       - name: Install developer package dependencies
