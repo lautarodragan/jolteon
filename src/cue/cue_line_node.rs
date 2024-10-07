@@ -91,6 +91,8 @@ impl CueLineNode {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
 
     #[test]
