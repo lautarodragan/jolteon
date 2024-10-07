@@ -20,6 +20,8 @@ jobs:
           chmod a+x rustup.sh
           ./rustup.sh -y
 
+      - run: rustup install nightly
+      - run: rustup override set nightly
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
 
       - run: cargo check
