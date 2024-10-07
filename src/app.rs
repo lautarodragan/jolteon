@@ -19,7 +19,7 @@ use crate::{
     state::State,
     term::set_terminal,
     ui,
-    ui::{CurrentlyPlaying, KeyboardHandler, KeyboardHandlerMut, TopBar},
+    ui::{CurrentlyPlaying, KeyboardHandler, KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
     Command,
     components::{FileBrowser, FileBrowserSelection, Library},
 };
@@ -75,11 +75,14 @@ impl<'a> App<'a> {
         let library = Arc::new(Library::new(config.theme, library_songs.songs));
         library.on_select({
             let player = player.clone();
+            let library = library.clone();
+
             move |(song, key)| {
                 if key.code == KeyCode::Enter {
                     player.play_song(song);
                 } else if key.code == KeyCode::Char('a') {
                     player.enqueue_song(song);
+                    library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)); // hackish way to "select_next()"
                 }
             }
         });
