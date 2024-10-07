@@ -18,7 +18,6 @@ jobs:
 
       - run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
-          cat rustup.sh
           ./rustup.sh -y
 
       - name: Install developer package dependencies
