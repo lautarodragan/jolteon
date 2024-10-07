@@ -127,7 +127,12 @@ impl<'a> Library<'a> {
                             }
                         },
                         (Some(album_a), Some(album_b)) if album_a != album_b => {
-                            album_a.cmp(album_b)
+                            match (a.year, b.year) {
+                                (Some(ref year_a), Some(ref year_b)) => {
+                                    year_a.cmp(year_b)
+                                }
+                                _ => album_a.cmp(album_b)
+                            }
                         },
                         (Some(_), None) => Ordering::Greater,
                         (None, Some(_)) => Ordering::Less,

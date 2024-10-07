@@ -20,20 +20,22 @@ pub struct Song {
     pub artist: Option<String>,
     pub album: Option<String>,
     pub track: Option<u32>,
+    pub year: Option<u32>,
 }
 
 impl Song {
     pub fn from_file(path: &PathBuf) -> Result<Self, LoftyError> {
         let tagged_file = Probe::open(path)?.read()?;
 
-        let (artist, album, title, track) = match tagged_file.primary_tag() {
+        let (artist, album, title, track, year) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
                 primary_tag.artist().map(String::from),
                 primary_tag.album().map(String::from),
                 primary_tag.title().map(String::from),
                 primary_tag.track(),
+                primary_tag.year(),
             ),
-            _ => (None, None, None, None),
+            _ => (None, None, None, None, None),
         };
 
         Ok(Song {
@@ -44,6 +46,7 @@ impl Song {
             artist,
             album,
             track,
+            year,
         })
     }
 
@@ -90,6 +93,7 @@ impl Song {
                 start_time: t.start_time(),
                 album: cue_sheet.title(),
                 track: t.index().split_whitespace().nth(0).map(|i| i.parse().ok()).flatten(),
+                year: song.year, // TODO: cue sheet year as a fallback? (it's usually stored as a comment in it...)
             })
             .collect();
 

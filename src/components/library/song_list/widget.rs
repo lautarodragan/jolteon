@@ -58,7 +58,8 @@ impl<'a> WidgetRef for SongList<'a> {
 
             let style = line_style(&self.theme, song_index, selected_song_index, true);
             let line = ratatui::text::Line::from(
-                format!("{} - {} - {}",
+                format!("{} - {} - {} - {}",
+                        song.year.as_ref().map(|y| y.to_string()).unwrap_or("(no year)".to_string()),
                         song.album.clone().unwrap_or("(no album)".to_string()),
                         song.track.unwrap_or(0),
                         song.title.clone()
