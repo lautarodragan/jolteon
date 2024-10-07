@@ -12,7 +12,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      - run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -y
 
       - name: Install developer package dependencies
         run: sudo apt-get update && sudo apt-get install libasound2-dev
