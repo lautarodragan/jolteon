@@ -10,20 +10,21 @@ use super::library::{Library, LibraryScreenElement};
 impl<'a> KeyboardHandlerRef<'a> for Library<'a> {
 
     fn on_key(&self, key: KeyEvent) -> bool {
-        let mut focused_element_guard = self.focused_element.lock().unwrap();
+        log::trace!(target: "::library.on_key", "start {:?}", key);
+        let focused_element_guard = self.focused_element();
 
         match key.code {
             KeyCode::Tab => {
-                *focused_element_guard = match &*focused_element_guard {
+                self.set_focused_element(match focused_element_guard {
                     LibraryScreenElement::ArtistList => LibraryScreenElement::SongList,
                     LibraryScreenElement::SongList => LibraryScreenElement::ArtistList,
-                };
+                });
             }
-            _ if *focused_element_guard == LibraryScreenElement::ArtistList  => {
+            _ if focused_element_guard == LibraryScreenElement::ArtistList  => {
                 self.on_key_event_artist_list(key);
             },
-            _ if *focused_element_guard == LibraryScreenElement::SongList  => {
-                self.song_list.lock().unwrap().on_key(key);
+            _ if focused_element_guard == LibraryScreenElement::SongList  => {
+                self.song_list.on_key(key);
             },
             _ => {
                 return false;
@@ -77,7 +78,7 @@ impl<'a> Library<'a> {
         let songs = self.songs.lock().unwrap();
         let artist_songs = songs.get(artist).unwrap();
         let artist_songs = artist_songs.iter().map(|s| s.clone()).collect();
-        self.song_list.lock().unwrap().set_songs(artist_songs);
+        self.song_list.set_songs(artist_songs);
     }
 
 }

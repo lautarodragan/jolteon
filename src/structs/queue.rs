@@ -72,6 +72,7 @@ impl Queue {
     }
 
     fn mut_queue(&self, f: impl FnOnce(&mut VecDeque<Song>)) {
+        log::trace!(target: "::queue.mut_queue", "acquiring lock on songs");
         let mut songs = self.songs();
 
         f(&mut *songs);

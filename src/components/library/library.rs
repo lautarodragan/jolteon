@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
     rc::Rc,
     sync::{
-        atomic::{AtomicUsize, Ordering as AtomicOrdering},
+        atomic::{AtomicU8, AtomicUsize, Ordering as AtomicOrdering},
         Mutex,
         Arc,
     },
@@ -21,9 +21,36 @@ use crate::{
 use super::song_list::SongList;
 
 #[derive(Eq, PartialEq)]
-pub(super) enum LibraryScreenElement {
+#[repr(u8)]
+pub enum LibraryScreenElement {
     ArtistList,
     SongList,
+}
+
+impl From<u8> for LibraryScreenElement {
+    fn from(value: u8) -> Self {
+        if value == 0 {
+            LibraryScreenElement::ArtistList
+        } else {
+            LibraryScreenElement::SongList
+        }
+    }
+}
+
+pub(super) struct AtomicLibraryScreenElement(AtomicU8);
+
+impl AtomicLibraryScreenElement {
+    fn new() -> Self {
+        Self(AtomicU8::new(0))
+    }
+
+    fn load(&self) -> LibraryScreenElement {
+        self.0.load(AtomicOrdering::Relaxed).into()
+    }
+
+    fn store(&self, v: LibraryScreenElement) {
+        self.0.store(v as u8, AtomicOrdering::Relaxed);
+    }
 }
 
 pub struct Library<'a> {
@@ -31,9 +58,9 @@ pub struct Library<'a> {
 
     pub(super) artists: Arc<Mutex<Vec<String>>>,
     pub(super) songs: Mutex<HashMap<String, Vec<Song>>>,
-    pub(super) song_list: Mutex<SongList<'a>>,
+    pub(super) song_list: SongList<'a>,
 
-    pub(super) focused_element: Mutex<LibraryScreenElement>,
+    focused_element: AtomicLibraryScreenElement,
 
     pub(super) selected_artist_index: AtomicUsize,
     pub(super) selected_song_index: AtomicUsize,
@@ -48,26 +75,26 @@ impl<'a> Library<'a> {
     pub fn new(theme: Theme, songs: Vec<Song>) -> Self {
         let on_select_fn: Rc<Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
-        let songs_el = SongList::new(theme);
-        songs_el.on_select({
+        let song_list = SongList::new(theme);
+        song_list.on_select({
             let on_select_fn = on_select_fn.clone();
             move |(song, key)| {
-                log::debug!("song selected {:?}", song);
-                let mut on_select_fn = on_select_fn.lock().unwrap();
+                log::trace!(target: "::library.song_list.on_select", "song selected {:?}", song);
 
+                let mut on_select_fn = on_select_fn.lock().unwrap();
                 on_select_fn((song, key));
             }
         });
 
         let lib = Self {
             theme,
-            focused_element: Mutex::new(LibraryScreenElement::ArtistList),
+            focused_element: AtomicLibraryScreenElement::new(),
 
             on_select_fn,
 
             artists: Arc::new(Mutex::new(vec![])),
             songs: Mutex::new(HashMap::new()),
-            song_list: Mutex::new(songs_el),
+            song_list,
 
             selected_artist_index: AtomicUsize::new(0),
             selected_song_index: AtomicUsize::new(0),
@@ -79,6 +106,14 @@ impl<'a> Library<'a> {
         lib.add_songs(songs);
 
         lib
+    }
+
+    pub fn focused_element(&self) -> LibraryScreenElement {
+        self.focused_element.load()
+    }
+
+    pub fn set_focused_element(&self, v: LibraryScreenElement) {
+        self.focused_element.store(v);
     }
 
     pub fn on_select(&self, cb: impl FnMut((Song, KeyEvent)) + 'a) {
@@ -167,7 +202,7 @@ impl<'a> Library<'a> {
 
         // Cloning the song list once per key press is probably more performant than dealing with Rc's, WeakRef's and whatnot.
         let artist_songs = artist_songs.iter().map(|s| s.clone()).collect();
-        self.song_list.lock().unwrap().set_songs(artist_songs);
+        self.song_list.set_songs(artist_songs);
     }
 
     pub fn add_cue(&self, cue_sheet: CueSheet) {

@@ -29,7 +29,7 @@ impl<'a> WidgetRef for Library<'a> {
         self.height.store(area.height as usize, Ordering::Relaxed);
 
         self.render_ref_artists(area_left, buf);
-        self.song_list.lock().unwrap().render_ref(area_right, buf);
+        self.song_list.render_ref(area_right, buf);
     }
 }
 
@@ -49,7 +49,7 @@ impl<'a> Library<'a> {
     fn render_ref_artists(&self, area: Rect, buf: &mut Buffer) {
         self.height.store(area.height as usize, Ordering::Relaxed);
 
-        let focused_element = self.focused_element.lock().unwrap();
+        let focused_element = self.focused_element();
         let selected_artist_index = self.selected_artist_index.load(Ordering::Relaxed);
         let artists = self.artists.lock().unwrap();
 
@@ -61,7 +61,7 @@ impl<'a> Library<'a> {
                 ..area
             };
 
-            let style = line_style(&self.theme, i, selected_artist_index, *focused_element == LibraryScreenElement::ArtistList);
+            let style = line_style(&self.theme, i, selected_artist_index, focused_element == LibraryScreenElement::ArtistList);
             let line = ratatui::text::Line::from(artist).style(style);
 
             line.render_ref(area, buf);

@@ -11,22 +11,24 @@ use super::component::SongList;
 impl<'a> KeyboardHandlerRef<'a> for SongList<'a> {
 
     fn on_key(&self, key: KeyEvent) -> bool {
+        let target = "::SongList.on_key";
+        log::trace!(target: target, "{:?}", key);
+
         match key.code {
             KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
                 self.on_song_list_directional_key(key);
             },
             KeyCode::Enter | KeyCode::Char(_) => {
-                let songs = &self.songs.lock().unwrap();
-                let len = songs.len();
+                let songs = self.songs.lock().unwrap();
 
                 let i = self.selected_song_index.load(Ordering::SeqCst);
                 if i >= songs.len() {
-                    log::error!("library on_key_event_song_list enter: selected_song_index > song_list.len");
+                    log::error!(target: target, "library on_key_event_song_list enter: selected_song_index > song_list.len");
                     return true;
                 }
                 let song = songs[self.selected_song_index.load(Ordering::SeqCst)].clone();
+                drop(songs);
                 self.on_select_fn.lock().unwrap()((song, key));
-                let _ = self.selected_song_index.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |a| { Some(a.saturating_add(1).min(len.saturating_sub(1))) });
             },
             _ => {},
         }
