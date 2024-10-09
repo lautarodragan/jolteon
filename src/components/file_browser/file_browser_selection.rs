@@ -108,7 +108,13 @@ fn dir_entry_to_file_browser_selection(entry: &DirEntry) -> Option<FileBrowserSe
     if dir_entry_is_dir(&entry) {
         Some(FileBrowserSelection::Directory(entry.path()))
     } else if dir_entry_is_song(&entry) {
-        Some(FileBrowserSelection::Song(Song::from_file(&entry.path()).unwrap()))
+        match Song::from_file(&entry.path()).map(FileBrowserSelection::Song) {
+            Ok(a) => Some(a),
+            Err(err) => {
+                log::warn!("dir_entry_to_file_browser_selection {:#?} {:#?}", &entry.path(), err);
+                None
+            },
+        }
     } else if dir_entry_is_cue(&entry) {
         Some(FileBrowserSelection::CueSheet(CueSheet::from_file(&entry.path()).unwrap()))
     } else {
