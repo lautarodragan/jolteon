@@ -86,6 +86,15 @@ impl<'a> App<'a> {
                 }
             }
         });
+        library.on_select_songs_fn({
+            let player = player.clone();
+            let library = library.clone();
+
+            move |songs| {
+                player.enqueue_songs(songs);
+                library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)); // hackish way to "select_next()"
+            }
+        });
 
         let playlist = Arc::new(ui::Playlists::new(config.theme, state.playlists));
         playlist.on_select({

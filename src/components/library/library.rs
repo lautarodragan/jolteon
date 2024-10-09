@@ -18,7 +18,8 @@ use crate::{
     cue::CueSheet,
     ui::KeyboardHandlerRef,
 };
-use super::song_list::SongList;
+
+use super::{song_list::SongList, artist_list::ArtistList};
 
 #[derive(Eq, PartialEq)]
 #[repr(u8)]
@@ -56,9 +57,9 @@ impl AtomicLibraryScreenElement {
 pub struct Library<'a> {
     pub(super) theme: Theme,
 
-    pub(super) artists: Arc<Mutex<Vec<String>>>,
-    pub(super) songs: Mutex<HashMap<String, Vec<Song>>>,
-    pub(super) song_list: SongList<'a>,
+    pub(super) songs: Rc<Mutex<HashMap<String, Vec<Song>>>>,
+    pub(super) song_list: Rc<SongList<'a>>,
+    pub(super) artist_list: Rc<ArtistList<'a>>,
 
     focused_element: AtomicLibraryScreenElement,
 
@@ -66,6 +67,7 @@ pub struct Library<'a> {
     pub(super) selected_song_index: AtomicUsize,
 
     pub(super) on_select_fn: Rc<Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>>,
+    pub(super) on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>>,
 
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
@@ -74,8 +76,59 @@ pub struct Library<'a> {
 impl<'a> Library<'a> {
     pub fn new(theme: Theme, songs: Vec<Song>) -> Self {
         let on_select_fn: Rc<Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
+        let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
-        let song_list = SongList::new(theme);
+        let song_map = Rc::new(Mutex::new(HashMap::<String, Vec<Song>>::new()));
+        let artist_list = Rc::new(ArtistList::new(theme));
+        let song_list = Rc::new(SongList::new(theme));
+
+        artist_list.on_select({
+            let songs = song_map.clone();
+            let song_list = song_list.clone();
+
+            move |artist| {
+                log::trace!(target: "::library.artist_list.on_select", "artist selected {:?}", artist);
+
+                let songs = songs.lock().unwrap();
+                let artist_songs = songs.get(artist.as_str()).unwrap();
+                let artist_songs = artist_songs.iter().map(|s| s.clone()).collect();
+                song_list.set_songs(artist_songs);
+            }
+        });
+
+        artist_list.on_confirm({
+            let songs = song_map.clone();
+            let on_select_songs_fn = on_select_songs_fn.clone();
+
+            move |artist| {
+                log::trace!(target: "::library.artist_list.on_confirm", "artist confirmed {:?}", artist);
+
+                let songs = {
+                    let songs = songs.lock().unwrap();
+                    let Some(songs) = songs.get(artist.as_str()) else {
+                        log::warn!(target: "::library.artist_list.on_confirm", "no songs for artist {:?}", artist);
+                        return;
+                    };
+
+                    songs.iter().map(|s| s.clone()).collect()
+                };
+
+                on_select_songs_fn.lock().unwrap()(songs);
+
+            }
+        });
+
+        artist_list.on_delete({
+            let songs = song_map.clone();
+
+            move |artist| {
+                log::trace!(target: "::library.artist_list.on_delete", "artist deleted {:?}", artist);
+
+                let mut songs = songs.lock().unwrap();
+                songs.remove(artist.as_str());
+            }
+        });
+
         song_list.on_select({
             let on_select_fn = on_select_fn.clone();
             move |(song, key)| {
@@ -91,10 +144,11 @@ impl<'a> Library<'a> {
             focused_element: AtomicLibraryScreenElement::new(),
 
             on_select_fn,
+            on_select_songs_fn,
 
-            artists: Arc::new(Mutex::new(vec![])),
-            songs: Mutex::new(HashMap::new()),
+            songs: song_map,
             song_list,
+            artist_list,
 
             selected_artist_index: AtomicUsize::new(0),
             selected_song_index: AtomicUsize::new(0),
@@ -118,6 +172,10 @@ impl<'a> Library<'a> {
 
     pub fn on_select(&self, cb: impl FnMut((Song, KeyEvent)) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
+    }
+
+    pub fn on_select_songs_fn(&self, cb: impl FnMut(Vec<Song>) + 'a) {
+        *self.on_select_songs_fn.lock().unwrap() = Box::new(cb);
     }
 
     pub fn songs(&self) -> Vec<Song> {
@@ -179,7 +237,7 @@ impl<'a> Library<'a> {
             songs.insert(artist.clone(), vec![song]);
         }
 
-        let mut artists = self.artists.lock().unwrap();
+        let mut artists = self.artist_list.artists.lock().unwrap();
 
         if !artists.contains(&artist) {
             (*artists).push(artist.clone());

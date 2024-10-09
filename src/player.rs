@@ -318,6 +318,10 @@ impl Player {
         self.queue_items.add_back(song);
     }
 
+    pub fn enqueue_songs(&self, songs: Vec<Song>) {
+        self.queue_items.append(&mut std::collections::VecDeque::from(songs));
+    }
+
     pub fn enqueue_cue(&self, cue_sheet: CueSheet) {
         let songs = Song::from_cue_sheet(cue_sheet);
         self.queue_items.append(&mut std::collections::VecDeque::from(songs));
