@@ -63,9 +63,6 @@ pub struct Library<'a> {
 
     focused_element: AtomicLibraryScreenElement,
 
-    pub(super) selected_artist_index: AtomicUsize,
-    pub(super) selected_song_index: AtomicUsize,
-
     pub(super) on_select_fn: Rc<Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>>,
     pub(super) on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>>,
 
@@ -87,11 +84,22 @@ impl<'a> Library<'a> {
             let song_list = song_list.clone();
 
             move |artist| {
-                log::trace!(target: "::library.artist_list.on_select", "artist selected {:?}", artist);
+                log::trace!(target: "::library.artist_list.on_select", "artist selected {artist}");
 
-                let songs = songs.lock().unwrap();
-                let artist_songs = songs.get(artist.as_str()).unwrap();
-                let artist_songs = artist_songs.iter().map(|s| s.clone()).collect();
+                let artist_songs = {
+                    let songs = songs.lock().unwrap();
+
+                    match songs.get(artist.as_str()) {
+                        Some(artist_songs) => {
+                            artist_songs.clone()
+                        }
+                        None => {
+                            log::error!(target: "::library.artist_list.on_select", "artist with no songs {artist}");
+                            vec![]
+                        }
+                    }
+                };
+
                 song_list.set_songs(artist_songs);
             }
         });
@@ -149,9 +157,6 @@ impl<'a> Library<'a> {
             songs: song_map,
             song_list,
             artist_list,
-
-            selected_artist_index: AtomicUsize::new(0),
-            selected_song_index: AtomicUsize::new(0),
 
             offset: AtomicUsize::new(0),
             height: AtomicUsize::new(0),
@@ -237,29 +242,15 @@ impl<'a> Library<'a> {
             songs.insert(artist.clone(), vec![song]);
         }
 
-        let mut artists = self.artist_list.artists.lock().unwrap();
+        self.artist_list.add_artist(artist.clone());
 
-        if !artists.contains(&artist) {
-            (*artists).push(artist.clone());
-        }
-
-        artists.sort_unstable();
-
-        let Some(selected_artist) = artists.get(self.selected_song_index.load(AtomicOrdering::SeqCst)) else {
-            return;
-        };
-
-        if artist != *selected_artist {
+        if artist != self.artist_list.selected_artist() {
             return;
         }
 
-        let Some(artist_songs) = songs.get(artist.as_str()) else {
-            log::error!("No song list for {artist}! This is an error: we should always have a Vec<Song>, even if empty.");
-            return;
-        };
-
-        // Cloning the song list once per key press is probably more performant than dealing with Rc's, WeakRef's and whatnot.
-        let artist_songs = artist_songs.iter().map(|s| s.clone()).collect();
+        let artist_songs = songs.get(artist.as_str())
+            .unwrap() // Safe because we just added it, and we still have the lock on songs.
+            .clone();
         self.song_list.set_songs(artist_songs);
     }
 

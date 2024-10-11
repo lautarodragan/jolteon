@@ -18,8 +18,10 @@ use crate::{
 pub struct ArtistList<'a> {
     pub(super) theme: Theme,
 
-    pub artists: Mutex<Vec<String>>,
+    pub(super) artists: Mutex<Vec<String>>,
     pub(super) selected_index: AtomicUsize,
+
+    pub(super) filter: Mutex<String>,
 
     pub(super) on_select_fn: Mutex<Box<dyn FnMut(String) + 'a>>,
     pub(super) on_confirm_fn: Mutex<Box<dyn FnMut(String) + 'a>>,
@@ -40,6 +42,8 @@ impl<'a> ArtistList<'a> {
 
             artists: Mutex::new(Vec::new()),
             selected_index: AtomicUsize::new(0),
+
+            filter: Mutex::new(String::new()),
 
             offset: AtomicUsize::new(0),
             height: AtomicUsize::new(0),
@@ -73,6 +77,16 @@ impl<'a> ArtistList<'a> {
         }
 
         artists[i].clone()
+    }
+
+    pub fn add_artist(&self, artist: String) {
+        let mut artists = self.artists.lock().unwrap();
+
+        if !artists.contains(&artist) {
+            (*artists).push(artist.clone());
+        }
+
+        artists.sort_unstable();
     }
 }
 

@@ -44,23 +44,29 @@ impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
             },
             KeyCode::Char(char) => {
                 let artists = self.artists.lock().unwrap();
-                let char_up = char.to_lowercase().to_string();
-                let char_low = char.to_uppercase().to_string();
+                let mut filter = self.filter.lock().unwrap();
 
-                let Some(i) = artists.iter().position(|a|
-                    a.starts_with(char) ||
-                    a.starts_with(char_up.as_str()) ||
-                    a.starts_with(char_low.as_str())
+                filter.push(char);
+                let filter_low = filter.to_lowercase().to_string();
+
+                let Some(i) = artists.iter().position(|artist|
+                    artist.contains(filter.as_str()) ||
+                        artist.to_lowercase().contains(filter_low.as_str())
                 ) else {
                     return false;
                 };
 
                 self.selected_index.store(i, Ordering::SeqCst);
-
                 let artist = artists[i].clone();
+
                 drop(artists);
+                drop(filter);
 
                 self.on_select_fn.lock().unwrap()(artist);
+            }
+            KeyCode::Esc => {
+                let mut filter = self.filter.lock().unwrap();
+                filter.clear();
             }
             _ => {},
         }

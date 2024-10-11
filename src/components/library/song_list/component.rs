@@ -49,6 +49,8 @@ impl<'a> SongList<'a> {
     }
 
     pub fn set_songs(&self, songs: Vec<Song>) {
+        self.selected_song_index.store(0, AtomicOrdering::SeqCst);
+        self.offset.store(0, AtomicOrdering::SeqCst);
         *self.songs.lock().unwrap() = songs;
     }
 }
