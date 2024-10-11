@@ -72,6 +72,10 @@ impl<'a> ArtistList<'a> {
         self.selected_artist.lock().unwrap().clone()
     }
 
+    pub fn set_selected_artist(&self, artist: String) {
+        *self.selected_artist.lock().unwrap() = artist;
+    }
+
     pub fn add_artist(&self, artist: String) {
         let mut artists = self.artists.lock().unwrap();
 
@@ -88,8 +92,7 @@ impl<'a> ArtistList<'a> {
             self.selected_index.store(0, AtomicOrdering::SeqCst);
         }
 
-        let mut selected_artist = self.selected_artist.lock().unwrap();
-        *selected_artist = artists[selected_artist_index].clone();
+        self.set_selected_artist(artists[selected_artist_index].clone())
     }
 }
 
