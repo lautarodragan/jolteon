@@ -70,6 +70,38 @@ pub struct Library<'a> {
     pub(super) height: AtomicUsize,
 }
 
+impl Ord for Song {
+    fn cmp(&self, b: &Self) -> Ordering {
+        match (&self.album, &b.album) {
+            (Some(album_a), Some(album_b)) if album_a == album_b => {
+                match (&self.track, &b.track) {
+                    (Some(a), Some(b)) => a.cmp(b),
+                    (Some(_), None) => Ordering::Greater,
+                    (None, Some(_)) => Ordering::Less,
+                    _ => self.title.cmp(&b.title),
+                }
+            },
+            (Some(album_a), Some(album_b)) if album_a != album_b => {
+                match (self.year, b.year) {
+                    (Some(ref year_a), Some(ref year_b)) => {
+                        year_a.cmp(year_b)
+                    }
+                    _ => album_a.cmp(album_b)
+                }
+            },
+            (Some(_), None) => Ordering::Greater,
+            (None, Some(_)) => Ordering::Less,
+            _ => self.title.cmp(&b.title)
+        }
+    }
+}
+
+impl PartialOrd for Song {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl<'a> Library<'a> {
     pub fn new(theme: Theme, songs: Vec<Song>) -> Self {
         let on_select_fn: Rc<Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
@@ -196,47 +228,24 @@ impl<'a> Library<'a> {
     }
 
     pub fn add_songs(&self, songs: Vec<Song>) {
+        // TODO: anything but this
         for song in songs {
             self.add_song(song);
         }
     }
 
     pub fn add_song(&self, song: Song) {
-        // log::debug!(target: "::library.add_song", "{:?}", song);
-
-        let mut songs = self.songs.lock().unwrap();
-
         let Some(artist) = song.artist.clone() else {
             log::error!("Library.add_song() -> no artist! {:?}", song);
             return;
         };
 
+        let mut songs = self.songs.lock().unwrap();
+
         if let Some(mut x) = songs.get_mut(&artist) {
             if !x.iter().any(|s| s.path == song.path && s.title == song.title) {
                 x.push(song);
-                x.sort_by(|a, b| {
-                    match (&a.album, &b.album) {
-                        (Some(album_a), Some(album_b)) if album_a == album_b => {
-                            match (&a.track, &b.track) {
-                                (Some(a), Some(b)) => a.cmp(b),
-                                (Some(_), None) => Ordering::Greater,
-                                (None, Some(_)) => Ordering::Less,
-                                _ => a.title.cmp(&b.title),
-                            }
-                        },
-                        (Some(album_a), Some(album_b)) if album_a != album_b => {
-                            match (a.year, b.year) {
-                                (Some(ref year_a), Some(ref year_b)) => {
-                                    year_a.cmp(year_b)
-                                }
-                                _ => album_a.cmp(album_b)
-                            }
-                        },
-                        (Some(_), None) => Ordering::Greater,
-                        (None, Some(_)) => Ordering::Less,
-                        _ => a.title.cmp(&b.title)
-                    }
-                })
+                x.sort();
             }
         } else {
             songs.insert(artist.clone(), vec![song]);
@@ -244,14 +253,13 @@ impl<'a> Library<'a> {
 
         self.artist_list.add_artist(artist.clone());
 
-        if artist != self.artist_list.selected_artist() {
-            return;
+        if *self.artist_list.selected_artist() == artist {
+            let artist_songs = songs.get(artist.as_str())
+                .unwrap() // Safe because we just added it, and we still have the lock on songs.
+                .clone();
+            self.song_list.set_songs(artist_songs);
         }
 
-        let artist_songs = songs.get(artist.as_str())
-            .unwrap() // Safe because we just added it, and we still have the lock on songs.
-            .clone();
-        self.song_list.set_songs(artist_songs);
     }
 
     pub fn add_cue(&self, cue_sheet: CueSheet) {

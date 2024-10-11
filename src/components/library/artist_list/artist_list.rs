@@ -20,6 +20,7 @@ pub struct ArtistList<'a> {
 
     pub(super) artists: Mutex<Vec<String>>,
     pub(super) selected_index: AtomicUsize,
+    pub(super) selected_artist: Mutex<String>,
 
     pub(super) filter: Mutex<String>,
 
@@ -42,6 +43,7 @@ impl<'a> ArtistList<'a> {
 
             artists: Mutex::new(Vec::new()),
             selected_index: AtomicUsize::new(0),
+            selected_artist: Mutex::new("".to_string()),
 
             filter: Mutex::new(String::new()),
 
@@ -67,16 +69,7 @@ impl<'a> ArtistList<'a> {
     }
 
     pub fn selected_artist(&self) -> String {
-        let artists = self.artists.lock().unwrap();
-
-        let i = self.selected_index.load(AtomicOrdering::SeqCst);
-
-        if i >= artists.len() {
-            log::error!(target: "::ArtistList.selected_artist()", "selected_index > artists.len");
-            return "".to_string();
-        }
-
-        artists[i].clone()
+        self.selected_artist.lock().unwrap().clone()
     }
 
     pub fn add_artist(&self, artist: String) {
@@ -87,6 +80,16 @@ impl<'a> ArtistList<'a> {
         }
 
         artists.sort_unstable();
+
+        let mut selected_artist_index = self.selected_index.load(AtomicOrdering::SeqCst);
+
+        if selected_artist_index > artist.len().saturating_sub(1) {
+            selected_artist_index = 0;
+            self.selected_index.store(0, AtomicOrdering::SeqCst);
+        }
+
+        let mut selected_artist = self.selected_artist.lock().unwrap();
+        *selected_artist = artists[selected_artist_index].clone();
     }
 }
 

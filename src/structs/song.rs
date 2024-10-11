@@ -11,7 +11,7 @@ use crate::{
     components::{FileBrowserSelection, directory_to_songs_and_folders},
 };
 
-#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Song {
     pub path: PathBuf,
     pub start_time: Duration,
@@ -26,6 +26,12 @@ pub struct Song {
 impl Song {
     pub fn from_file(path: &PathBuf) -> Result<Self, LoftyError> {
         let tagged_file = Probe::open(path)?.read()?;
+
+        // for tag in tagged_file.tags() {
+        //     for tag_item in tag.items() {
+        //         log::debug!("tag_item {:?}", tag_item);
+        //     }
+        // }
 
         let (artist, album, title, track, year) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
