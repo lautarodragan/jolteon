@@ -29,18 +29,17 @@ impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
 
                 let removed_artist = artists.remove(i);
 
-                self.on_delete_fn.lock().unwrap()(removed_artist);
-
                 let i = i.saturating_sub(1).min(artists.len().saturating_sub(1));
 
                 self.selected_index.store(i, Ordering::SeqCst);
-                self.offset.store(0, Ordering::SeqCst); // TODO: fix me
+                self.offset.store(0, Ordering::SeqCst); // TODO: fix me (sub by one)
 
                 let artist = artists[i].clone();
                 self.set_selected_artist(artist.clone());
 
                 drop(artists);
 
+                self.on_delete_fn.lock().unwrap()(removed_artist);
                 self.on_select_fn.lock().unwrap()(artist);
             },
             KeyCode::Char(char) => {
