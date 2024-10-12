@@ -53,21 +53,6 @@ impl<'a> ArtistList<'a> {
         }
     }
 
-    pub fn set_selected_index(&self, mut i: usize, artists: &Vec<String>) -> String {
-        // TODO: optional i, defaulting to self.selected_index.load(...), but ergonomically?
-        // TODO: handling self.offset.store(...) here, but optionally and ergonomically?
-        // I do miss function overloads :|
-        if i > artists.len().saturating_sub(1) {
-            log::error!("artist_list.set_selected_index({}): i > artists.len()", i);
-            i = 0;
-        }
-
-        self.selected_index.store(i, AtomicOrdering::SeqCst);
-        let selected_artist = artists[i].clone();
-        self.set_selected_artist(selected_artist.clone());
-        selected_artist
-    }
-
     pub fn on_select(&self, cb: impl FnMut(String) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
     }
@@ -101,8 +86,9 @@ impl<'a> ArtistList<'a> {
 
         artists.sort_unstable();
 
-        let selected_artist_index = self.selected_index.load(AtomicOrdering::SeqCst);
-        self.set_selected_index(selected_artist_index, &artists);
+        let i = self.selected_index.load(AtomicOrdering::SeqCst);
+        let selected_artist = artists[i].clone();
+        *self.selected_artist.lock().unwrap() = selected_artist;
     }
 }
 

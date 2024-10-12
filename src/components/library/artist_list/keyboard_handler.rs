@@ -24,39 +24,44 @@ impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
                 self.on_confirm_fn.lock().unwrap()(artist);
             },
             KeyCode::Delete => {
-                let mut artists = self.artists.lock().unwrap();
-                let i = self.selected_index.load(Ordering::SeqCst);
+                let (removed_artist, selected_artist) = {
+                    let i = self.selected_index.load(Ordering::SeqCst);
+                    let mut artists = self.artists.lock().unwrap();
+                    let removed_artist = artists.remove(i);
 
-                let removed_artist = artists.remove(i);
+                    let i = i.min(artists.len().saturating_sub(1));
+                    self.selected_index.store(i, Ordering::SeqCst);
 
-                let i = i.saturating_sub(1).min(artists.len().saturating_sub(1));
+                    let selected_artist = artists[i].clone();
+                    *self.selected_artist.lock().unwrap() = selected_artist.clone();
+                    self.offset.store(0, Ordering::SeqCst); // TODO: fix me (sub by one)
 
-                let artist = self.set_selected_index(i, &artists);
-                self.offset.store(0, Ordering::SeqCst); // TODO: fix me (sub by one)
-
-                drop(artists);
-
-                self.on_delete_fn.lock().unwrap()(removed_artist);
-                self.on_select_fn.lock().unwrap()(artist);
-            },
-            KeyCode::Char(char) => {
-                let artists = self.artists.lock().unwrap();
-                let mut filter = self.filter.lock().unwrap();
-
-                filter.push(char);
-                let filter_low = filter.to_lowercase().to_string();
-
-                let Some(i) = artists.iter().position(|artist|
-                    artist.contains(filter.as_str()) ||
-                        artist.to_lowercase().contains(filter_low.as_str())
-                ) else {
-                    return false;
+                    (removed_artist, selected_artist)
                 };
 
-                let artist = self.set_selected_index(i, &artists);
+                self.on_delete_fn.lock().unwrap()(removed_artist);
+                self.on_select_fn.lock().unwrap()(selected_artist);
+            },
+            KeyCode::Char(char) => {
+                let artist = {
+                    let artists = self.artists.lock().unwrap();
+                    let mut filter = self.filter.lock().unwrap();
 
-                drop(artists);
-                drop(filter);
+                    filter.push(char);
+                    let filter_low = filter.to_lowercase().to_string();
+
+                    let Some(i) = artists.iter().position(|artist|
+                        artist.contains(filter.as_str()) ||
+                            artist.to_lowercase().contains(filter_low.as_str())
+                    ) else {
+                        return false;
+                    };
+
+                    self.selected_index.store(i, Ordering::SeqCst);
+                    let artist = artists[i].clone();
+                    *self.selected_artist.lock().unwrap() = artist.clone();
+                    artist
+                };
 
                 self.on_select_fn.lock().unwrap()(artist);
             }
@@ -122,7 +127,9 @@ impl<'a> ArtistList<'a> {
         i = i.min(length - 1).max(0);
 
         self.offset.store(offset as usize, Ordering::SeqCst);
-        self.set_selected_index(i as usize, &artists);
+        self.selected_index.store(i as usize, Ordering::SeqCst);
+        let selected_artist = artists[i as usize].clone();
+        *self.selected_artist.lock().unwrap() = selected_artist;
 
     }
 
