@@ -53,7 +53,7 @@ impl<'a> ArtistList<'a> {
         }
     }
 
-    pub fn set_selected_index(&self, mut i: usize, artists: &MutexGuard<Vec<String>>) -> String {
+    pub fn set_selected_index(&self, mut i: usize, artists: &Vec<String>) -> String {
         // TODO: optional i, defaulting to self.selected_index.load(...), but ergonomically?
         // TODO: handling self.offset.store(...) here, but optionally and ergonomically?
         // I do miss function overloads :|

@@ -21,6 +21,8 @@ The best music player for local files.
 
 Jolteon, the best music player for local files.
 
+Warning: this project is under heavy development.
+
 ## Installation
 
 *Tested only on Linux*
@@ -46,9 +48,11 @@ cargo run --release
 ## Features
 
 - Media library
+  - Search/Filter in the artist list. Just start typing. Press `Esc` to clear the filter.
+  - Soon, full-library search will be added. The only challenge here is coming up with great UI and UX for this feature — the code itself is simple and most of what's needed is already implemented.
 - Playlists
 - File Browser
-- Search/Filter in File Browser (Ctrl+F)
+  - Search/Filter in File Browser (Ctrl+F)
 - Playing Queue
 - `.cue` sheet file support
 - Customizable color themes
@@ -61,7 +65,7 @@ cargo run --release
   - The current directory of the browser
   - The queue
   - Current song (coming soon)
-- Safe handling of application crashes, restoring the terminal to its normal state.
+- Safe handling of application crashes, restoring the terminal to its normal state, thread hygiene (all threads joined on exit) 
 - A clock on the top bar :)
 
 ### Upcoming
@@ -102,6 +106,12 @@ Jolteon will offer an option to "override" the metadata of these files, either b
 
 This will also help in cases where a media tag or cue sheet entry may have invalid data (such as non-utf encoding), which Jolteon will usually default to an empty string.
 
+### Album Covers
+
+Kitty supports full-resolution, full-color images. It shouldn't be particularly hard to add this feature.
+
+I'll have to figure out the best UI and UX for this, and probably make it optional/configurable.
+
 ## Supported Audio Formats
 
 The following formats should work: `aac`, `flac`, `mp3`, `mp4`, `m4a`, `ogg`, `wav`.
@@ -110,8 +120,16 @@ Jolteon uses Rodeo to play music, with the symphonia backend.
 
 I mainly use `flac` files, and some `mp3`. Other formats aren't usually tested.
 
-So far, I've only found an issue with one flac file, which fails to perform seeks, and, after a few seconds of playback, causes the cpal thread to panic, crashing Jolteon. 
+### Codec Issues
+
+So far, I've only found _one_ issue with _one_ flac file, which fails to perform seeks, and, after a few seconds of playback, causes the cpal thread to panic, crashing Jolteon. 
 This same file does run well with `mpv`. It does report errors reading it, but it still recovers well from them, and is able to seek without issues.
+
+I tried switching the flac backend, but got even worse results. I looked into using [libmpv](https://github.com/mpv-player/mpv-examples/tree/master/libmpv) and [libavcodec](https://www.ffmpeg.org/libavcodec.html), which, in my mind, are pretty much guaranteed to be more stable, but switching to them is far from trivial.
+
+Figuring out the specific bug in the flac codes built in pure Rust is probably an easier and more reasonable path forward.
+
+And Jolteon shouldn't crash if the audio playback crashes, but that's a story for another day.
 
 ## Customization
 
