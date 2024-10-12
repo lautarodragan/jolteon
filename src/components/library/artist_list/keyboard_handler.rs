@@ -31,11 +31,8 @@ impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
 
                 let i = i.saturating_sub(1).min(artists.len().saturating_sub(1));
 
-                self.selected_index.store(i, Ordering::SeqCst);
+                let artist = self.set_selected_index(i, &artists);
                 self.offset.store(0, Ordering::SeqCst); // TODO: fix me (sub by one)
-
-                let artist = artists[i].clone();
-                self.set_selected_artist(artist.clone());
 
                 drop(artists);
 
@@ -56,8 +53,7 @@ impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
                     return false;
                 };
 
-                self.selected_index.store(i, Ordering::SeqCst);
-                let artist = artists[i].clone();
+                let artist = self.set_selected_index(i, &artists);
 
                 drop(artists);
                 drop(filter);
@@ -126,11 +122,8 @@ impl<'a> ArtistList<'a> {
         i = i.min(length - 1).max(0);
 
         self.offset.store(offset as usize, Ordering::SeqCst);
-        self.selected_index.store(i as usize, Ordering::SeqCst);
+        self.set_selected_index(i as usize, &artists);
 
-        let selected_artist = artists[i as usize].clone();
-
-        self.set_selected_artist(selected_artist);
     }
 
 }
