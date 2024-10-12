@@ -96,7 +96,7 @@ impl<'a> ArtistList<'a> {
         let mut artists = self.artists.lock().unwrap();
 
         if !artists.contains(&artist) {
-            (*artists).push(artist.clone());
+            artists.push(artist.clone());
         }
 
         artists.sort_unstable();
