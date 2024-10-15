@@ -5,10 +5,7 @@ use std::{
 
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::{
-    structs::Queue,
-    config::{Theme},
-};
+use crate::config::Theme;
 
 use super::file_browser_selection::{
     FileBrowserSelection,
@@ -23,8 +20,6 @@ pub struct FileBrowser<'a> {
     pub(super) selected_index: usize,
     pub(super) filter: Option<String>,
 
-    pub(super) queue_items: Arc<Queue>,
-
     pub(super) theme: Theme,
     padding: usize,
     pub(super) height: Mutex<usize>,
@@ -32,7 +27,7 @@ pub struct FileBrowser<'a> {
 }
 
 impl<'a> FileBrowser<'a> {
-    pub fn new(theme: Theme, current_directory: PathBuf, queue_items: Arc<Queue>) -> Self {
+    pub fn new(theme: Theme, current_directory: PathBuf) -> Self {
         let items = directory_to_songs_and_folders(&current_directory);
 
         Self {
@@ -42,8 +37,6 @@ impl<'a> FileBrowser<'a> {
             items,
             selected_index: 0,
             filter: None,
-
-            queue_items,
 
             theme,
             padding: 6,

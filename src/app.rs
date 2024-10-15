@@ -8,13 +8,14 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    prelude::{Style, Widget},
-    widgets::{Block, WidgetRef},
+    prelude::{Style, Widget, Modifier},
+    widgets::{Block, WidgetRef, List, ListState, StatefulWidget},
 };
 use rodio::OutputStream;
 
 use crate::{
-    config::Config,
+    config::{Config, Theme},
+    structs::Queue,
     player::Player,
     state::State,
     term::set_terminal,
@@ -32,8 +33,9 @@ pub enum FocusedElement {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppTab {
-    Library = 0,
+    Library,
     Playlists,
+    Queue,
     FileBrowser,
     Help,
 }
@@ -47,7 +49,6 @@ pub struct App<'a> {
     player_command_receiver: Arc<Mutex<Receiver<Command>>>,
     media_rec_t: Option<JoinHandle<()>>,
 
-    focused_element: FocusedElement,
     target: Option<KeyboardHandler<'a>>,
     active_tab: AppTab,
 
@@ -108,14 +109,14 @@ impl<'a> App<'a> {
             }
         });
 
-        let mut browser = FileBrowser::new(config.theme, current_directory, player.queue());
+        let mut browser = FileBrowser::new(config.theme, current_directory);
         browser.on_select({
             let player = player.clone();
             let playlists = playlist.clone();
             let media_library = Arc::clone(&library);
 
             move |(s, key_event)| {
-                Self::on_file_browser_key(player.as_ref(), playlists.as_ref(), media_library.as_ref(), s, key_event);
+                Self::on_file_browser_select(player.as_ref(), playlists.as_ref(), media_library.as_ref(), s, key_event);
             }
         });
 
@@ -128,7 +129,6 @@ impl<'a> App<'a> {
             player_command_receiver: Arc::new(Mutex::new(player_command_receiver)),
             media_rec_t: None,
 
-            focused_element: FocusedElement::Browser,
             target: Some(KeyboardHandler::Ref(library.clone())),
             active_tab: AppTab::Library,
 
@@ -224,7 +224,7 @@ impl<'a> App<'a> {
         self.media_rec_t = Some(t);
     }
 
-    fn on_file_browser_key(
+    fn on_file_browser_select(
         player: &Player,
         playlists: &ui::Playlists,
         media_library: &Library,
@@ -314,7 +314,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
     fn on_key(&mut self, key: KeyEvent) -> bool {
         let mut handled = true;
 
-        let focus_trapped = self.focused_element == FocusedElement::Browser && self.file_browser().filter().is_some();
+        let focus_trapped = false; // TODO: bring back focus trap, but properly
         if !focus_trapped {
             match key.code {
                 KeyCode::Right => self.player.seek_forward(),
@@ -336,33 +336,16 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                     self.target = Some(KeyboardHandler::Ref(self.playlist.clone()));
                 }
                 KeyCode::Char('3') => {
+                    self.active_tab = AppTab::Queue;
+                    self.target = Some(KeyboardHandler::Ref(self.player.clone()));
+                }
+                KeyCode::Char('4') => {
                     self.active_tab = AppTab::FileBrowser;
                     self.target = Some(KeyboardHandler::Mut(self.browser.clone()));
                 }
-                KeyCode::Char('4') => {
+                KeyCode::Char('5') => {
                     self.active_tab = AppTab::Help;
                     self.target = Some(KeyboardHandler::Mut(self.help_tab.clone()));
-                }
-                KeyCode::Tab if self.active_tab == AppTab::FileBrowser && self.file_browser().filter().is_none() => {
-                    self.focused_element = match self.focused_element {
-                        FocusedElement::Browser => FocusedElement::Queue,
-                        _ => FocusedElement::Browser,
-                    };
-
-                    // TODO: focus/blur colors
-                    match self.focused_element {
-                        FocusedElement::Browser => {
-                            self.file_browser().focus();
-                            // self.player.queue().set_focus(false);
-                            self.target = Some(KeyboardHandler::Mut(self.browser.clone()));
-                        }
-                        FocusedElement::Queue => {
-                            self.file_browser().blur();
-                            // self.player.queue().set_focus(true);
-                            self.player.queue().select_next();
-                            self.target = Some(KeyboardHandler::Ref(self.player.clone()));
-                        }
-                    };
                 }
                 _ => {
                     handled = false;
@@ -404,6 +387,17 @@ impl<'a> WidgetRef for &App<'a> {
             },
             AppTab::Playlists => {
                 self.playlist.render_ref(area_center, buf);
+            },
+            AppTab::Queue => {
+                // TODO: queue component
+                let queue = self.player.queue();
+                let ql = queue_list(&self.config.theme, &*queue);
+                StatefulWidget::render(
+                    ql,
+                    area_center,
+                    buf,
+                    &mut ListState::default().with_selected(Some(queue.selected_song_index()))
+                );
             },
             AppTab::FileBrowser => {
                 let file_browser = self.browser.lock().unwrap();
@@ -447,4 +441,21 @@ impl Drop for App<'_> {
 
         log::trace!("media_key_rx thread joined successfully");
     }
+}
+
+// TODO: queue component
+fn queue_list<'a>(theme: &Theme, queue_items: &Queue) -> List<'a> {
+    let queue_items: Vec<String> = queue_items.songs().iter().map(ui::song_to_string).collect();
+
+    let queue_list = List::new(queue_items)
+        .style(Style::default().fg(theme.foreground))
+        .highlight_style(
+            Style::default()
+                .bg(theme.background_selected)
+                .fg(theme.foreground_selected)
+                .add_modifier(Modifier::BOLD),
+        )
+        .highlight_symbol("");
+
+    queue_list
 }
