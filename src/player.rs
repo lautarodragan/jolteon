@@ -21,10 +21,11 @@ use rodio::OutputStreamHandle;
 
 use crate::{
     cue::CueSheet,
-    structs::{Queue, Song},
+    structs::Song,
     source::{Source, Controls},
     ui::{KeyboardHandlerRef, CurrentlyPlaying},
     config::Theme,
+    components::Queue,
 };
 
 pub struct Player {
@@ -57,14 +58,14 @@ enum Command {
 }
 
 impl Player {
-    pub fn new(queue: Vec<Song>, output_stream: OutputStreamHandle, theme: Theme) -> Self {
+    pub fn new(queue: Arc<Queue>, output_stream: OutputStreamHandle, theme: Theme) -> Self {
         let (command_sender, command_receiver) = channel();
 
         Self {
             output_stream,
             main_thread: Mutex::new(None),
 
-            queue_items: Arc::new(Queue::new(queue)),
+            queue_items: queue,
             currently_playing: Arc::new(Mutex::new(None)),
             currently_playing_start_time: Arc::new(AtomicU64::new(0)),
             command_sender: Some(command_sender),
@@ -86,10 +87,6 @@ impl Player {
                 log::warn!("Player.send_command() failure: {:?}", err);
             }
         });
-    }
-
-    pub fn queue(&self) -> Arc<Queue> {
-        self.queue_items.clone()
     }
 
     pub fn get_pos(&self) -> Duration {
@@ -329,19 +326,6 @@ impl Player {
         }
     }
 
-    pub fn enqueue_song(&self, song: Song) {
-        self.queue_items.add_back(song);
-    }
-
-    pub fn enqueue_songs(&self, songs: Vec<Song>) {
-        self.queue_items.append(&mut std::collections::VecDeque::from(songs));
-    }
-
-    pub fn enqueue_cue(&self, cue_sheet: CueSheet) {
-        let songs = Song::from_cue_sheet(cue_sheet);
-        self.queue_items.append(&mut std::collections::VecDeque::from(songs));
-    }
-
     pub fn toggle(&self) {
         if self.pause.load(Ordering::SeqCst) {
             self.send_command(Command::Play);
@@ -391,7 +375,6 @@ impl Drop for Player {
 
         self.send_command(Command::Quit);
         // TODO: break out of wait_until_song_ends loop?
-        self.queue_items.quit();
 
         if let Some(thread) = self.main_thread.lock().unwrap().take() {
             log::trace!("Player.drop: joining main_thread thread");
@@ -408,23 +391,6 @@ impl Drop for Player {
         }
 
         log::trace!("Player.drop()'ed");
-    }
-}
-
-impl KeyboardHandlerRef<'_> for Player {
-    fn on_key(&self, key: KeyEvent) -> bool {
-        match key.code {
-            KeyCode::Enter => {
-                if let Some(song) = self.queue().selected_song() {
-                    self.play_song(song);
-                };
-            }
-            KeyCode::Down | KeyCode::Char('j') => self.queue().select_next(),
-            KeyCode::Up | KeyCode::Char('k') => self.queue().select_previous(),
-            KeyCode::Delete => self.queue().remove_selected(),
-            _ => {}
-        };
-        true
     }
 }
 

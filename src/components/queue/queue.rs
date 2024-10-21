@@ -5,9 +5,14 @@ use std::sync::{
 use std::time::Duration;
 use std::collections::VecDeque;
 
-use crate::structs::Song;
+use crate::{
+    config::Theme,
+    structs::Song,
+};
 
 pub struct Queue {
+    pub(super) theme: Theme,
+
     songs: Arc<Mutex<VecDeque<Song>>>,
     selected_item_index: AtomicUsize,
 
@@ -23,12 +28,14 @@ fn song_list_to_duration(items: &VecDeque<Song>) -> Duration {
 }
 
 impl Queue {
-    pub fn new(songs: Vec<Song>) -> Self {
+    pub fn new(songs: Vec<Song>, theme: Theme) -> Self {
         let songs = VecDeque::from(songs);
         let queue_length = AtomicUsize::new(songs.len());
         let total_time = song_list_to_duration(&songs);
 
         Self {
+            theme,
+
             songs: Arc::new(Mutex::new(songs)),
             selected_item_index: AtomicUsize::new(0),
 

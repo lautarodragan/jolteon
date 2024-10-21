@@ -18,14 +18,14 @@ use rodio::OutputStream;
 
 use crate::{
     config::{Config, Theme},
-    structs::Queue,
+    structs::Song,
     player::Player,
     state::State,
     term::set_terminal,
     ui,
     ui::{CurrentlyPlaying, KeyboardHandler, KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
     Command,
-    components::{FileBrowser, FileBrowserSelection, Library},
+    components::{FileBrowser, FileBrowserSelection, Library, Queue},
 };
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -50,6 +50,7 @@ pub struct App<'a> {
 
     _music_output: OutputStream,
     player: Arc<Player>,
+    queue: Arc<Queue>,
     player_command_receiver: Arc<Mutex<Receiver<Command>>>,
     media_rec_t: Option<JoinHandle<()>>,
 
@@ -70,7 +71,8 @@ impl<'a> App<'a> {
 
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
 
-        let player = Arc::new(Player::new(state.queue_items, output_stream_handle, config.theme));
+        let queue = Arc::new(Queue::new(state.queue_items, config.theme));
+        let player = Arc::new(Player::new(queue.clone(), output_stream_handle, config.theme));
 
         let current_directory = match &state.last_visited_path {
             Some(s) => PathBuf::from(s),
@@ -80,23 +82,24 @@ impl<'a> App<'a> {
         let library = Arc::new(Library::new(config.theme, library_songs.songs));
         library.on_select({
             let player = player.clone();
+            let queue = queue.clone();
             let library = library.clone();
 
             move |(song, key)| {
                 if key.code == KeyCode::Enter {
                     player.play_song(song);
                 } else if key.code == KeyCode::Char('a') {
-                    player.enqueue_song(song);
+                    queue.add_back(song);
                     library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)); // hackish way to "select_next()"
                 }
             }
         });
         library.on_select_songs_fn({
-            let player = player.clone();
+            let queue = queue.clone();
             let library = library.clone();
 
             move |songs| {
-                player.enqueue_songs(songs);
+                queue.append(&mut std::collections::VecDeque::from(songs));
                 library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)); // hackish way to "select_next()"
             }
         });
@@ -104,11 +107,12 @@ impl<'a> App<'a> {
         let playlist = Arc::new(ui::Playlists::new(config.theme, state.playlists));
         playlist.on_select({
             let player = player.clone();
+            let queue = queue.clone();
             move |(song, key)| {
                 if key.code == KeyCode::Enter {
                     player.play_song(song);
                 } else if key.code == KeyCode::Char('a') {
-                    player.enqueue_song(song);
+                    queue.add_back(song);
                 }
             }
         });
@@ -116,11 +120,12 @@ impl<'a> App<'a> {
         let mut browser = FileBrowser::new(config.theme, current_directory);
         browser.on_select({
             let player = player.clone();
+            let queue = queue.clone();
             let playlists = playlist.clone();
             let media_library = Arc::clone(&library);
 
             move |(s, key_event)| {
-                Self::on_file_browser_select(player.as_ref(), playlists.as_ref(), media_library.as_ref(), s, key_event);
+                Self::on_file_browser_select(player.as_ref(), queue.as_ref(), playlists.as_ref(), media_library.as_ref(), s, key_event);
             }
         });
 
@@ -131,6 +136,7 @@ impl<'a> App<'a> {
 
             _music_output: output_stream,
             player,
+            queue,
             player_command_receiver: Arc::new(Mutex::new(player_command_receiver)),
             media_rec_t: None,
 
@@ -149,7 +155,7 @@ impl<'a> App<'a> {
     }
 
     fn to_state(&self) -> State {
-        let queue_items = self.player.queue().songs().clone();
+        let queue_items = self.queue.songs().clone();
         let playlists = self.playlist.playlists();
 
         State {
@@ -232,6 +238,7 @@ impl<'a> App<'a> {
 
     fn on_file_browser_select(
         player: &Player,
+        queue: &Queue,
         playlists: &ui::Playlists,
         media_library: &Library,
         file_browser_selection: FileBrowserSelection,
@@ -244,7 +251,8 @@ impl<'a> App<'a> {
                 player.play_song(song);
             }
             (FileBrowserSelection::CueSheet(cue_sheet), KeyCode::Enter) => {
-                player.enqueue_cue(cue_sheet);
+                let songs = Song::from_cue_sheet(cue_sheet);
+                queue.append(&mut std::collections::VecDeque::from(songs));
             }
 
             (FileBrowserSelection::Song(song), KeyCode::Char('j')) => {
@@ -259,10 +267,11 @@ impl<'a> App<'a> {
             }
 
             (FileBrowserSelection::Song(song), KeyCode::Char('a')) => {
-                player.enqueue_song(song);
+                queue.add_back(song);
             }
             (FileBrowserSelection::CueSheet(cue_sheet), KeyCode::Char('a')) => {
-                player.enqueue_cue(cue_sheet);
+                let songs = Song::from_cue_sheet(cue_sheet);
+                queue.append(&mut std::collections::VecDeque::from(songs));
             }
             (FileBrowserSelection::Directory(path), KeyCode::Char('a')) => {
                 log::debug!("TODO: file_browser().on_select(Directory({}), a)", path.display());
@@ -343,7 +352,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                 }
                 KeyCode::Char('3') => {
                     self.active_tab = AppTab::Queue;
-                    self.target = Some(KeyboardHandler::Ref(self.player.clone()));
+                    self.target = Some(KeyboardHandler::Ref(self.queue.clone()));
                 }
                 KeyCode::Char('4') => {
                     self.active_tab = AppTab::FileBrowser;
@@ -378,8 +387,9 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
 
 impl<'a> WidgetRef for &App<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let block = Block::default().style(Style::default().bg(self.config.theme.background));
-        block.render(area, buf);
+        Block::default()
+            .style(Style::default().bg(self.config.theme.background))
+            .render(area, buf);
 
         let [area_top, _, area_center, area_bottom] =
             Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0), Constraint::Length(3)]).areas(area);
@@ -400,19 +410,10 @@ impl<'a> WidgetRef for &App<'a> {
                 self.playlist.render_ref(area_center, buf);
             },
             AppTab::Queue => {
-                // TODO: queue component
-                let queue = self.player.queue();
-                let ql = queue_list(&self.config.theme, &*queue);
-                StatefulWidget::render(
-                    ql,
-                    area_center,
-                    buf,
-                    &mut ListState::default().with_selected(Some(queue.selected_song_index()))
-                );
+                self.queue.render_ref(area_center, buf);
             },
             AppTab::FileBrowser => {
-                let file_browser = self.browser.lock().unwrap();
-                (*file_browser).render_ref(area_center, buf);
+                self.browser.lock().unwrap().render_ref(area_center, buf);
             },
             AppTab::Help => {
                 self.help_tab.lock().unwrap().render_ref(area_center, buf);
@@ -426,6 +427,8 @@ impl<'a> WidgetRef for &App<'a> {
 impl Drop for App<'_> {
     fn drop(&mut self) {
         log::trace!("App.drop");
+
+        self.queue.quit();
 
         if let Some(a) = self.media_rec_t.take() {
             log::trace!("App.drop: joining media_key_rx thread");
@@ -443,21 +446,4 @@ impl Drop for App<'_> {
 
         log::trace!("media_key_rx thread joined successfully");
     }
-}
-
-// TODO: queue component
-fn queue_list<'a>(theme: &Theme, queue_items: &Queue) -> List<'a> {
-    let queue_items: Vec<String> = queue_items.songs().iter().map(ui::song_to_string).collect();
-
-    let queue_list = List::new(queue_items)
-        .style(Style::default().fg(theme.foreground))
-        .highlight_style(
-            Style::default()
-                .bg(theme.background_selected)
-                .fg(theme.foreground_selected)
-                .add_modifier(Modifier::BOLD),
-        )
-        .highlight_symbol("");
-
-    queue_list
 }
