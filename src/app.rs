@@ -2,6 +2,8 @@ use std::error::Error;
 use std::sync::{mpsc::Receiver, Arc, Mutex, MutexGuard};
 use std::{env, path::PathBuf, thread, time::Duration};
 use std::io::BufRead;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicU16, AtomicU64, Ordering};
 use std::thread::JoinHandle;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
@@ -10,6 +12,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     prelude::{Style, Widget, Modifier},
     widgets::{Block, WidgetRef, List, ListState, StatefulWidget},
+    text::Line,
 };
 use rodio::OutputStream;
 
@@ -43,6 +46,7 @@ pub enum AppTab {
 pub struct App<'a> {
     must_quit: bool,
     config: Config,
+    frame: Arc<AtomicU64>,
 
     _music_output: OutputStream,
     player: Arc<Player>,
@@ -66,7 +70,7 @@ impl<'a> App<'a> {
 
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
 
-        let player = Arc::new(Player::new(state.queue_items, output_stream_handle));
+        let player = Arc::new(Player::new(state.queue_items, output_stream_handle, config.theme));
 
         let current_directory = match &state.last_visited_path {
             Some(s) => PathBuf::from(s),
@@ -123,6 +127,7 @@ impl<'a> App<'a> {
         Self {
             must_quit: false,
             config,
+            frame: Arc::new(AtomicU64::new(0)),
 
             _music_output: output_stream,
             player,
@@ -179,6 +184,7 @@ impl<'a> App<'a> {
 
             if last_tick.elapsed() >= tick_rate {
                 last_tick = std::time::Instant::now();
+                self.frame.fetch_add(1, Ordering::Relaxed);
             }
         }
 
@@ -381,6 +387,11 @@ impl<'a> WidgetRef for &App<'a> {
         let top_bar = TopBar::new(self.config.theme, self.active_tab);
         top_bar.render(area_top, buf);
 
+        Line::from(format!("FRAME {}", self.frame.load(Ordering::Relaxed)))
+            .style(Style::default())
+            .right_aligned()
+            .render(area_top, buf);
+
         match self.active_tab {
             AppTab::Library => {
                 self.library.render_ref(area_center, buf);
@@ -408,16 +419,7 @@ impl<'a> WidgetRef for &App<'a> {
             },
         };
 
-        let queue = self.player.queue();
-
-        let currently_playing = CurrentlyPlaying::new(
-            self.config.theme,
-            self.player.currently_playing().lock().unwrap().clone(),
-            self.player.get_pos(),
-            queue.total_time(),
-            queue.length(),
-        );
-        currently_playing.render(area_bottom, buf);
+        self.player.render(area_bottom, buf);
     }
 }
 

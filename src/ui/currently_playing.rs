@@ -6,6 +6,7 @@ use ratatui::{
     prelude::*,
     style::{Style},
     widgets::{Block, Borders, Gauge},
+    text::Line,
 };
 
 use crate::{
@@ -47,6 +48,7 @@ pub struct CurrentlyPlaying {
     current_song_position: Duration,
     queue_total_time: Duration,
     queue_song_count: usize,
+    is_paused: bool,
 }
 
 impl CurrentlyPlaying {
@@ -56,6 +58,7 @@ impl CurrentlyPlaying {
         current_song_position: Duration,
         queue_total_time: Duration,
         queue_song_count: usize,
+        is_paused: bool,
     ) -> Self {
         Self {
             theme,
@@ -63,6 +66,7 @@ impl CurrentlyPlaying {
             current_song_position,
             queue_total_time,
             queue_song_count,
+            is_paused,
         }
     }
 }
@@ -133,6 +137,13 @@ impl Widget for CurrentlyPlaying {
                 .use_unicode(true)
                 .ratio(song_progress);
             playing_gauge.render(area_bottom, buf);
+        }
+
+        if self.is_paused {
+            Line::from("PAUSED")
+                .style(Style::default().fg(self.theme.foreground))
+                .alignment(Alignment::Right)
+                .render(area_bottom, buf);
         }
     }
 }

@@ -11,13 +11,20 @@ use std::{
 };
 
 use crossterm::event::{KeyCode, KeyEvent};
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    prelude::Widget,
+    widgets::WidgetRef,
+};
 use rodio::OutputStreamHandle;
 
 use crate::{
     cue::CueSheet,
     structs::{Queue, Song},
     source::{Source, Controls},
-    ui::KeyboardHandlerRef,
+    ui::{KeyboardHandlerRef, CurrentlyPlaying},
+    config::Theme,
 };
 
 pub struct Player {
@@ -33,6 +40,10 @@ pub struct Player {
     volume: Arc<Mutex<f32>>,
     pause: Arc<AtomicBool>,
     position: Arc<Mutex<Duration>>,
+
+    theme: Theme,
+    frame: AtomicU64,
+    paused_animation_start_frame: AtomicU64,
 }
 
 #[derive(Debug)]
@@ -46,7 +57,7 @@ enum Command {
 }
 
 impl Player {
-    pub fn new(queue: Vec<Song>, output_stream: OutputStreamHandle) -> Self {
+    pub fn new(queue: Vec<Song>, output_stream: OutputStreamHandle, theme: Theme) -> Self {
         let (command_sender, command_receiver) = channel();
 
         Self {
@@ -62,6 +73,10 @@ impl Player {
             volume: Arc::new(Mutex::new(1.0)),
             pause: Arc::new(AtomicBool::new(false)),
             position: Arc::new(Mutex::new(Duration::ZERO)),
+
+            theme,
+            frame: AtomicU64::new(0),
+            paused_animation_start_frame: AtomicU64::new(0),
         }
     }
 
@@ -332,6 +347,7 @@ impl Player {
             self.send_command(Command::Play);
         } else {
             self.send_command(Command::Pause);
+            self.paused_animation_start_frame.store(self.frame.load(Ordering::Relaxed), Ordering::Relaxed);
         }
     }
 
@@ -409,5 +425,25 @@ impl KeyboardHandlerRef<'_> for Player {
             _ => {}
         };
         true
+    }
+}
+
+impl WidgetRef for Player {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+        let frame = self.frame.fetch_add(1, Ordering::Relaxed);
+
+        let is_paused = self.pause.load(Ordering::Relaxed) && {
+            let step = (frame - self.paused_animation_start_frame.load(Ordering::Relaxed)) % (6 * 16);
+            (step < 6 * 8 && step % 12 < 6) || step >= 6 * 8
+        };
+
+        CurrentlyPlaying::new(
+            self.theme,
+            self.currently_playing().lock().unwrap().clone(),
+            self.get_pos(),
+            self.queue_items.total_time(),
+            self.queue_items.length(),
+            is_paused,
+        ).render(area, buf);
     }
 }
