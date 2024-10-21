@@ -5,7 +5,7 @@ use crate::ui::KeyboardHandlerRef;
 use super::queue::Queue;
 
 impl KeyboardHandlerRef<'_> for Queue {
-    fn on_key(&self, key: KeyEvent) -> bool {
+    fn on_key(&self, key: KeyEvent) {
         match key.code {
             KeyCode::Enter => {
                 if let Some(song) = self.selected_song() {
@@ -18,6 +18,5 @@ impl KeyboardHandlerRef<'_> for Queue {
             KeyCode::Delete => self.remove_selected(),
             _ => {}
         };
-        true
     }
 }

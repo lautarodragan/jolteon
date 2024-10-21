@@ -70,15 +70,12 @@ impl<'a> HelpTab<'a> {
 }
 
 impl<'a> KeyboardHandlerMut<'a> for HelpTab<'a> {
-    fn on_key(&mut self, key: KeyEvent) -> bool {
+    fn on_key(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Down | KeyCode::Char('j') => self.next(),
             KeyCode::Up | KeyCode::Char('k') => self.previous(),
-            _ => {
-                return false;
-            }
+            _ => {},
         }
-        true
     }
 }
 

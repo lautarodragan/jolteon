@@ -5,14 +5,12 @@ use crate::ui::KeyboardHandlerMut;
 use super::FileBrowser;
 
 impl<'a> KeyboardHandlerMut<'a> for FileBrowser<'a> {
-    fn on_key(&mut self, key: KeyEvent) -> bool {
+    fn on_key(&mut self, key: KeyEvent) {
         if !self.filter.is_some() {
             self.on_normal_key_event(key);
         } else {
             self.on_filter_key_event(key);
         }
-
-        true
     }
 }
 

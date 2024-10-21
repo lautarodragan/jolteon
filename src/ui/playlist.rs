@@ -207,7 +207,7 @@ impl<'a> WidgetRef for Playlists<'a> {
 
 impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
 
-    fn on_key(&self, key: KeyEvent) -> bool {
+    fn on_key(&self, key: KeyEvent) {
         let mut focused_element_guard = self.focused_element.lock().unwrap();
 
         match key.code {
@@ -223,11 +223,8 @@ impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
             _ if *focused_element_guard == PlaylistScreenElement::SongList  => {
                 on_key_event_song_list(&self, key);
             },
-            _ => {
-                return false;
-            },
+            _ => {},
         }
-        true
     }
 
 }

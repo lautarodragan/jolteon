@@ -9,7 +9,7 @@ use super::library::{Library, LibraryScreenElement};
 
 impl<'a> KeyboardHandlerRef<'a> for Library<'a> {
 
-    fn on_key(&self, key: KeyEvent) -> bool {
+    fn on_key(&self, key: KeyEvent) {
         log::trace!(target: "::library.on_key", "start {:?}", key);
 
         let focused_element = self.focused_element();
@@ -20,7 +20,6 @@ impl<'a> KeyboardHandlerRef<'a> for Library<'a> {
                     LibraryScreenElement::ArtistList => LibraryScreenElement::SongList,
                     LibraryScreenElement::SongList => LibraryScreenElement::ArtistList,
                 });
-                true
             }
             _ if focused_element == LibraryScreenElement::ArtistList  => {
                 self.artist_list.on_key(key)
@@ -28,7 +27,7 @@ impl<'a> KeyboardHandlerRef<'a> for Library<'a> {
             _ if focused_element == LibraryScreenElement::SongList  => {
                 self.song_list.on_key(key)
             },
-            _ => false,
+            _ => (),
         }
     }
 }

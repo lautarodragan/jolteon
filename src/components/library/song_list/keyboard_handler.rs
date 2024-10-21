@@ -10,7 +10,7 @@ use super::component::SongList;
 
 impl<'a> KeyboardHandlerRef<'a> for SongList<'a> {
 
-    fn on_key(&self, key: KeyEvent) -> bool {
+    fn on_key(&self, key: KeyEvent) {
         let target = "::SongList.on_key";
         log::trace!(target: target, "{:?}", key);
 
@@ -24,7 +24,7 @@ impl<'a> KeyboardHandlerRef<'a> for SongList<'a> {
                 let i = self.selected_song_index.load(Ordering::SeqCst);
                 if i >= songs.len() {
                     log::error!(target: target, "library on_key_event_song_list enter: selected_song_index > song_list.len");
-                    return true;
+                    return;
                 }
                 let song = songs[self.selected_song_index.load(Ordering::SeqCst)].clone();
                 drop(songs);
@@ -32,8 +32,6 @@ impl<'a> KeyboardHandlerRef<'a> for SongList<'a> {
             },
             _ => {},
         }
-
-        true
     }
 }
 

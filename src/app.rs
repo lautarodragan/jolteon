@@ -326,7 +326,7 @@ impl<'a> App<'a> {
 }
 
 impl<'a> KeyboardHandlerMut<'a> for App<'a> {
-    fn on_key(&mut self, key: KeyEvent) -> bool {
+    fn on_key(&mut self, key: KeyEvent) {
         let mut handled = true;
 
         let focus_trapped = false; // TODO: bring back focus trap, but properly
@@ -380,8 +380,6 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                 }
             }
         }
-
-        true
     }
 }
 

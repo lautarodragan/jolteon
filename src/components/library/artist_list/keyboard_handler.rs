@@ -9,7 +9,7 @@ use super::artist_list::ArtistList;
 
 impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
 
-    fn on_key(&self, key: KeyEvent) -> bool {
+    fn on_key(&self, key: KeyEvent) {
         let target = "::ArtistList.on_key";
         log::trace!(target: target, "{:?}", key);
 
@@ -54,7 +54,7 @@ impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
                         artist.contains(filter.as_str()) ||
                             artist.to_lowercase().contains(filter_low.as_str())
                     ) else {
-                        return false;
+                        return;
                     };
 
                     self.selected_index.store(i, Ordering::SeqCst);
@@ -71,8 +71,6 @@ impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
             }
             _ => {},
         }
-
-        true
     }
 }
 
