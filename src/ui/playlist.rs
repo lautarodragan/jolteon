@@ -12,7 +12,7 @@ use ratatui::{
     prelude::Widget,
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{Color, Style},
+    style::Style,
     widgets::{WidgetRef},
 };
 

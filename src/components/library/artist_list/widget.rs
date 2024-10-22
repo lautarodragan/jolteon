@@ -1,11 +1,10 @@
 use std::sync::atomic::Ordering;
 
 use ratatui::{
-    prelude::Widget,
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
-    style::{Color, Style},
-    widgets::{WidgetRef},
+    layout::Rect,
+    style::Style,
+    widgets::WidgetRef,
 };
 
 use super::artist_list::ArtistList;

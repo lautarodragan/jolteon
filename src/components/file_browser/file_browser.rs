@@ -1,6 +1,6 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::Mutex,
 };
 
 use crossterm::event::{KeyCode, KeyEvent};
@@ -49,12 +49,14 @@ impl<'a> FileBrowser<'a> {
         &self.filter
     }
 
+    #[allow(dead_code)]
     pub fn blur(&mut self) {
-        log::warn!("FileBrowser.blur() unimplemented");
+        unimplemented!();
     }
 
+    #[allow(dead_code)]
     pub fn focus(&mut self) {
-        log::warn!("FileBrowser.focus() unimplemented");
+        unimplemented!();
     }
 
     pub fn current_directory(&self) -> &PathBuf {

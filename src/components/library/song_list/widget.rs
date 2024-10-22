@@ -3,8 +3,8 @@ use std::sync::atomic::Ordering;
 use ratatui::{
     prelude::Widget,
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
-    style::{Color, Style},
+    layout::Rect,
+    style::Style,
     widgets::{WidgetRef},
 };
 

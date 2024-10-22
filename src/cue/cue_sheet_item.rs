@@ -1,12 +1,13 @@
-// use crate::cue::cue_line::CueLine;
-use crate::cue::cue_line_node::CueLineNode;
 use crate::extensions::string::StringExtensions;
+
+use super::cue_line_node::CueLineNode;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum CueSheetItem {
     Comment(String),
     Title(String),
     Performer(String),
+    #[allow(dead_code)]
     Album(Option<String>),
     File(String, Vec<CueSheetItem>),
     Track(String, Vec<CueSheetItem>),

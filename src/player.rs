@@ -10,7 +10,6 @@ use std::{
     time::Duration,
 };
 
-use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -20,10 +19,9 @@ use ratatui::{
 use rodio::OutputStreamHandle;
 
 use crate::{
-    cue::CueSheet,
     structs::Song,
     source::{Source, Controls},
-    ui::{KeyboardHandlerRef, CurrentlyPlaying},
+    ui::CurrentlyPlaying,
     config::Theme,
     components::Queue,
 };

@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use ratatui::{
     prelude::Widget,
     buffer::Buffer,
@@ -24,8 +22,6 @@ impl<'a> WidgetRef for Library<'a> {
         ])
             .horizontal_margin(2)
             .areas(area);
-
-        self.height.store(area.height as usize, Ordering::Relaxed);
 
         self.artist_list.render_ref(area_left, buf);
         self.song_list.render_ref(area_right, buf);

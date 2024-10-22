@@ -1,4 +1,5 @@
 use std::sync::atomic::Ordering;
+
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{

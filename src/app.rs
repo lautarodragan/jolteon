@@ -2,37 +2,30 @@ use std::error::Error;
 use std::sync::{mpsc::Receiver, Arc, Mutex, MutexGuard};
 use std::{env, path::PathBuf, thread, time::Duration};
 use std::io::BufRead;
-use std::rc::Rc;
-use std::sync::atomic::{AtomicU16, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread::JoinHandle;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    prelude::{Style, Widget, Modifier},
-    widgets::{Block, WidgetRef, List, ListState, StatefulWidget},
+    prelude::{Style, Widget},
+    widgets::{Block, WidgetRef},
     text::Line,
 };
 use rodio::OutputStream;
 
 use crate::{
-    config::{Config, Theme},
+    config::Config,
     structs::Song,
     player::Player,
     state::State,
     term::set_terminal,
     ui,
-    ui::{CurrentlyPlaying, KeyboardHandler, KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
+    ui::{KeyboardHandler, KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
     Command,
     components::{FileBrowser, FileBrowserSelection, Library, Queue},
 };
-
-#[derive(Clone, Copy, Eq, PartialEq)]
-pub enum FocusedElement {
-    Browser,
-    Queue,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppTab {
