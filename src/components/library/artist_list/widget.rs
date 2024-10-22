@@ -10,7 +10,7 @@ use ratatui::{
 
 use super::artist_list::ArtistList;
 
-fn line_style(theme: &crate::config::Theme, index: usize, selected_index: usize, list_has_focus: bool) -> Style {
+fn line_style(theme: &crate::config::Theme, index: usize, selected_index: usize, list_has_focus: bool, item_is_filtered: bool) -> Style {
     if index == selected_index {
         if list_has_focus {
             Style::default().fg(theme.foreground_selected).bg(theme.background_selected)
@@ -18,7 +18,12 @@ fn line_style(theme: &crate::config::Theme, index: usize, selected_index: usize,
             Style::default().fg(theme.foreground_selected).bg(theme.background_selected_blur)
         }
     } else {
-        Style::default().fg(theme.foreground_secondary).bg(theme.background)
+        let c = if item_is_filtered {
+            theme.search
+        } else {
+            theme.foreground_secondary
+        };
+        Style::default().fg(c).bg(theme.background)
     }
 }
 
@@ -50,7 +55,19 @@ impl<'a> WidgetRef for ArtistList<'a> {
                 ..area
             };
 
-            let style = line_style(&self.theme, artist_index, selected_index, true);
+            let is_filtered = {
+                // TODO: store this data in kb_handler and just read it here, in a Vec<bool>
+                let filter = self.filter.lock().unwrap();
+
+                if filter.is_empty() {
+                    false
+                } else {
+                    let filter_low = filter.to_lowercase().to_string();
+                    artist.contains(filter.as_str()) || artist.to_lowercase().contains(filter_low.as_str())
+                }
+            };
+
+            let style = line_style(&self.theme, artist_index, selected_index, true, is_filtered);
             let line = ratatui::text::Line::from(artist).style(style);
 
             line.render_ref(area, buf);
