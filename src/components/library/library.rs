@@ -71,27 +71,27 @@ pub struct Library<'a> {
 }
 
 impl Ord for Song {
-    fn cmp(&self, b: &Self) -> Ordering {
-        match (&self.album, &b.album) {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (&self.album, &other.album) {
             (Some(album_a), Some(album_b)) if album_a == album_b => {
-                match (&self.track, &b.track) {
+                match (&self.track, &other.track) {
                     (Some(a), Some(b)) => a.cmp(b),
                     (Some(_), None) => Ordering::Greater,
                     (None, Some(_)) => Ordering::Less,
-                    _ => self.title.cmp(&b.title),
+                    _ => self.title.cmp(&other.title),
                 }
             },
             (Some(album_a), Some(album_b)) if album_a != album_b => {
-                match (self.year, b.year) {
-                    (Some(ref year_a), Some(ref year_b)) => {
-                        year_a.cmp(year_b)
-                    }
+                match (self.year, other.year) {
+                    (Some(ref year_a), Some(ref year_b)) => year_a.cmp(year_b),
+                    (Some(_), None) => Ordering::Greater,
+                    (None, Some(_)) => Ordering::Less,
                     _ => album_a.cmp(album_b)
                 }
             },
             (Some(_), None) => Ordering::Greater,
             (None, Some(_)) => Ordering::Less,
-            _ => self.title.cmp(&b.title)
+            _ => self.title.cmp(&other.title)
         }
     }
 }
