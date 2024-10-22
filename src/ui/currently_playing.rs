@@ -139,11 +139,13 @@ impl Widget for CurrentlyPlaying {
             playing_gauge.render(area_bottom, buf);
         }
 
+        let [_, area_bottom_right] = Layout::horizontal([Constraint::Fill(1), Constraint::Length(6)]).areas(area_bottom);
+
         if self.is_paused {
             Line::from("PAUSED")
-                .style(Style::default().fg(self.theme.foreground))
+                .style(Style::default().fg(self.theme.foreground).bg(self.theme.background))
                 .alignment(Alignment::Right)
-                .render(area_bottom, buf);
+                .render(area_bottom_right, buf);
         }
     }
 }
