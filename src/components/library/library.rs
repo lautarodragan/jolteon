@@ -1,11 +1,10 @@
 use std::{
     cmp::Ordering,
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     rc::Rc,
     sync::{
-        atomic::{AtomicU8, AtomicUsize, Ordering as AtomicOrdering},
+        atomic::{AtomicU8, Ordering as AtomicOrdering},
         Mutex,
-        Arc,
     },
     path::PathBuf,
 };
@@ -16,10 +15,9 @@ use crate::{
     structs::{Song},
     config::Theme,
     cue::CueSheet,
-    ui::KeyboardHandlerRef,
 };
 
-use super::{song_list::SongList, artist_list::ArtistList};
+use super::{song_list::SongList, album_tree::{AlbumTree, AlbumTreeItem}};
 
 #[derive(Eq, PartialEq)]
 #[repr(u8)]
@@ -55,19 +53,17 @@ impl AtomicLibraryScreenElement {
 }
 
 pub struct Library<'a> {
+    #[allow(dead_code)]
     pub(super) theme: Theme,
 
     pub(super) songs: Rc<Mutex<HashMap<String, Vec<Song>>>>,
     pub(super) song_list: Rc<SongList<'a>>,
-    pub(super) artist_list: Rc<ArtistList<'a>>,
+    pub(super) artist_list: Rc<AlbumTree<'a>>,
 
     focused_element: AtomicLibraryScreenElement,
 
     pub(super) on_select_fn: Rc<Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>>,
     pub(super) on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>>,
-
-    pub(super) offset: AtomicUsize,
-    pub(super) height: AtomicUsize,
 }
 
 impl Ord for Song {
@@ -108,7 +104,7 @@ impl<'a> Library<'a> {
         let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
         let song_map = Rc::new(Mutex::new(HashMap::<String, Vec<Song>>::new()));
-        let artist_list = Rc::new(ArtistList::new(theme));
+        let artist_list = Rc::new(AlbumTree::new(theme));
         let song_list = Rc::new(SongList::new(theme));
 
         artist_list.on_select({
@@ -116,7 +112,12 @@ impl<'a> Library<'a> {
             let song_list = song_list.clone();
 
             move |artist| {
-                log::trace!(target: "::library.artist_list.on_select", "artist selected {artist}");
+                log::trace!(target: "::library.album_tree.on_select", "artist selected {:?}", artist);
+
+                let AlbumTreeItem::Artist(artist, _) = artist else {
+                    log::warn!(target: "::library.album_tree.on_select", "artist = album. not implemented");
+                    return;
+                };
 
                 let artist_songs = {
                     let songs = songs.lock().unwrap();
@@ -126,7 +127,7 @@ impl<'a> Library<'a> {
                             artist_songs.clone()
                         }
                         None => {
-                            log::error!(target: "::library.artist_list.on_select", "artist with no songs {artist}");
+                            log::error!(target: "::library.album_tree.on_select", "artist with no songs {artist}");
                             vec![]
                         }
                     }
@@ -141,12 +142,17 @@ impl<'a> Library<'a> {
             let on_select_songs_fn = on_select_songs_fn.clone();
 
             move |artist| {
-                log::trace!(target: "::library.artist_list.on_confirm", "artist confirmed {:?}", artist);
+                log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", artist);
+
+                let AlbumTreeItem::Artist(artist, _) = artist else {
+                    log::warn!(target: "::library.album_tree.on_select", "artist = album. not implemented");
+                    return;
+                };
 
                 let songs = {
                     let songs = songs.lock().unwrap();
                     let Some(songs) = songs.get(artist.as_str()) else {
-                        log::warn!(target: "::library.artist_list.on_confirm", "no songs for artist {:?}", artist);
+                        log::warn!(target: "::library.album_tree.on_confirm", "no songs for artist {:?}", artist);
                         return;
                     };
 
@@ -162,7 +168,12 @@ impl<'a> Library<'a> {
             let songs = song_map.clone();
 
             move |artist| {
-                log::trace!(target: "::library.artist_list.on_delete", "artist deleted {:?}", artist);
+                log::trace!(target: "::library.album_tree.on_delete", "artist deleted {:?}", artist);
+
+                let AlbumTreeItem::Artist(artist, _) = artist else {
+                    log::warn!(target: "::library.album_tree.on_select", "artist = album. not implemented");
+                    return;
+                };
 
                 let mut songs = songs.lock().unwrap();
                 songs.remove(artist.as_str());
@@ -189,9 +200,6 @@ impl<'a> Library<'a> {
             songs: song_map,
             song_list,
             artist_list,
-
-            offset: AtomicUsize::new(0),
-            height: AtomicUsize::new(0),
         };
 
         lib.add_songs(songs);
@@ -240,9 +248,11 @@ impl<'a> Library<'a> {
             return;
         };
 
+        let album = song.album.clone().unwrap_or("(no album)".to_string());
+
         let mut songs = self.songs.lock().unwrap();
 
-        if let Some(mut x) = songs.get_mut(&artist) {
+        if let Some(x) = songs.get_mut(&artist) {
             if !x.iter().any(|s| s.path == song.path && s.title == song.title) {
                 x.push(song);
                 x.sort();
@@ -252,13 +262,17 @@ impl<'a> Library<'a> {
         }
 
         self.artist_list.add_artist(artist.clone());
+        self.artist_list.add_album(artist.clone(), album);
 
-        if *self.artist_list.selected_artist() == artist {
-            let artist_songs = songs.get(artist.as_str())
-                .unwrap() // Safe because we just added it, and we still have the lock on songs.
-                .clone();
-            self.song_list.set_songs(artist_songs);
-        }
+        match self.artist_list.selected_artist() {
+            AlbumTreeItem::Artist(selected_artist, _) if selected_artist == artist => {
+                let artist_songs = songs.get(artist.as_str())
+                    .unwrap() // Safe because we just added it, and we still have the lock on songs.
+                    .clone();
+                self.song_list.set_songs(artist_songs);
+            }
+            _ => {}
+        };
 
     }
 

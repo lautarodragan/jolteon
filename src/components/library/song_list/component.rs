@@ -1,12 +1,8 @@
 use std::{
-    cmp::Ordering,
-    collections::{HashMap, HashSet},
     sync::{
-        atomic::{AtomicUsize, Ordering as AtomicOrdering},
+        atomic::{AtomicUsize, Ordering},
         Mutex,
-        Arc,
     },
-    path::PathBuf,
 };
 
 use crossterm::event::KeyEvent;
@@ -14,7 +10,6 @@ use crossterm::event::KeyEvent;
 use crate::{
     structs::{Song},
     config::Theme,
-    cue::CueSheet,
 };
 
 pub struct SongList<'a> {
@@ -49,8 +44,8 @@ impl<'a> SongList<'a> {
     }
 
     pub fn set_songs(&self, songs: Vec<Song>) {
-        self.selected_song_index.store(0, AtomicOrdering::SeqCst);
-        self.offset.store(0, AtomicOrdering::SeqCst);
+        self.selected_song_index.store(0, Ordering::SeqCst);
+        self.offset.store(0, Ordering::SeqCst);
         *self.songs.lock().unwrap() = songs;
     }
 }

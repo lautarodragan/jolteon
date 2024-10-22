@@ -92,6 +92,7 @@ impl<'a> App<'a> {
             let library = library.clone();
 
             move |songs| {
+                log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
                 queue.append(&mut std::collections::VecDeque::from(songs));
                 library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)); // hackish way to "select_next()"
             }
