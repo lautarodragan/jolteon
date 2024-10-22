@@ -15,6 +15,7 @@ impl<'a> KeyboardHandlerRef<'a> for ArtistList<'a> {
 
         match key.code {
             KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
+                self.filter.lock().unwrap().clear(); // TODO: same as file browser
                 self.on_artist_list_directional_key(key);
                 let artist = self.selected_artist();
                 self.on_select_fn.lock().unwrap()(artist);
