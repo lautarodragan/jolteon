@@ -18,61 +18,56 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
             KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
                 self.filter.lock().unwrap().clear(); // todo: same as file browser - JUMP TO NEXT MATCH
                 self.on_artist_list_directional_key(key);
-                let artist = self.selected_artist();
-                self.on_select_fn.lock().unwrap()(artist);
+                let item = self.selected_item();
+                self.on_select_fn.lock().unwrap()(item);
             },
             KeyCode::Enter => {
-                // log::trace!(target: "::albumtree.on_confirm", "lol {:#?}", *self.item_tree.lock().unwrap());
-                let item = self.selected_artist();
+                let item = self.selected_item();
                 self.on_confirm_fn.lock().unwrap()(item);
             },
             KeyCode::Char(' ') => {
-                let i = self.selected_index.load(Ordering::SeqCst);
-                let mut artists = self.item_list.lock().unwrap();
-                let selected_artist = &mut artists[i];
-
-                if let AlbumTreeItem::Artist(artist, ref mut expanded) = selected_artist {
-                    log::trace!("::AlbumTree.on_expand('{artist}', {expanded})");
-                    *expanded = !*expanded;
-                };
+                let i = self.selected_artist.load(Ordering::SeqCst);
+                let mut artist_list = self.artist_list.lock().unwrap();
+                let selected_artist = &mut artist_list[i];
+                selected_artist.is_open = !selected_artist.is_open;
             },
             KeyCode::Delete => {
-                let (removed_artist, selected_artist) = {
-                    let i = self.selected_index.load(Ordering::SeqCst);
-                    let mut artists = self.item_list.lock().unwrap();
-                    let removed_artist = artists.remove(i);
-
-                    let i = i.min(artists.len().saturating_sub(1));
-                    self.selected_index.store(i, Ordering::SeqCst);
-
-                    let selected_artist = artists[i].clone();
-                    *self.selected_item.lock().unwrap() = selected_artist.clone();
-                    self.offset.store(0, Ordering::SeqCst); // TODO: fix me (sub by one)
-
-                    (removed_artist, selected_artist)
-                };
-
-                self.on_delete_fn.lock().unwrap()(removed_artist);
-                self.on_select_fn.lock().unwrap()(selected_artist);
+                // let (removed_artist, selected_artist) = {
+                //     let i = self.selected_index.load(Ordering::SeqCst);
+                //     let mut artists = self.artist_list.lock().unwrap();
+                //     let removed_artist = artists.remove(i);
+                //
+                //     let i = i.min(artists.len().saturating_sub(1));
+                //     self.selected_index.store(i, Ordering::SeqCst);
+                //
+                //     let selected_artist = artists[i].clone();
+                //     self.offset.store(0, Ordering::SeqCst); // TODO: fix me (sub by one)
+                //
+                //     (removed_artist, selected_artist)
+                // };
+                //
+                // self.on_delete_fn.lock().unwrap()(removed_artist.data);
+                // self.on_select_fn.lock().unwrap()(selected_artist.data);
             },
             KeyCode::Char(char) => {
-                let artist = {
-                    let artists = self.item_list.lock().unwrap();
+                let item = {
                     let mut filter = self.filter.lock().unwrap();
-
                     filter.push(char);
 
-                    let Some(i) = artists.iter().position(|artist| artist.contains(filter.as_str())) else {
+                    let artists = self.artist_list.lock().unwrap();
+
+                    let Some(i) = artists.iter().position(|item| item.data.contains(filter.as_str())) else { // todo: make search great again
                         return;
                     };
 
-                    self.selected_index.store(i, Ordering::SeqCst);
-                    let artist = artists[i].clone();
-                    *self.selected_item.lock().unwrap() = artist.clone();
-                    artist
+                    // todo: also search albums
+
+                    self.selected_artist.store(i, Ordering::SeqCst);
+                    let item = artists[i].clone();
+                    AlbumTreeItem::Artist(item.data)
                 };
 
-                self.on_select_fn.lock().unwrap()(artist);
+                self.on_select_fn.lock().unwrap()(item);
             }
             KeyCode::Esc => {
                 let mut filter = self.filter.lock().unwrap();
@@ -87,21 +82,47 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
 impl<'a> AlbumTree<'a> {
 
     fn on_artist_list_directional_key(&self, key: KeyEvent) {
-        let artists = self.item_list.lock().unwrap();
+        let artists = self.artist_list.lock().unwrap();
         let length = artists.len() as i32;
 
         let height = self.height.load(Ordering::Relaxed) as i32;
         let padding = 5;
 
         let mut offset = self.offset.load(Ordering::SeqCst) as i32;
-        let mut i = self.selected_index.load(Ordering::SeqCst) as i32;
+        let mut i = self.selected_artist.load(Ordering::SeqCst) as i32;
+        let mut j = self.selected_album.load(Ordering::SeqCst) as i32;
+
+        let tree = self.item_tree.lock().unwrap();
 
         match key.code {
             KeyCode::Up | KeyCode::Down => {
-                if key.code == KeyCode::Up {
-                    i -= 1;
+                let artist = artists.get(i as usize).unwrap();
+                let albums = tree.get(&artist.data).unwrap();
+
+                if artist.is_open {
+                    if key.code == KeyCode::Up {
+                        if j > 0 {
+                            j -= 1;
+                        } else {
+                            i -= 1;
+                        }
+                    } else {
+                        if j < albums.len().saturating_sub(1) as i32 {
+                            j += 1;
+                        } else {
+                            j = 0;
+                            i += 1;
+                        }
+                    }
                 } else {
-                    i += 1;
+                    if key.code == KeyCode::Up {
+                        i -= 1;
+                        let artist = artists.get(i as usize).unwrap();
+                        let albums = tree.get(&artist.data).unwrap();
+                        j = albums.len().saturating_sub(1) as i32;
+                    } else {
+                        i += 1;
+                    }
                 }
 
                 let padding = if key.code == KeyCode::Up {
@@ -121,6 +142,7 @@ impl<'a> AlbumTree<'a> {
             },
             KeyCode::Home => {
                 i = 0;
+                j = 0;
                 offset = 0;
             },
             KeyCode::End => {
@@ -134,10 +156,8 @@ impl<'a> AlbumTree<'a> {
         i = i.min(length - 1).max(0);
 
         self.offset.store(offset as usize, Ordering::SeqCst);
-        self.selected_index.store(i as usize, Ordering::SeqCst);
-        let selected_artist = artists[i as usize].clone();
-        *self.selected_item.lock().unwrap() = selected_artist;
-
+        self.selected_artist.store(i as usize, Ordering::SeqCst);
+        self.selected_album.store(j as usize, Ordering::SeqCst);
     }
 
 }

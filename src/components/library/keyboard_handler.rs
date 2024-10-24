@@ -16,12 +16,12 @@ impl<'a> KeyboardHandlerRef<'a> for Library<'a> {
         match key.code {
             KeyCode::Tab => {
                 self.set_focused_element(match focused_element {
-                    LibraryScreenElement::ArtistList => LibraryScreenElement::SongList,
-                    LibraryScreenElement::SongList => LibraryScreenElement::ArtistList,
+                    LibraryScreenElement::AlbumTree => LibraryScreenElement::SongList,
+                    LibraryScreenElement::SongList => LibraryScreenElement::AlbumTree,
                 });
             }
-            _ if focused_element == LibraryScreenElement::ArtistList  => {
-                self.artist_list.on_key(key)
+            _ if focused_element == LibraryScreenElement::AlbumTree => {
+                self.album_tree.on_key(key)
             },
             _ if focused_element == LibraryScreenElement::SongList  => {
                 self.song_list.on_key(key)

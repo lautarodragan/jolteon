@@ -13,9 +13,39 @@ use crate::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AlbumTreeItem {
-    Artist(String, bool),
-    #[allow(dead_code)]
-    Album(String),
+    Artist(String),
+    Album(String, String),
+}
+
+impl Ord for AlbumTreeItem {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (AlbumTreeItem::Artist(a), AlbumTreeItem::Artist(b)) => {
+                a.cmp(b)
+            }
+            (AlbumTreeItem::Artist(_), AlbumTreeItem::Album(_, _)) => {
+                Ordering::Greater
+            }
+            (AlbumTreeItem::Album(_, _), AlbumTreeItem::Artist(_)) => {
+                Ordering::Less
+            }
+            (AlbumTreeItem::Album(_, ref a), AlbumTreeItem::Album(_, ref b)) => {
+                a.cmp(b)
+            }
+        }
+    }
+}
+
+impl PartialOrd for AlbumTreeItem {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AlbumTreeEntryArtist {
+    pub data: String,
+    pub is_open: bool,
 }
 
 impl AlbumTreeItem {
@@ -28,8 +58,8 @@ impl AlbumTreeItem {
 impl Display for AlbumTreeItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let x = match self {
-            AlbumTreeItem::Artist(s, _) => s,
-            AlbumTreeItem::Album(s) => s,
+            AlbumTreeItem::Artist(s) => s,
+            AlbumTreeItem::Album(_, s) => s,
         };
         write!(f, "{}", x)
     }
@@ -38,10 +68,10 @@ impl Display for AlbumTreeItem {
 pub struct AlbumTree<'a> {
     pub(super) theme: Theme,
 
-    pub(super) item_list: Mutex<Vec<AlbumTreeItem>>,
+    pub(super) artist_list: Mutex<Vec<AlbumTreeEntryArtist>>, // TODO: just vec<vec<string>> :P
     pub(super) item_tree: Mutex<HashMap<String, Vec<String>>>,
-    pub(super) selected_index: AtomicUsize,
-    pub(super) selected_item: Mutex<AlbumTreeItem>,
+    pub(super) selected_artist: AtomicUsize,
+    pub(super) selected_album: AtomicUsize,
 
     pub(super) filter: Mutex<String>,
 
@@ -63,9 +93,9 @@ impl<'a> AlbumTree<'a> {
             on_delete_fn: Mutex::new(Box::new(|_| {}) as _),
 
             item_tree: Mutex::new(HashMap::new()),
-            item_list: Mutex::new(Vec::new()),
-            selected_index: AtomicUsize::new(0),
-            selected_item: Mutex::new(AlbumTreeItem::Artist("".to_string(), false)),
+            artist_list: Mutex::new(Vec::new()),
+            selected_artist: AtomicUsize::new(0),
+            selected_album: AtomicUsize::new(0),
 
             filter: Mutex::new(String::new()),
 
@@ -75,7 +105,6 @@ impl<'a> AlbumTree<'a> {
     }
 
     pub fn on_select(&self, cb: impl FnMut(AlbumTreeItem) + 'a) {
-        // log::debug!(target: "::albumtree.on_select", "lol {:#?}", *self.items.lock().unwrap());
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
     }
 
@@ -87,65 +116,50 @@ impl<'a> AlbumTree<'a> {
         *self.on_delete_fn.lock().unwrap() = Box::new(cb);
     }
 
-    // #[allow(dead_code)]
-    // pub fn set_artists(&self, artists: Vec<String>) {
-    //     *self.artists.lock().unwrap() = artists.into_iter().map(|a| AlbumTreeItem::Artist(a)).collect();
-    // }
+    pub fn selected_item(&self) -> AlbumTreeItem {
+        let i = self.selected_artist.load(AtomicOrdering::SeqCst);
+        let artist_list = self.artist_list.lock().unwrap();
+        if let Some(artist) = artist_list.get(i) {
+            if !artist.is_open {
+                AlbumTreeItem::Artist(artist.data.clone())
+            } else {
+                let selected_album = self.selected_album.load(AtomicOrdering::SeqCst);
+                let tree = self.item_tree.lock().unwrap();
 
-    pub fn selected_artist(&self) -> AlbumTreeItem {
-        self.selected_item.lock().unwrap().clone()
-    }
-
-    #[allow(dead_code)]
-    pub fn set_selected_artist(&self, artist: String) {
-        *self.selected_item.lock().unwrap() = AlbumTreeItem::Artist(artist, false);
+                if let Some(albums) = tree.get(&artist.data) {
+                    let album = albums.get(selected_album).unwrap();
+                    AlbumTreeItem::Album(artist.data.clone(), album.clone())
+                } else {
+                    AlbumTreeItem::Album(artist.data.clone(), "(no album name)".to_string())
+                }
+            }
+        } else {
+            panic!("say what now?");
+        }
     }
 
     pub fn add_artist(&self, artist: String) {
-        let mut item = self.item_list.lock().unwrap();
+        let mut artists = self.artist_list.lock().unwrap();
 
-        if !item.iter().any(|a| matches!(a, AlbumTreeItem::Artist(a, _) if *a == artist)) {
-            item.push(AlbumTreeItem::Artist(artist.clone(), false));
+        if let Err(i) = artists.binary_search_by(|a| a.data.cmp(&artist)) {
+            artists.insert(i, AlbumTreeEntryArtist {
+                data: artist.clone(),
+                is_open: false,
+            });
         }
-
-        item.sort_by(|a, b| {
-            match (a, b) {
-                (AlbumTreeItem::Artist(a, _), AlbumTreeItem::Artist(b, _)) => {
-                    a.cmp(b)
-                }
-                (AlbumTreeItem::Artist(_, _), AlbumTreeItem::Album(_)) => {
-                    Ordering::Greater
-                }
-                (AlbumTreeItem::Album(_), AlbumTreeItem::Artist(_, _)) => {
-                    Ordering::Less
-                }
-                (AlbumTreeItem::Album(ref a), AlbumTreeItem::Album(ref b)) => {
-                    a.cmp(b)
-                }
-            }
-        });
-
-        let i = self.selected_index.load(AtomicOrdering::SeqCst);
-        let selected_item = item[i].clone();
-        *self.selected_item.lock().unwrap() = selected_item;
     }
 
     pub fn add_album(&self, artist: String, album: String) {
-        // log::warn!("add_album {artist} {album}");
         let mut items = self.item_tree.lock().unwrap();
 
-        if let Some(x) = items.get_mut(&artist) {
-            if !x.contains(&album) { // Set?
-                x.push(album);
-                x.sort();
-            }
-        } else {
-            items.insert(artist, vec![]);
-        }
-
-        // let i = self.selected_index.load(AtomicOrdering::SeqCst);
-        // let selected_artist = artists[i].clone();
-        // *self.selected_artist.lock().unwrap() = selected_artist;
+        items
+            .entry(artist)
+            .and_modify(|x| {
+                if let Err(i) = x.binary_search(&album) {
+                    x.insert(i, album.clone());
+                }
+            })
+            .or_insert(vec![album]);
     }
 }
 

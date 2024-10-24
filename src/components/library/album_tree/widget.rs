@@ -12,15 +12,15 @@ use crate::config::Theme;
 
 use super::component::{AlbumTree, AlbumTreeItem};
 
-fn line_style(theme: &Theme, index: usize, selected_index: usize, list_has_focus: bool, item_is_filtered: bool) -> Style {
-    if index == selected_index {
+fn line_style(theme: &Theme, list_has_focus: bool, is_selected: bool, is_search_match: bool) -> Style {
+    if is_selected {
         if list_has_focus {
             Style::default().fg(theme.foreground_selected).bg(theme.background_selected)
         } else {
             Style::default().fg(theme.foreground_selected).bg(theme.background_selected_blur)
         }
     } else {
-        let c = if item_is_filtered {
+        let c = if is_search_match {
             theme.search
         } else {
             theme.foreground_secondary
@@ -33,18 +33,18 @@ impl<'a> WidgetRef for AlbumTree<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.height.store(area.height as usize, Ordering::Relaxed);
 
-        let item_list = &self.item_list.lock().unwrap();
+        let item_list = &self.artist_list.lock().unwrap();
         if item_list.len() < 1 {
             return;
         }
 
         let item_tree = self.item_tree.lock().unwrap();
 
-        let selected_index = self.selected_index.load(Ordering::Relaxed);
+        let selected_index = self.selected_artist.load(Ordering::Relaxed);
+        let selected_album_index = self.selected_album.load(Ordering::Relaxed);
         let offset = self.offset.load(Ordering::Relaxed);
 
-
-        let mut i = 0;
+        let mut i_artist = 0;
         let mut y = 0;
         let area_height = area.height;
 
@@ -61,47 +61,44 @@ impl<'a> WidgetRef for AlbumTree<'a> {
         let album_rect = |y: u16|
             artist_rect(y).offset(ratatui::layout::Offset { x: 2, y: 0 });
 
-
-        while i < item_list.len().min(area_height as usize) {
-            let item_index = i + offset;
+        while i_artist < item_list.len().min(area_height as usize) {
+            let item_index = i_artist + offset;
 
             if item_index >= item_list.len() {
                 log::error!("item index {item_index} > item_list.len() {} offset={offset}", item_list.len());
                 break;
             }
 
-            let list_item = &item_list[item_index];
+            let artist = &item_list[item_index];
 
-            let is_filtered = {
+            let is_filter_match = {
                 // TODO: store this data in kb_handler and just read it here, in a Vec<bool>
                 let filter = self.filter.lock().unwrap();
-                !filter.is_empty() && list_item.contains(filter.as_str())
+                !filter.is_empty() && artist.data.contains(filter.as_str())
             };
 
-            let style = line_style(&self.theme, item_index, selected_index, true, is_filtered);
-            Line::from(list_item.to_string()).style(style).render_ref(artist_rect(y), buf);
 
-            let AlbumTreeItem::Artist(_, is_open) = list_item else {
-                continue;
-            };
+            let style = line_style(&self.theme, true, item_index == selected_index, is_filter_match);
+            Line::from(artist.data.to_string()).style(style).render_ref(artist_rect(y), buf);
 
-            if *is_open {
-                let mut j = 0;
-                let albums = item_tree.get(&list_item.to_string());
+            if artist.is_open {
+                let mut i_album = 0;
+                let albums = item_tree.get(&artist.data);
 
                 if let Some(albums) = albums {
-                    while j < albums.len() && y < area_height {
+                    while i_album < albums.len() && y < area_height {
                         y += 1;
 
-                        Line::from(albums[j].as_str()).render_ref(album_rect(y), buf);
+                        let style = line_style(&self.theme, true, item_index == selected_index && selected_album_index == i_album, is_filter_match);
+                        Line::from(albums[i_album].as_str()).style(style).render_ref(album_rect(y), buf);
 
-                        j += 1;
+                        i_album += 1;
 
                     }
                 }
             }
 
-            i += 1;
+            i_artist += 1;
             y += 1;
         };
     }

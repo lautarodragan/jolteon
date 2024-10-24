@@ -22,14 +22,14 @@ use super::{song_list::SongList, album_tree::{AlbumTree, AlbumTreeItem}};
 #[derive(Eq, PartialEq)]
 #[repr(u8)]
 pub enum LibraryScreenElement {
-    ArtistList,
+    AlbumTree,
     SongList,
 }
 
 impl From<u8> for LibraryScreenElement {
     fn from(value: u8) -> Self {
         if value == 0 {
-            LibraryScreenElement::ArtistList
+            LibraryScreenElement::AlbumTree
         } else {
             LibraryScreenElement::SongList
         }
@@ -58,7 +58,7 @@ pub struct Library<'a> {
 
     pub(super) songs: Rc<Mutex<HashMap<String, Vec<Song>>>>,
     pub(super) song_list: Rc<SongList<'a>>,
-    pub(super) artist_list: Rc<AlbumTree<'a>>,
+    pub(super) album_tree: Rc<AlbumTree<'a>>,
 
     focused_element: AtomicLibraryScreenElement,
 
@@ -110,19 +110,19 @@ impl<'a> Library<'a> {
         let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
         let song_map = Rc::new(Mutex::new(HashMap::<String, Vec<Song>>::new()));
-        let artist_list = Rc::new(AlbumTree::new(theme));
+        let album_tree = Rc::new(AlbumTree::new(theme));
         let song_list = Rc::new(SongList::new(theme));
 
-        artist_list.on_select({
+        album_tree.on_select({
             let songs = song_map.clone();
             let song_list = song_list.clone();
 
-            move |artist| {
-                log::trace!(target: "::library.album_tree.on_select", "artist selected {:?}", artist);
+            move |item| {
+                log::trace!(target: "::library.album_tree.on_select", "selected {:?}", item);
 
-                let AlbumTreeItem::Artist(artist, _) = artist else {
-                    log::warn!(target: "::library.album_tree.on_select", "artist = album. not implemented");
-                    return;
+                let (artist, album) = match item {
+                    AlbumTreeItem::Artist(artist) => (artist, None),
+                    AlbumTreeItem::Album(artist, album) => (artist, Some(album))
                 };
 
                 let artist_songs = {
@@ -130,7 +130,12 @@ impl<'a> Library<'a> {
 
                     match songs.get(artist.as_str()) {
                         Some(artist_songs) => {
-                            artist_songs.clone()
+                            match album {
+                                Some(album) => {
+                                    artist_songs.iter().filter(|s| s.album.as_ref().is_some_and(|a| *a == album)).cloned().collect()
+                                }
+                                None => artist_songs.clone(),
+                            }
                         }
                         None => {
                             log::error!(target: "::library.album_tree.on_select", "artist with no songs {artist}");
@@ -143,14 +148,14 @@ impl<'a> Library<'a> {
             }
         });
 
-        artist_list.on_confirm({
+        album_tree.on_confirm({
             let songs = song_map.clone();
             let on_select_songs_fn = on_select_songs_fn.clone();
 
             move |artist| {
                 log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", artist);
 
-                let AlbumTreeItem::Artist(artist, _) = artist else {
+                let AlbumTreeItem::Artist(artist) = artist else {
                     log::warn!(target: "::library.album_tree.on_select", "artist = album. not implemented");
                     return;
                 };
@@ -170,13 +175,13 @@ impl<'a> Library<'a> {
             }
         });
 
-        artist_list.on_delete({
+        album_tree.on_delete({
             let songs = song_map.clone();
 
-            move |artist| {
-                log::trace!(target: "::library.album_tree.on_delete", "artist deleted {:?}", artist);
+            move |item| {
+                log::trace!(target: "::library.album_tree.on_delete", "artist deleted {:?}", item);
 
-                let AlbumTreeItem::Artist(artist, _) = artist else {
+                let AlbumTreeItem::Artist(artist) = item else {
                     log::warn!(target: "::library.album_tree.on_select", "artist = album. not implemented");
                     return;
                 };
@@ -205,7 +210,7 @@ impl<'a> Library<'a> {
 
             songs: song_map,
             song_list,
-            artist_list,
+            album_tree,
         };
 
         lib.add_songs(songs);
@@ -267,11 +272,11 @@ impl<'a> Library<'a> {
             songs.insert(artist.clone(), vec![song]);
         }
 
-        self.artist_list.add_artist(artist.clone());
-        self.artist_list.add_album(artist.clone(), album);
+        self.album_tree.add_artist(artist.clone());
+        self.album_tree.add_album(artist.clone(), album);
 
-        match self.artist_list.selected_artist() {
-            AlbumTreeItem::Artist(selected_artist, _) if selected_artist == artist => {
+        match self.album_tree.selected_item() {
+            AlbumTreeItem::Artist(selected_artist) if selected_artist == artist => {
                 let artist_songs = songs.get(artist.as_str())
                     .unwrap() // Safe because we just added it, and we still have the lock on songs.
                     .clone();
