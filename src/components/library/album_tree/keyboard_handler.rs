@@ -30,6 +30,7 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                 let mut artist_list = self.artist_list.lock().unwrap();
                 let selected_artist = &mut artist_list[i];
                 selected_artist.is_open = !selected_artist.is_open;
+                self.selected_album.store(0, Ordering::SeqCst);
             },
             KeyCode::Delete => {
                 // let (removed_artist, selected_artist) = {

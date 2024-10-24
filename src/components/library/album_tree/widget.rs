@@ -58,8 +58,16 @@ impl<'a> WidgetRef for AlbumTree<'a> {
             }
         };
 
-        let album_rect = |y: u16|
-            artist_rect(y).offset(ratatui::layout::Offset { x: 2, y: 0 });
+        let album_rect = {
+            let area = area.clone();
+
+            move |y: u16| Rect {
+                x: area.x + 2,
+                y: area.y + y,
+                height: 1,
+                width: area.width - 2,
+            }
+        };
 
         while i_artist < item_list.len().min(area_height as usize) {
             let item_index = i_artist + offset;
