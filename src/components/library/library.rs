@@ -79,7 +79,13 @@ impl Ord for Song {
             },
             (Some(album_a), Some(album_b)) if album_a != album_b => {
                 match (self.year, other.year) {
-                    (Some(ref year_a), Some(ref year_b)) => year_a.cmp(year_b),
+                    (Some(ref year_a), Some(ref year_b)) => {
+                        if year_a != year_b {
+                            year_a.cmp(year_b)
+                        } else {
+                            album_a.cmp(album_b)
+                        }
+                    },
                     (Some(_), None) => Ordering::Greater,
                     (None, Some(_)) => Ordering::Less,
                     _ => album_a.cmp(album_b)
