@@ -45,31 +45,16 @@ impl<'a> WidgetRef for AlbumTree<'a> {
         let offset = self.offset.load(Ordering::Relaxed);
 
         let mut i_artist = 0;
-        let mut y = 0;
         let area_height = area.height;
+        let area_bottom = area.height.saturating_sub(area.y);
 
-        let artist_rect = {
-            let area = area.clone();
-
-            move |y: u16| Rect {
-                y: area.y + y,
-                height: 1,
-                ..area
-            }
+        let mut rect = Rect {
+            y: area.y,
+            height: 1,
+            ..area
         };
 
-        let album_rect = {
-            let area = area.clone();
-
-            move |y: u16| Rect {
-                x: area.x + 2,
-                y: area.y + y,
-                height: 1,
-                width: area.width - 2,
-            }
-        };
-
-        while i_artist < item_list.len().min(area_height as usize) {
+        while i_artist < item_list.len().min(area_height as usize) && rect.y < area_bottom {
             let item_index = i_artist + offset;
 
             if item_index >= item_list.len() {
@@ -85,29 +70,32 @@ impl<'a> WidgetRef for AlbumTree<'a> {
                 !filter.is_empty() && artist.data.contains(filter.as_str())
             };
 
-
             let style = line_style(&self.theme, true, item_index == selected_index, is_filter_match);
-            Line::from(artist.data.to_string()).style(style).render_ref(artist_rect(y), buf);
+            Line::from(artist.data.to_string()).style(style).render_ref(rect, buf);
 
             if artist.is_open {
                 let mut i_album = 0;
                 let albums = item_tree.get(&artist.data);
 
                 if let Some(albums) = albums {
-                    while i_album < albums.len() && y < area_height {
-                        y += 1;
+                    rect.x += 2;
+                    rect.width -= 2;
+                    while i_album < albums.len() && rect.y < area_bottom {
+                        rect.y += 1;
 
                         let style = line_style(&self.theme, true, item_index == selected_index && selected_album_index == i_album, is_filter_match);
-                        Line::from(albums[i_album].as_str()).style(style).render_ref(album_rect(y), buf);
+                        Line::from(albums[i_album].as_str()).style(style).render_ref(rect, buf);
 
                         i_album += 1;
 
                     }
+                    rect.x -= 2;
+                    rect.width += 2;
                 }
             }
 
             i_artist += 1;
-            y += 1;
+            rect.y += 1;
         };
     }
 }

@@ -26,11 +26,24 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                 self.on_confirm_fn.lock().unwrap()(item);
             },
             KeyCode::Char(' ') => {
-                let i = self.selected_artist.load(Ordering::SeqCst);
+                let selected_artist = self.selected_artist.load(Ordering::SeqCst);
                 let mut artist_list = self.artist_list.lock().unwrap();
-                let selected_artist = &mut artist_list[i];
+                let selected_artist = &mut artist_list[selected_artist];
                 selected_artist.is_open = !selected_artist.is_open;
+
                 self.selected_album.store(0, Ordering::SeqCst);
+
+                if !selected_artist.is_open {
+                    let item = AlbumTreeItem::Artist(selected_artist.data.clone());
+                    self.on_select_fn.lock().unwrap()(item);
+                } else {
+                    let tree = self.item_tree.lock().unwrap();
+                    if let Some(albums) = tree.get(&selected_artist.data) {
+                        let album = albums.get(0).unwrap();
+                        let item = AlbumTreeItem::Album(selected_artist.data.clone(), album.clone());
+                        self.on_select_fn.lock().unwrap()(item);
+                    }
+                }
             },
             KeyCode::Delete => {
                 // let (removed_artist, selected_artist) = {
@@ -118,7 +131,7 @@ impl<'a> AlbumTree<'a> {
                 } else {
                     if key.code == KeyCode::Up {
                         i -= 1;
-                        let artist = artists.get(i as usize).unwrap();
+                        let artist = artists.get(i.max(0) as usize).unwrap();
                         let albums = tree.get(&artist.data).unwrap();
                         j = albums.len().saturating_sub(1) as i32;
                     } else {
