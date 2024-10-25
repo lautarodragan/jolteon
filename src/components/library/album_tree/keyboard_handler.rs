@@ -94,7 +94,10 @@ impl<'a> AlbumTree<'a> {
 
     fn on_artist_list_directional_key(&self, key: KeyEvent) {
         let artists = self.artist_list.lock().unwrap();
-        let length = artists.len() as i32;
+        let length = {
+            let visible_albums: usize = artists.iter().filter(|a| a.is_open).map(|a| a.albums.len()).sum();
+            visible_albums + artists.len()
+        } as i32;
 
         let height = self.height.load(Ordering::Relaxed) as i32;
         let padding = 5;
@@ -107,31 +110,28 @@ impl<'a> AlbumTree<'a> {
             KeyCode::Up | KeyCode::Down => {
                 let artist = artists.get(i.max(0) as usize).unwrap();
 
-                if artist.is_open {
-                    if key.code == KeyCode::Up {
-                        if j > 0 {
-                            j -= 1;
-                        } else if i > 0 {
-                            i -= 1;
-                            let artist = artists.get(i.max(0) as usize).unwrap();
-                            j = artist.albums.len().saturating_sub(1) as i32;
-                        }
-                    } else {
+                if key.code == KeyCode::Up {
+                    if artist.is_open && j > 0 {
+                        j -= 1;
+                    } else if i > 0 {
+                        i -= 1;
+                        let artist = artists.get(i.max(0) as usize).unwrap();
+                        j = if artist.is_open {
+                            artist.albums.len().saturating_sub(1) as i32
+                        } else {
+                            0
+                        };
+                    }
+                } else {
+                    if artist.is_open {
                         if j < artist.albums.len().saturating_sub(1) as i32 {
                             j += 1;
                         } else if i < artists.len().saturating_sub(1) as i32 {
                             j = 0;
                             i += 1;
                         }
-                    }
-                } else {
-                    if key.code == KeyCode::Up {
-                        if i > 0 {
-                            i -= 1;
-                            let artist = artists.get(i.max(0) as usize).unwrap();
-                            j = artist.albums.len().saturating_sub(1) as i32;
-                        }
                     } else {
+                        j = 0;
                         i += 1;
                     }
                 }
@@ -142,9 +142,12 @@ impl<'a> AlbumTree<'a> {
                     height.saturating_sub(padding).saturating_sub(1)
                 };
 
-                if (key.code == KeyCode::Up && i < offset + padding) || (key.code == KeyCode::Down && i > offset + padding) {
-                    offset = if i > padding {
-                        i - padding
+                let visible_items: usize = artists.iter().take(i as usize).filter(|a| a.is_open).map(|a| a.albums.len()).sum();
+                let visible_items = visible_items as i32 + i + j;
+
+                if (key.code == KeyCode::Up && visible_items < offset + padding + 1) || (key.code == KeyCode::Down && visible_items > offset + padding) {
+                    offset = if visible_items > padding {
+                        visible_items - padding
                     } else {
                         0
                     };
@@ -157,14 +160,20 @@ impl<'a> AlbumTree<'a> {
                 offset = 0;
             },
             KeyCode::End => {
-                i = length - 1;
-                offset = i - height + padding;
+                i = artists.len() as i32 - 1;
+                let artist = artists.get(i.max(0) as usize).unwrap();
+                j = if artist.is_open {
+                    artist.albums.len().saturating_sub(1)
+                } else {
+                    0
+                } as i32;
+                offset = length - 1 - height + padding;
             },
             _ => {},
         }
 
         offset = offset.min(length - height).max(0);
-        i = i.min(length - 1).max(0);
+        i = i.min(artists.len() as i32 - 1).max(0);
 
         self.offset.store(offset as usize, Ordering::SeqCst);
         self.selected_artist.store(i as usize, Ordering::SeqCst);

@@ -33,8 +33,9 @@ impl<'a> WidgetRef for AlbumTree<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.height.store(area.height as usize, Ordering::Relaxed);
 
-        let item_list = &self.artist_list.lock().unwrap();
-        if item_list.len() < 1 {
+        let artist_list = self.artist_list.lock().unwrap();
+
+        if artist_list.is_empty() {
             return;
         }
 
@@ -42,55 +43,41 @@ impl<'a> WidgetRef for AlbumTree<'a> {
         let selected_album_index = self.selected_album.load(Ordering::Relaxed);
         let offset = self.offset.load(Ordering::Relaxed);
 
-        let mut i_artist = 0;
-        let area_height = area.height;
-        let area_bottom = area.height.saturating_sub(area.y);
+        let mut list = vec![];
 
-        let mut rect = Rect {
-            y: area.y,
-            height: 1,
-            ..area
-        };
+        for i in 0..artist_list.len() {
+            let artist = &artist_list[i];
 
-        while i_artist < item_list.len().min(area_height as usize) && rect.y < area_bottom {
-            let item_index = i_artist + offset;
-
-            if item_index >= item_list.len() {
-                log::error!("item index {item_index} > item_list.len() {} offset={offset}", item_list.len());
-                break;
-            }
-
-            let artist = &item_list[item_index];
-
-            let is_filter_match = {
-                // TODO: store this data in kb_handler and just read it here, in a Vec<bool>
-                let filter = self.filter.lock().unwrap();
-                !filter.is_empty() && artist.data.contains(filter.as_str())
-            };
-
-            let style = line_style(&self.theme, true, item_index == selected_index, is_filter_match);
-            Line::from(artist.data.to_string()).style(style).render_ref(rect, buf);
+            list.push((artist.data.as_str(), false, i == selected_index));
 
             if artist.is_open {
-                rect.x += 2;
-                rect.width -= 2;
-
-                let mut i_album = 0;
-                while i_album < artist.albums.len() && rect.y < area_bottom {
-                    rect.y += 1;
-
-                    let style = line_style(&self.theme, true, item_index == selected_index && selected_album_index == i_album, is_filter_match);
-                    Line::from(artist.albums[i_album].as_str()).style(style).render_ref(rect, buf);
-
-                    i_album += 1;
-
+                for j in 0..artist.albums.len() {
+                    let album = artist.albums[j].as_str();
+                    list.push((album, true, i == selected_index && j == selected_album_index));
                 }
-                rect.x -= 2;
-                rect.width += 2;
             }
+        }
 
-            i_artist += 1;
-            rect.y += 1;
-        };
+        if offset >= list.len() {
+            log::error!("offset >= list.len() offset={offset} item_list.len() {} ", list.len());
+            return;
+        }
+
+        for i in offset..list.len().min(offset + area.height as usize) {
+            let (text, is_album, is_selected) = list[i];
+
+            let style = line_style(&self.theme, true, is_selected, false);
+            let rect = Rect {
+                x: if is_album{
+                    area.x + 2
+                } else {
+                    area.x
+                },
+                y: area.y + i as u16 - offset as u16,
+                width: area.width,
+                height: 1,
+            };
+            Line::from(text).style(style).render_ref(rect, buf);
+        }
     }
 }
