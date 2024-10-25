@@ -65,24 +65,42 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                     let mut filter = self.filter.lock().unwrap();
                     filter.push(char);
 
-                    let artists = self.artist_list.lock().unwrap();
-
-                    let Some(i) = artists.iter().position(|item| item.artist.contains(filter.as_str())) else { // todo: make search great again
-                        return;
-                    };
-
                     // todo: also search albums
+                    let mut artists = self.artist_list.lock().unwrap();
 
-                    self.selected_artist.store(i, Ordering::SeqCst);
-                    let item = artists[i].clone();
-                    AlbumTreeItem::Artist(item.artist)
+                    for i in 0..artists.len() {
+                        let mut entry = &mut artists[i];
+                        entry.is_match = entry.artist.contains(filter.as_str()) || entry.artist.to_lowercase().contains(filter.to_lowercase().as_str());
+                    }
+
+                    let selected_artist_index = self.selected_artist.load(Ordering::SeqCst);
+                    let selected_artist = &artists[selected_artist_index];
+
+                    if !selected_artist.is_match {
+                        if let Some(n) = artists.iter().position(|entry| entry.is_match) {
+                            Some((AlbumTreeItem::Artist(artists[n].artist.clone()), n))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
                 };
 
-                self.on_select_fn.lock().unwrap()(item);
+                if let Some((item, n)) = item {
+                    self.selected_artist.store(n, Ordering::SeqCst);
+                    self.on_select_fn.lock().unwrap()(item);
+                }
             }
             KeyCode::Esc => {
                 let mut filter = self.filter.lock().unwrap();
                 filter.clear();
+
+                let mut artists = self.artist_list.lock().unwrap();
+                for i in 0..artists.len() {
+                    let mut entry = &mut artists[i];
+                    entry.is_match = false;
+                }
             }
             _ => {},
         }

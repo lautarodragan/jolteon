@@ -64,6 +64,7 @@ pub struct AlbumTreeEntryArtist {
     pub artist: String,
     pub albums: Vec<String>,
     pub is_open: bool,
+    pub is_match: bool,
 }
 
 pub struct AlbumTree<'a> {
@@ -152,6 +153,7 @@ impl<'a> AlbumTree<'a> {
                     artist: artist.clone(),
                     albums: vec![],
                     is_open: false,
+                    is_match: false,
                 });
             }
         }

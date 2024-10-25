@@ -48,12 +48,12 @@ impl<'a> WidgetRef for AlbumTree<'a> {
         for i in 0..artist_list.len() {
             let artist = &artist_list[i];
 
-            list.push((artist.artist.as_str(), false, i == selected_index));
+            list.push((artist.artist.as_str(), false, i == selected_index, artist.is_match));
 
             if artist.is_open {
                 for j in 0..artist.albums.len() {
                     let album = artist.albums[j].as_str();
-                    list.push((album, true, i == selected_index && j == selected_album_index));
+                    list.push((album, true, i == selected_index && j == selected_album_index, false));
                 }
             }
         }
@@ -64,9 +64,9 @@ impl<'a> WidgetRef for AlbumTree<'a> {
         }
 
         for i in offset..list.len().min(offset + area.height as usize) {
-            let (text, is_album, is_selected) = list[i];
+            let (text, is_album, is_selected, is_match) = list[i];
 
-            let style = line_style(&self.theme, true, is_selected, false);
+            let style = line_style(&self.theme, true, is_selected, is_match);
             let rect = Rect {
                 x: if is_album{
                     area.x + 2
