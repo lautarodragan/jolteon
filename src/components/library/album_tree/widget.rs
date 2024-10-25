@@ -38,8 +38,6 @@ impl<'a> WidgetRef for AlbumTree<'a> {
             return;
         }
 
-        let item_tree = self.item_tree.lock().unwrap();
-
         let selected_index = self.selected_artist.load(Ordering::Relaxed);
         let selected_album_index = self.selected_album.load(Ordering::Relaxed);
         let offset = self.offset.load(Ordering::Relaxed);
@@ -74,24 +72,21 @@ impl<'a> WidgetRef for AlbumTree<'a> {
             Line::from(artist.data.to_string()).style(style).render_ref(rect, buf);
 
             if artist.is_open {
+                rect.x += 2;
+                rect.width -= 2;
+
                 let mut i_album = 0;
-                let albums = item_tree.get(&artist.data);
+                while i_album < artist.albums.len() && rect.y < area_bottom {
+                    rect.y += 1;
 
-                if let Some(albums) = albums {
-                    rect.x += 2;
-                    rect.width -= 2;
-                    while i_album < albums.len() && rect.y < area_bottom {
-                        rect.y += 1;
+                    let style = line_style(&self.theme, true, item_index == selected_index && selected_album_index == i_album, is_filter_match);
+                    Line::from(artist.albums[i_album].as_str()).style(style).render_ref(rect, buf);
 
-                        let style = line_style(&self.theme, true, item_index == selected_index && selected_album_index == i_album, is_filter_match);
-                        Line::from(albums[i_album].as_str()).style(style).render_ref(rect, buf);
+                    i_album += 1;
 
-                        i_album += 1;
-
-                    }
-                    rect.x -= 2;
-                    rect.width += 2;
                 }
+                rect.x -= 2;
+                rect.width += 2;
             }
 
             i_artist += 1;

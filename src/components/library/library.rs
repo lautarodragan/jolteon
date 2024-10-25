@@ -272,7 +272,6 @@ impl<'a> Library<'a> {
             songs.insert(artist.clone(), vec![song]);
         }
 
-        self.album_tree.add_artist(artist.clone());
         self.album_tree.add_album(artist.clone(), album);
 
         match self.album_tree.selected_item() {

@@ -37,12 +37,9 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                     let item = AlbumTreeItem::Artist(selected_artist.data.clone());
                     self.on_select_fn.lock().unwrap()(item);
                 } else {
-                    let tree = self.item_tree.lock().unwrap();
-                    if let Some(albums) = tree.get(&selected_artist.data) {
-                        let album = albums.get(0).unwrap();
-                        let item = AlbumTreeItem::Album(selected_artist.data.clone(), album.clone());
-                        self.on_select_fn.lock().unwrap()(item);
-                    }
+                    let album = selected_artist.albums.get(0).unwrap();
+                    let item = AlbumTreeItem::Album(selected_artist.data.clone(), album.clone());
+                    self.on_select_fn.lock().unwrap()(item);
                 }
             },
             KeyCode::Delete => {
@@ -106,34 +103,34 @@ impl<'a> AlbumTree<'a> {
         let mut i = self.selected_artist.load(Ordering::SeqCst) as i32;
         let mut j = self.selected_album.load(Ordering::SeqCst) as i32;
 
-        let tree = self.item_tree.lock().unwrap();
-
         match key.code {
             KeyCode::Up | KeyCode::Down => {
-                let artist = artists.get(i as usize).unwrap();
-                let albums = tree.get(&artist.data).unwrap();
+                let artist = artists.get(i.max(0) as usize).unwrap();
 
                 if artist.is_open {
                     if key.code == KeyCode::Up {
                         if j > 0 {
                             j -= 1;
-                        } else {
+                        } else if i > 0 {
                             i -= 1;
+                            let artist = artists.get(i.max(0) as usize).unwrap();
+                            j = artist.albums.len().saturating_sub(1) as i32;
                         }
                     } else {
-                        if j < albums.len().saturating_sub(1) as i32 {
+                        if j < artist.albums.len().saturating_sub(1) as i32 {
                             j += 1;
-                        } else {
+                        } else if i < artists.len().saturating_sub(1) as i32 {
                             j = 0;
                             i += 1;
                         }
                     }
                 } else {
                     if key.code == KeyCode::Up {
-                        i -= 1;
-                        let artist = artists.get(i.max(0) as usize).unwrap();
-                        let albums = tree.get(&artist.data).unwrap();
-                        j = albums.len().saturating_sub(1) as i32;
+                        if i > 0 {
+                            i -= 1;
+                            let artist = artists.get(i.max(0) as usize).unwrap();
+                            j = artist.albums.len().saturating_sub(1) as i32;
+                        }
                     } else {
                         i += 1;
                     }
