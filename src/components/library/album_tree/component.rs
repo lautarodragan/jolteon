@@ -42,13 +42,6 @@ impl PartialOrd for AlbumTreeItem {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AlbumTreeEntryArtist {
-    pub data: String,
-    pub albums: Vec<String>,
-    pub is_open: bool,
-}
-
 impl AlbumTreeItem {
     pub fn contains(&self, needle: &str) -> bool {
         let haystack = self.to_string();
@@ -64,6 +57,13 @@ impl Display for AlbumTreeItem {
         };
         write!(f, "{}", x)
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AlbumTreeEntryArtist {
+    pub artist: String,
+    pub albums: Vec<String>,
+    pub is_open: bool,
 }
 
 pub struct AlbumTree<'a> {
@@ -124,16 +124,16 @@ impl<'a> AlbumTree<'a> {
         };
 
         if !artist.is_open {
-            AlbumTreeItem::Artist(artist.data.clone())
+            AlbumTreeItem::Artist(artist.artist.clone())
         } else {
             let selected_album = self.selected_album.load(AtomicOrdering::SeqCst);
 
             let Some(album) = artist.albums.get(selected_album) else {
-                log::error!("artist {} selected_album {selected_album} >= len {}", artist.data, artist.albums.len());
+                log::error!("artist {} selected_album {selected_album} >= len {}", artist.artist, artist.albums.len());
                 panic!("no album at selected index!");
             };
 
-            AlbumTreeItem::Album(artist.data.clone(), album.clone())
+            AlbumTreeItem::Album(artist.artist.clone(), album.clone())
 
         }
     }
@@ -141,7 +141,7 @@ impl<'a> AlbumTree<'a> {
     pub fn add_album(&self, artist: String, album: String) {
         let mut artists = self.artist_list.lock().unwrap();
 
-        match artists.binary_search_by(|a| a.data.cmp(&artist)) {
+        match artists.binary_search_by(|a| a.artist.cmp(&artist)) {
             Ok(i) => {
                 if let Err(j) = artists[i].albums.binary_search_by(|a| a.cmp(&album)) {
                     artists[i].albums.insert(j, album.clone());
@@ -149,7 +149,7 @@ impl<'a> AlbumTree<'a> {
             }
             Err(i) => {
                 artists.insert(i, AlbumTreeEntryArtist {
-                    data: artist.clone(),
+                    artist: artist.clone(),
                     albums: vec![],
                     is_open: false,
                 });

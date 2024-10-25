@@ -48,7 +48,7 @@ impl<'a> WidgetRef for AlbumTree<'a> {
         for i in 0..artist_list.len() {
             let artist = &artist_list[i];
 
-            list.push((artist.data.as_str(), false, i == selected_index));
+            list.push((artist.artist.as_str(), false, i == selected_index));
 
             if artist.is_open {
                 for j in 0..artist.albums.len() {

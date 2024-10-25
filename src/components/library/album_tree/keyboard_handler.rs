@@ -34,11 +34,11 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                 self.selected_album.store(0, Ordering::SeqCst);
 
                 if !selected_artist.is_open {
-                    let item = AlbumTreeItem::Artist(selected_artist.data.clone());
+                    let item = AlbumTreeItem::Artist(selected_artist.artist.clone());
                     self.on_select_fn.lock().unwrap()(item);
                 } else {
                     let album = selected_artist.albums.get(0).unwrap();
-                    let item = AlbumTreeItem::Album(selected_artist.data.clone(), album.clone());
+                    let item = AlbumTreeItem::Album(selected_artist.artist.clone(), album.clone());
                     self.on_select_fn.lock().unwrap()(item);
                 }
             },
@@ -67,7 +67,7 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
 
                     let artists = self.artist_list.lock().unwrap();
 
-                    let Some(i) = artists.iter().position(|item| item.data.contains(filter.as_str())) else { // todo: make search great again
+                    let Some(i) = artists.iter().position(|item| item.artist.contains(filter.as_str())) else { // todo: make search great again
                         return;
                     };
 
@@ -75,7 +75,7 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
 
                     self.selected_artist.store(i, Ordering::SeqCst);
                     let item = artists[i].clone();
-                    AlbumTreeItem::Artist(item.data)
+                    AlbumTreeItem::Artist(item.artist)
                 };
 
                 self.on_select_fn.lock().unwrap()(item);
