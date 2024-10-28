@@ -152,12 +152,16 @@ impl<'a> Library<'a> {
             let songs = song_map.clone();
             let on_select_songs_fn = on_select_songs_fn.clone();
 
-            move |artist| {
-                log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", artist);
+            move |item| {
+                log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
 
-                let AlbumTreeItem::Artist(artist) = artist else {
-                    log::warn!(target: "::library.album_tree.on_select", "artist = album. not implemented");
-                    return;
+                let (artist, album) = match item {
+                    AlbumTreeItem::Artist(artist) => {
+                        (artist, None)
+                    }
+                    AlbumTreeItem::Album(artist, album) => {
+                        (artist, Some(album))
+                    }
                 };
 
                 let songs = {
@@ -167,11 +171,14 @@ impl<'a> Library<'a> {
                         return;
                     };
 
-                    songs.iter().map(|s| s.clone()).collect()
+                    if let Some(album) = album {
+                        songs.iter().filter(|s| s.album.as_ref().is_some_and(|a| *a == album)).cloned().collect()
+                    } else {
+                        songs.iter().cloned().collect()
+                    }
                 };
 
                 on_select_songs_fn.lock().unwrap()(songs);
-
             }
         });
 
