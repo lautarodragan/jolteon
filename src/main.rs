@@ -14,6 +14,7 @@ mod source;
 mod components;
 mod bye;
 mod files;
+mod auto_update;
 
 use std::error::Error;
 use std::io::stdout;
@@ -30,7 +31,7 @@ use futures::{
 };
 use log::{debug, error, info, Record};
 
-use crate::{app::App, mpris::create_mpris_player, term::reset_terminal, bye::bye};
+use crate::{app::App, mpris::create_mpris_player, term::reset_terminal, bye::bye, auto_update::{get_releases, can_i_has_rls}};
 
 pub enum Command {
     PlayPause,
@@ -74,6 +75,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .start()?;
 
     info!("Starting");
+
+    let get_releases_task = task::spawn_blocking(|| {
+        let target = "::get-releases";
+        log::trace!(target: target, "getting releases...");
+        match get_releases() {
+            Ok(()) => {
+                log::info!(target: target, "Wrote release information to file.");
+            }
+            Err(err) => {
+                log::error!(target: target, "Could not retrieve or write release info. Error was: {:#?}", err);
+            }
+        }
+    });
+
+    let auto_update_task = task::spawn_blocking(|| {
+        let target = "::auto-update";
+        log::trace!(target: target, "Starting auto-updater...");
+        match can_i_has_rls() {
+            Ok(releases) => {
+                log::info!(target: target, "Did something :P");
+            }
+            Err(err) => {
+                log::error!(target: target, "Could not auto update. Error was: {:#?}", err);
+            }
+        }
+    });
 
     let (player_command_sender, player_command_receiver) = channel();
 
