@@ -69,7 +69,7 @@ pub struct AlbumTreeEntryArtist {
 pub struct AlbumTree<'a> {
     pub(super) theme: Theme,
 
-    pub(super) artist_list: Mutex<Vec<AlbumTreeEntryArtist>>, // TODO: just vec<vec<string>> :P
+    pub(super) artist_list: Mutex<Vec<AlbumTreeEntryArtist>>,
     pub(super) selected_artist: AtomicUsize,
     pub(super) selected_album: AtomicUsize,
 

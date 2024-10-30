@@ -5,8 +5,6 @@ use std::{
     cmp::Ordering,
 };
 
-use serde::{Deserialize, Serialize};
-
 use crate::{
     structs::{Song, Jolt},
     cue::CueSheet,

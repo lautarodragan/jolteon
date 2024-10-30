@@ -186,15 +186,21 @@ impl<'a> Library<'a> {
             let songs = song_map.clone();
 
             move |item| {
-                log::trace!(target: "::library.album_tree.on_delete", "artist deleted {:?}", item);
-
-                let AlbumTreeItem::Artist(artist) = item else {
-                    log::warn!(target: "::library.album_tree.on_select", "artist = album. not implemented");
-                    return;
-                };
+                log::trace!(target: "::library.album_tree.on_delete", "item deleted {:?}", item);
 
                 let mut songs = songs.lock().unwrap();
-                songs.remove(artist.as_str());
+                match item {
+                    AlbumTreeItem::Artist(ref artist) => {
+                        songs.remove(artist);
+                    }
+                    AlbumTreeItem::Album(ref artist, album) => {
+                        let Some(artist_songs) = songs.get_mut(artist) else {
+                            log::error!(target: "::library.album_tree.on_delete", "Tried to delete artist's songs, but the artist has no songs.");
+                            return;
+                        };
+                        artist_songs.retain(|s| s.album.as_ref().is_some_and(|a| *a != album));
+                    }
+                };
             }
         });
 

@@ -43,24 +43,57 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                 }
             },
             KeyCode::Delete => {
-                let item = self.selected_item();
+                let selected_artist = self.selected_artist.load(Ordering::SeqCst);
+                let selected_album = self.selected_album.load(Ordering::SeqCst);
 
-                // let (removed_artist, selected_artist) = {
-                //     let i = self.selected_index.load(Ordering::SeqCst);
-                //     let mut artists = self.artist_list.lock().unwrap();
-                //     let removed_artist = artists.remove(i);
-                //
-                //     let i = i.min(artists.len().saturating_sub(1));
-                //     self.selected_index.store(i, Ordering::SeqCst);
-                //
-                //     let selected_artist = artists[i].clone();
-                //     self.offset.store(0, Ordering::SeqCst); // TODO: fix me (sub by one)
-                //
-                //     (removed_artist, selected_artist)
-                // };
+                let mut artists = self.artist_list.lock().unwrap();
+                let Some(artist) = artists.get_mut(selected_artist) else {
+                    log::error!("selected_artist {selected_artist} >= len {}", artists.len());
+                    return;
+                };
 
-                self.on_delete_fn.lock().unwrap()(item);
-                // self.on_select_fn.lock().unwrap()(selected_artist.data);
+                let removed_item;
+                let newly_selected_item;
+                let newly_selected_album_index;
+
+                if artist.is_open && artist.albums.len() > 1 {
+                    let removed_album = artist.albums.remove(selected_album);
+                    removed_item = AlbumTreeItem::Album(artist.artist.clone(), removed_album);
+
+                    newly_selected_album_index = selected_album.min(artist.albums.len().saturating_sub(1));
+                    newly_selected_item = AlbumTreeItem::Album(
+                        artist.artist.clone(),
+                        artist.albums[newly_selected_album_index].clone(),
+                    );
+                } else {
+                    let removed_artist = artists.remove(selected_artist);
+                    removed_item = AlbumTreeItem::Artist(removed_artist.artist);
+
+                    let newly_selected_artist_index = selected_artist.saturating_sub(1);
+                    let newly_selected_artist = artists.get(newly_selected_artist_index).unwrap();
+
+                    self.selected_artist.store(newly_selected_artist_index, Ordering::SeqCst);
+
+                    if newly_selected_artist.is_open {
+                        newly_selected_album_index = newly_selected_artist.albums.len().saturating_sub(1);
+                        newly_selected_item = AlbumTreeItem::Album(
+                            newly_selected_artist.artist.clone(),
+                            newly_selected_artist.albums[newly_selected_album_index].clone(),
+                        );
+                    } else {
+                        newly_selected_album_index = 0;
+                        newly_selected_item = AlbumTreeItem::Artist(newly_selected_artist.artist.clone());
+                    }
+                };
+                self.selected_album.store(newly_selected_album_index, Ordering::SeqCst);
+
+                // TODO: may need to re-calculate the offset,
+                // self.offset.store(0, Ordering::SeqCst); // TODO: fix me (same as "select one above")
+
+                drop(artists);
+
+                self.on_delete_fn.lock().unwrap()(removed_item);
+                self.on_select_fn.lock().unwrap()(newly_selected_item);
             },
             KeyCode::Char(char) => {
                 let item = {
