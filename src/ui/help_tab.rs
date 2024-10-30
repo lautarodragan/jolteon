@@ -6,20 +6,22 @@ use ratatui::{
     buffer::Buffer,
 };
 
-use crate::config::Config;
-use crate::ui::{KeyboardHandlerMut};
+use crate::{
+    config::Theme,
+    ui::{KeyboardHandlerMut},
+};
 
 pub struct HelpTab<'a> {
-    config: Config,
+    theme: Theme,
     header: Vec<&'a str>,
     items: Vec<Vec<&'a str>>,
     state: TableState,
 }
 
 impl<'a> HelpTab<'a> {
-    pub fn new(config: Config) -> Self {
+    pub fn new(theme: Theme) -> Self {
         Self {
-            config,
+            theme,
             header: vec!["Keys", "Commands"],
             items: vec![
                 vec!["Q", "Quit"],
@@ -90,13 +92,13 @@ impl<'a> WidgetRef for HelpTab<'a> {
         let header = self
             .header
             .iter()
-            .map(|h| Cell::from(*h).style(Style::default().fg(self.config.theme.foreground_selected)));
+            .map(|h| Cell::from(*h).style(Style::default().fg(self.theme.foreground_selected)));
 
         let header = Row::new(header)
             .style(
                 Style::default()
-                    .bg(self.config.theme.background)
-                    .fg(self.config.theme.foreground),
+                    .bg(self.theme.background)
+                    .fg(self.theme.foreground),
             )
             .height(1)
             .bottom_margin(0);
@@ -125,14 +127,14 @@ impl<'a> WidgetRef for HelpTab<'a> {
             )
             .style(
                 Style::default()
-                    .fg(self.config.theme.foreground)
-                    .bg(self.config.theme.background),
+                    .fg(self.theme.foreground)
+                    .bg(self.theme.background),
             )
             .highlight_style(
                 Style::default()
                     .add_modifier(Modifier::BOLD)
-                    .bg(self.config.theme.background_selected)
-                    .fg(self.config.theme.foreground_selected),
+                    .bg(self.theme.background_selected)
+                    .fg(self.theme.foreground_selected),
             )
             .widths(&[Constraint::Percentage(50), Constraint::Length(30), Constraint::Min(10)]);
 

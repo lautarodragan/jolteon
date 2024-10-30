@@ -62,7 +62,7 @@ pub struct Library<'a> {
 
     focused_element: AtomicLibraryScreenElement,
 
-    pub(super) on_select_fn: Rc<Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>>,
+    pub(super) on_select_fn: Rc<Mutex<Box<dyn FnMut(Song, KeyEvent) + 'a>>>,
     pub(super) on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>>,
 }
 
@@ -106,7 +106,7 @@ impl PartialOrd for Song {
 
 impl<'a> Library<'a> {
     pub fn new(theme: Theme, songs: Vec<Song>) -> Self {
-        let on_select_fn: Rc<Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
+        let on_select_fn: Rc<Mutex<Box<dyn FnMut(Song, KeyEvent) + 'a>>> = Rc::new(Mutex::new(Box::new(|_, _| {}) as _));
         let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
         let song_map = Rc::new(Mutex::new(HashMap::<String, Vec<Song>>::new()));
@@ -204,7 +204,7 @@ impl<'a> Library<'a> {
                 log::trace!(target: "::library.song_list.on_select", "song selected {:?}", song);
 
                 let mut on_select_fn = on_select_fn.lock().unwrap();
-                on_select_fn((song, key));
+                on_select_fn(song, key);
             }
         });
 
@@ -233,7 +233,7 @@ impl<'a> Library<'a> {
         self.focused_element.store(v);
     }
 
-    pub fn on_select(&self, cb: impl FnMut((Song, KeyEvent)) + 'a) {
+    pub fn on_select(&self, cb: impl FnMut(Song, KeyEvent) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
     }
 

@@ -16,7 +16,7 @@ use ratatui::{
 use rodio::OutputStream;
 
 use crate::{
-    config::Config,
+    config::Theme,
     structs::Song,
     player::Player,
     state::State,
@@ -38,7 +38,7 @@ pub enum AppTab {
 
 pub struct App<'a> {
     must_quit: bool,
-    config: Config,
+    theme: Theme,
     frame: Arc<AtomicU64>,
 
     _music_output: OutputStream,
@@ -58,27 +58,28 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
     pub fn new(player_command_receiver: Receiver<Command>) -> Self {
-        let config = Config::from_file();
-        let state = State::from_file();
-        let library_songs = crate::files::Library::from_file();
-
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
 
-        let queue = Arc::new(Queue::new(state.queue_items, config.theme));
-        let player = Arc::new(Player::new(queue.clone(), output_stream_handle, config.theme));
+        let state = State::from_file();
+        let library_songs = crate::files::Library::from_file();
+        let theme = include_str!("../assets/theme.toml");
+        let theme: Theme = toml::from_str(theme).unwrap();
+
+        let queue = Arc::new(Queue::new(state.queue_items, theme));
+        let player = Arc::new(Player::new(queue.clone(), output_stream_handle, theme));
 
         let current_directory = match &state.last_visited_path {
             Some(s) => PathBuf::from(s),
             None => env::current_dir().unwrap(),
         };
 
-        let library = Arc::new(Library::new(config.theme, library_songs.songs));
+        let library = Arc::new(Library::new(theme, library_songs.songs));
         library.on_select({
             let player = player.clone();
             let queue = queue.clone();
             let library = library.clone();
 
-            move |(song, key)| {
+            move |song, key| {
                 if key.code == KeyCode::Enter {
                     player.play_song(song);
                 } else if key.code == KeyCode::Char('a') {
@@ -98,7 +99,7 @@ impl<'a> App<'a> {
             }
         });
 
-        let playlist = Arc::new(ui::Playlists::new(config.theme, state.playlists));
+        let playlist = Arc::new(ui::Playlists::new(theme, state.playlists));
         playlist.on_select({
             let player = player.clone();
             let queue = queue.clone();
@@ -111,7 +112,7 @@ impl<'a> App<'a> {
             }
         });
 
-        let mut browser = FileBrowser::new(config.theme, current_directory);
+        let mut browser = FileBrowser::new(theme, current_directory);
         browser.on_select({
             let player = player.clone();
             let queue = queue.clone();
@@ -125,7 +126,7 @@ impl<'a> App<'a> {
 
         Self {
             must_quit: false,
-            config,
+            theme,
             frame: Arc::new(AtomicU64::new(0)),
 
             _music_output: output_stream,
@@ -140,7 +141,7 @@ impl<'a> App<'a> {
             library,
             playlist,
             browser: Arc::new(Mutex::new(browser)),
-            help_tab: Arc::new(Mutex::new(ui::HelpTab::new(config))),
+            help_tab: Arc::new(Mutex::new(ui::HelpTab::new(theme))),
         }
     }
 
@@ -380,13 +381,13 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
 impl<'a> WidgetRef for &App<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         Block::default()
-            .style(Style::default().bg(self.config.theme.background))
+            .style(Style::default().bg(self.theme.background))
             .render(area, buf);
 
         let [area_top, _, area_center, area_bottom] =
             Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0), Constraint::Length(3)]).areas(area);
 
-        let top_bar = TopBar::new(self.config.theme, self.active_tab);
+        let top_bar = TopBar::new(self.theme, self.active_tab);
         top_bar.render(area_top, buf);
 
         Line::from(format!("FRAME {}", self.frame.load(Ordering::Relaxed)))
