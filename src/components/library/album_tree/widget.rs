@@ -10,7 +10,7 @@ use ratatui::{
 
 use crate::config::Theme;
 
-use super::component::{AlbumTree, AlbumTreeItem};
+use super::component::{AlbumTree};
 
 fn line_style(theme: &Theme, list_has_focus: bool, is_selected: bool, is_search_match: bool) -> Style {
     if is_selected {

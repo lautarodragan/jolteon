@@ -4,7 +4,6 @@ use std::{
         atomic::{AtomicUsize, Ordering as AtomicOrdering},
         Mutex,
     },
-    collections::HashMap,
 };
 use std::cmp::Ordering;
 use crate::{

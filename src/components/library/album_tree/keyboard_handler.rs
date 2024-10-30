@@ -69,7 +69,7 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                     let mut artists = self.artist_list.lock().unwrap();
 
                     for i in 0..artists.len() {
-                        let mut entry = &mut artists[i];
+                        let entry = &mut artists[i];
                         entry.is_match = entry.artist.contains(filter.as_str()) || entry.artist.to_lowercase().contains(filter.to_lowercase().as_str());
                     }
 

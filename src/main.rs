@@ -76,7 +76,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Starting");
 
-    let get_releases_task = task::spawn_blocking(|| {
+    let _get_releases_task = task::spawn_blocking(|| {
         let target = "::get-releases";
         log::trace!(target: target, "getting releases...");
         match get_releases() {
@@ -89,11 +89,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let auto_update_task = task::spawn_blocking(|| {
+    let _auto_update_task = task::spawn_blocking(|| {
         let target = "::auto-update";
         log::trace!(target: target, "Starting auto-updater...");
         match can_i_has_rls() {
-            Ok(releases) => {
+            Ok(_) => {
                 log::info!(target: target, "Did something :P");
             }
             Err(err) => {

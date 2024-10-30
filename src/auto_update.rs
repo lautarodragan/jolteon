@@ -1,10 +1,6 @@
-use std::fs::{create_dir_all, read_to_string, write};
 use std::time::Duration;
 
-use reqwest::{
-    blocking::Client,
-    Method,
-};
+use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 
 use crate::toml::{read_toml_file, write_toml_file, TomlFileError};
