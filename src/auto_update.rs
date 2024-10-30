@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use async_std::task;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 
@@ -94,4 +95,34 @@ pub fn can_i_has_rls() -> Result<(), ReleasesError> {
 
 
     Ok(())
+}
+
+pub async fn auto_update() {
+    let _get_releases_task = task::spawn_blocking(|| {
+        let target = "::get-releases";
+        log::trace!(target: target, "getting releases...");
+        match get_releases() {
+            Ok(()) => {
+                log::info!(target: target, "Wrote release information to file.");
+            }
+            Err(err) => {
+                log::error!(target: target, "Could not retrieve or write release info. Error was: {:#?}", err);
+            }
+        }
+    });
+
+    let _auto_update_task = task::spawn_blocking(|| {
+        let target = "::auto-update";
+        log::trace!(target: target, "Starting auto-updater...");
+        match can_i_has_rls() {
+            Ok(_) => {
+                log::info!(target: target, "Did something :P");
+            }
+            Err(err) => {
+                log::error!(target: target, "Could not auto update. Error was: {:#?}", err);
+            }
+        }
+    });
+
+    // _auto_update_task.join(_get_releases_task)
 }
