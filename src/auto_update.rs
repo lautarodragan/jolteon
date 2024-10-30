@@ -30,10 +30,19 @@ pub struct Releases {
     pub releases: Vec<Release>,
 }
 
-#[derive(Debug)]
 pub enum ReleasesError {
     Reqwest(reqwest::Error),
     TomlFileError(TomlFileError),
+}
+
+// Manually implementing Debug rather than deriving it mainly for the DCA not to ignore it...
+impl std::fmt::Debug for ReleasesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ReleasesError::Reqwest(e) => { e.fmt(f) }
+            ReleasesError::TomlFileError(e) => { e.fmt(f) }
+        }
+    }
 }
 
 impl From<TomlFileError> for ReleasesError {
