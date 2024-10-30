@@ -43,6 +43,8 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                 }
             },
             KeyCode::Delete => {
+                let item = self.selected_item();
+
                 // let (removed_artist, selected_artist) = {
                 //     let i = self.selected_index.load(Ordering::SeqCst);
                 //     let mut artists = self.artist_list.lock().unwrap();
@@ -56,8 +58,8 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
                 //
                 //     (removed_artist, selected_artist)
                 // };
-                //
-                // self.on_delete_fn.lock().unwrap()(removed_artist.data);
+
+                self.on_delete_fn.lock().unwrap()(item);
                 // self.on_select_fn.lock().unwrap()(selected_artist.data);
             },
             KeyCode::Char(char) => {

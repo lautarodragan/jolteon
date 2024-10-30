@@ -57,10 +57,31 @@ impl Song {
     }
 
     pub fn from_dir(path: &PathBuf) -> Vec<Self> {
-        let songs = directory_to_songs_and_folders(path);
-        songs.iter().filter_map(|s| {
+        // TODO: improve this. stop using the FileBrowser stuff.
+        //   check for songs, cue, .jolt
+        let entries = directory_to_songs_and_folders(path);
+
+        let jolt = entries.iter().find_map(|e| match e {
+            FileBrowserSelection::Jolt(j) => Some(j),
+            _ => None,
+        });
+
+        log::trace!(target: "::Song::from_dir", "{:#?}", jolt);
+
+        entries.iter().filter_map(|s| {
             if let FileBrowserSelection::Song(song) = s {
-                Some(song.clone())
+                let mut song = song.clone();
+
+                if let Some(jolt) = jolt {
+                    if jolt.album.is_some() {
+                        song.album = jolt.album.clone();
+                    }
+                    if jolt.artist.is_some() {
+                        song.artist = jolt.artist.clone();
+                    }
+                }
+
+                Some(song)
             } else {
                 None
             }

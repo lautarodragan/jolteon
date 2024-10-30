@@ -5,8 +5,10 @@ use std::{
     cmp::Ordering,
 };
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
-    structs::Song,
+    structs::{Song, Jolt},
     cue::CueSheet,
 };
 
@@ -17,6 +19,7 @@ pub enum FileBrowserSelection {
     Song(Song),
     CueSheet(CueSheet),
     Directory(PathBuf),
+    Jolt(Jolt),
 }
 
 impl FileBrowserSelection {
@@ -35,6 +38,7 @@ impl FileBrowserSelection {
             FileBrowserSelection::Song(s) => { s.path.clone() }
             FileBrowserSelection::CueSheet(cs) => { cs.cue_sheet_file_path() }
             FileBrowserSelection::Directory(p) => { p.clone() }
+            FileBrowserSelection::Jolt(j) => { j.path.clone() }
         }
     }
 }
@@ -61,6 +65,12 @@ impl PartialEq for FileBrowserSelection {
                     _ => false,
                 }
             }
+            FileBrowserSelection::Jolt(jolt) => {
+                match other {
+                    FileBrowserSelection::Jolt(j) => jolt.path == j.path,
+                    _ => false,
+                }
+            }
         }
     }
 }
@@ -77,21 +87,29 @@ impl PartialOrd for FileBrowserSelection {
                     _ => Ordering::Less,
                 }
             }
+            FileBrowserSelection::Jolt(jolt) => {
+                // then jolt files
+                match other {
+                    FileBrowserSelection::Directory(_) => Ordering::Greater,
+                    FileBrowserSelection::Jolt(other_jolt) => jolt.path.cmp(&other_jolt.path),
+                    _ => Ordering::Less,
+                }
+            }
             FileBrowserSelection::CueSheet(cue_sheet) => {
                 // then queue sheets
                 match other {
                     FileBrowserSelection::Directory(_) => Ordering::Greater,
+                    FileBrowserSelection::Jolt(_) => Ordering::Greater,
                     FileBrowserSelection::CueSheet(other_cue_sheet) =>
                         cue_sheet.cue_sheet_file_path().cmp(&other_cue_sheet.cue_sheet_file_path()),
-                    FileBrowserSelection::Song(_) => Ordering::Less,
+                    _ => Ordering::Less,
                 }
             }
             FileBrowserSelection::Song(song) => {
-                // last, but not least, song_list
+                // last, but not least, songs
                 match other {
-                    FileBrowserSelection::Directory(_) => Ordering::Greater,
-                    FileBrowserSelection::CueSheet(_) => Ordering::Greater,
                     FileBrowserSelection::Song(other_song) => song.path.cmp(&other_song.path),
+                    _ => Ordering::Greater,
                 }
             }
         })
@@ -117,6 +135,14 @@ fn dir_entry_to_file_browser_selection(entry: &DirEntry) -> Option<FileBrowserSe
         }
     } else if dir_entry_is_cue(&entry) {
         Some(FileBrowserSelection::CueSheet(CueSheet::from_file(&entry.path()).unwrap()))
+    } else if dir_entry_is_jolt_file(&entry) {
+        match Jolt::from_path(entry.path()) {
+            Ok(jolt) => Some(FileBrowserSelection::Jolt(jolt)),
+            Err(err) => {
+                log::error!("Could not read .jolt file {:#?}", err);
+                None
+            }
+        }
     } else {
         None
     }
@@ -129,7 +155,7 @@ pub fn directory_to_songs_and_folders(path: &PathBuf) -> Vec<FileBrowserSelectio
 
     let mut items: Vec<FileBrowserSelection> = entries
         .filter_map(|e| e.ok())
-        .filter(|e| path_is_not_hidden(&e.path()))
+        // .filter(|e| path_is_not_hidden(&e.path()))
         .filter_map(|e| dir_entry_to_file_browser_selection(&e))
         .collect();
 
@@ -174,12 +200,18 @@ pub fn dir_entry_is_song(dir_entry: &DirEntry) -> bool {
     dir_entry_is_file(dir_entry) && dir_entry_has_song_extension(dir_entry)
 }
 
-
 pub fn dir_entry_has_cue_extension(dir_entry: &DirEntry) -> bool {
     dir_entry
         .path()
         .extension()
         .is_some_and(|e| e == "cue")
+}
+
+pub fn dir_entry_is_jolt_file(dir_entry: &DirEntry) -> bool {
+    dir_entry
+        .path()
+        .file_name()
+        .is_some_and(|e| e == ".jolt")
 }
 
 pub fn dir_entry_is_cue(dir_entry: &DirEntry) -> bool {
