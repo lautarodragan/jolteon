@@ -167,7 +167,7 @@ pub fn dir_entry_has_song_extension(dir_entry: &DirEntry) -> bool {
     dir_entry
         .path()
         .extension()
-        .is_some_and(|e| VALID_EXTENSIONS.contains(&e.to_str().unwrap()))
+        .is_some_and(|e| VALID_EXTENSIONS.contains(&e.to_str().unwrap().to_lowercase().as_str()))
 }
 
 pub fn dir_entry_is_song(dir_entry: &DirEntry) -> bool {
