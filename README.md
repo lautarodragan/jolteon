@@ -43,7 +43,6 @@ cargo run --release
 
 - Binaries automatically built and published here, in the GitHub repo
 - Automatic updates
-- _maybe_ `apt`
 
 ## Features
 
@@ -135,51 +134,8 @@ And Jolteon shouldn't crash if the audio playback crashes, but that's a story fo
 
 ### Theme
 
-The theme can be completely customized, but the process is still a bit rudimentary. 
-The only way to do so, currently, is to manually create a `~/.config/jolteon/config.toml` file, with content such as:
-
-```toml
-[theme]
-# foreground = "yellow"
-# background = "green"
-background = "red"
-top_bar_background = "#f0f000"
-```
-
-The value can be a color name or a hex.
-
-Supported customizable colors are:
-- top_bar_background
-- top_bar_foreground_selected
-- foreground
-- foreground_selected
-- foreground_secondary
-- background
-- background_selected
-- background_selected_blur
-- search
-
-This list may be outdated. Check `config.rs` for an up-to-date list of available customizable colors, as well as the default values.
-
-The supported color names are:
-- black
-- red
-- green
-- yellow
-- blue
-- magenta
-- cyan
-- gray
-- darkgray
-- lightred
-- lightgreen
-- lightyellow
-- lightblue
-- lightmagenta
-- lightcyan
-- white
-
-These are offered by Ratatui. See its [color documentation](https://docs.rs/ratatui/latest/ratatui/style/enum.Color.html) for more info.
+Right now, the theme is built into the binary (see assets/theme.toml).
+Soon, more built-in themes will be added, as well as support for custom ones.
 
 ### Future Configuration Options
 

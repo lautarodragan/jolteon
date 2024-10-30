@@ -1,3 +1,5 @@
+# See https://docs.rs/ratatui/latest/ratatui/style/enum.Color.html
+
 top_bar_background = "#443222"
 top_bar_foreground_selected = "#e5c07b"
 
