@@ -24,7 +24,7 @@ use crate::{
     ui,
     ui::{KeyboardHandler, KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
     Command,
-    components::{FileBrowser, FileBrowserSelection, Library, Queue},
+    components::{FileBrowser, FileBrowserSelection, Library, Queue, Help},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,7 +53,7 @@ pub struct App<'a> {
     library: Arc<Library<'a>>,
     playlist: Arc<ui::Playlists<'a>>,
     browser: Arc<Mutex<FileBrowser<'a>>>,
-    help_tab: Arc<Mutex<ui::HelpTab<'a>>>,
+    help: Arc<Mutex<Help<'a>>>,
 }
 
 impl<'a> App<'a> {
@@ -141,7 +141,7 @@ impl<'a> App<'a> {
             library,
             playlist,
             browser: Arc::new(Mutex::new(browser)),
-            help_tab: Arc::new(Mutex::new(ui::HelpTab::new(theme))),
+            help: Arc::new(Mutex::new(Help::new(theme))),
         }
     }
 
@@ -355,7 +355,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                 }
                 KeyCode::Char('5') => {
                     self.active_tab = AppTab::Help;
-                    self.target = Some(KeyboardHandler::Mut(self.help_tab.clone()));
+                    self.target = Some(KeyboardHandler::Mut(self.help.clone()));
                 }
                 _ => {
                     handled = false;
@@ -409,7 +409,7 @@ impl<'a> WidgetRef for &App<'a> {
                 self.browser.lock().unwrap().render_ref(area_center, buf);
             },
             AppTab::Help => {
-                self.help_tab.lock().unwrap().render_ref(area_center, buf);
+                self.help.lock().unwrap().render_ref(area_center, buf);
             },
         };
 

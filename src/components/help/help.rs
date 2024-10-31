@@ -11,14 +11,14 @@ use crate::{
     ui::{KeyboardHandlerMut},
 };
 
-pub struct HelpTab<'a> {
+pub struct Help<'a> {
     theme: Theme,
     header: Vec<&'a str>,
     items: Vec<Vec<&'a str>>,
     state: TableState,
 }
 
-impl<'a> HelpTab<'a> {
+impl<'a> Help<'a> {
     pub fn new(theme: Theme) -> Self {
         Self {
             theme,
@@ -71,7 +71,7 @@ impl<'a> HelpTab<'a> {
     }
 }
 
-impl<'a> KeyboardHandlerMut<'a> for HelpTab<'a> {
+impl<'a> KeyboardHandlerMut<'a> for Help<'a> {
     fn on_key(&mut self, key: KeyEvent) {
         match key.code {
             KeyCode::Down | KeyCode::Char('j') => self.next(),
@@ -81,7 +81,7 @@ impl<'a> KeyboardHandlerMut<'a> for HelpTab<'a> {
     }
 }
 
-impl<'a> WidgetRef for HelpTab<'a> {
+impl<'a> WidgetRef for Help<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let layout = Layout::default()
             .direction(Direction::Horizontal)
@@ -146,7 +146,7 @@ impl<'a> WidgetRef for HelpTab<'a> {
 
 
 
-impl Drop for HelpTab<'_> {
+impl Drop for Help<'_> {
     fn drop(&mut self) {
         log::trace!("HelpTab.drop()");
     }
