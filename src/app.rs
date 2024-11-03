@@ -172,7 +172,7 @@ impl<'a> App<'a> {
 
         while !self.must_quit {
             terminal.draw(|frame| {
-                frame.render_widget_ref(&*self, frame.size());
+                frame.render_widget_ref(&*self, frame.area());
             })?;
 
             let timeout = tick_rate.saturating_sub(last_tick.elapsed());

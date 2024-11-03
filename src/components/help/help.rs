@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Layout, Rect},
     style::{Modifier, Style},
     widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState, WidgetRef},
     buffer::Buffer,
@@ -83,11 +83,16 @@ impl<'a> KeyboardHandlerMut<'a> for Help<'a> {
 
 impl<'a> WidgetRef for Help<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let layout = Layout::default()
-            .direction(Direction::Horizontal)
-            .horizontal_margin(1)
-            .constraints([Constraint::Percentage(50)].as_ref())
-            .split(area);
+        let [area_top, area_main] = Layout::vertical([Constraint::Max(5), Constraint::Max(5)])
+            .horizontal_margin(2)
+            .areas(area);
+
+        ratatui::widgets::Paragraph::new(vec![
+            ratatui::text::Line::raw("Hi! Welcome to Jolteon."),
+            ratatui::text::Line::raw("Lorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etcLorem ipsum yada yada etc"),
+        ])
+            .wrap(ratatui::widgets::Wrap { trim: true })
+            .render_ref(area_top, buf);
 
         let header = self
             .header
@@ -130,7 +135,7 @@ impl<'a> WidgetRef for Help<'a> {
                     .fg(self.theme.foreground)
                     .bg(self.theme.background),
             )
-            .highlight_style(
+            .row_highlight_style(
                 Style::default()
                     .add_modifier(Modifier::BOLD)
                     .bg(self.theme.background_selected)
@@ -138,7 +143,7 @@ impl<'a> WidgetRef for Help<'a> {
             )
             .widths(&[Constraint::Percentage(50), Constraint::Length(30), Constraint::Min(10)]);
 
-        ratatui::widgets::StatefulWidgetRef::render_ref(&table, layout[0], buf, &mut self.state.clone());
+        ratatui::widgets::StatefulWidgetRef::render_ref(&table, area_main, buf, &mut self.state.clone());
         // table.render_ref(layout[0], buf, &mut self.state.clone());
 
     }

@@ -3,7 +3,12 @@ use std::{
     time::Duration,
 };
 
-use lofty::{Accessor, AudioFile, LoftyError, Probe, TaggedFileExt};
+use lofty::{
+    file::{AudioFile, TaggedFileExt},
+    probe::Probe,
+    tag::Accessor,
+    error::LoftyError,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
