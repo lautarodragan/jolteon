@@ -56,7 +56,7 @@ pub struct Library<'a> {
     #[allow(dead_code)]
     pub(super) theme: Theme,
 
-    pub(super) songs: Rc<Mutex<HashMap<String, Vec<Song>>>>,
+    pub(super) songs_by_artist: Rc<Mutex<HashMap<String, Vec<Song>>>>,
     pub(super) song_list: Rc<SongList<'a>>,
     pub(super) album_tree: Rc<AlbumTree<'a>>,
 
@@ -221,7 +221,7 @@ impl<'a> Library<'a> {
             on_select_fn,
             on_select_songs_fn,
 
-            songs: song_map,
+            songs_by_artist: song_map,
             song_list,
             album_tree,
         };
@@ -250,7 +250,7 @@ impl<'a> Library<'a> {
     pub fn songs(&self) -> Vec<Song> {
         let mut songs = vec![];
 
-        for (_artist, artist_songs) in &*self.songs.lock().unwrap() {
+        for (_artist, artist_songs) in &*self.songs_by_artist.lock().unwrap() {
             for song in artist_songs {
                 songs.push(song.clone());
             }
@@ -259,44 +259,44 @@ impl<'a> Library<'a> {
         songs
     }
 
-    pub fn add_songs(&self, songs: Vec<Song>) {
-        // TODO: anything but this
-        for song in songs {
-            self.add_song(song);
-        }
-    }
+    pub fn add_songs(&self, songs_to_add: Vec<Song>) {
+        let mut songs_by_artist = self.songs_by_artist.lock().unwrap();
 
-    pub fn add_song(&self, song: Song) {
-        let Some(artist) = song.artist.clone() else {
-            log::error!("Library.add_song() -> no artist! {:?}", song);
+        for song in songs_to_add {
+            let Some(ref artist) = song.artist else {
+                log::error!("Library.add_song() -> no artist! {:?}", song);
+                continue;
+            };
+
+            let album = song.album.clone().unwrap_or("(no album)".to_string());
+            self.album_tree.add_album(artist.clone(), album);
+
+            let artist_songs = songs_by_artist.entry(artist.clone()).or_insert(vec![]);
+            if let Err(i) = artist_songs.binary_search(&song) {
+                artist_songs.insert(i, song);
+            }
+        }
+
+        let (selected_artist, selected_album) = match self.album_tree.selected_item() {
+            AlbumTreeItem::Artist(selected_artist) => (selected_artist, None),
+            AlbumTreeItem::Album(selected_artist, selected_album) => (selected_artist, Some(selected_album)),
+        };
+
+        let Some(songs) = songs_by_artist.get(&selected_artist) else {
+            log::error!(target: "::library.add_songs", "This should never happen! There's an error with songs_by_artist/songs_by_artist.");
             return;
         };
 
-        let album = song.album.clone().unwrap_or("(no album)".to_string());
-
-        let mut songs = self.songs.lock().unwrap();
-
-        if let Some(x) = songs.get_mut(&artist) {
-            if !x.iter().any(|s| s.path == song.path && s.title == song.title) {
-                x.push(song);
-                x.sort();
-            }
+        let songs = if let Some(selected_album) = selected_album {
+            songs.iter().filter(|s| s.album.as_ref().is_some_and(|sa| *sa == selected_album)).cloned().collect()
         } else {
-            songs.insert(artist.clone(), vec![song]);
-        }
-
-        self.album_tree.add_album(artist.clone(), album);
-
-        match self.album_tree.selected_item() {
-            AlbumTreeItem::Artist(selected_artist) if selected_artist == artist => {
-                let artist_songs = songs.get(artist.as_str())
-                    .unwrap() // Safe because we just added it, and we still have the lock on songs.
-                    .clone();
-                self.song_list.set_songs(artist_songs);
-            }
-            _ => {}
+            songs.clone()
         };
+        self.song_list.set_songs(songs)
+    }
 
+    pub fn add_song(&self, song: Song) {
+        self.add_songs(vec![song]);
     }
 
     pub fn add_cue(&self, cue_sheet: CueSheet) {
