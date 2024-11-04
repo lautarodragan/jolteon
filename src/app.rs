@@ -61,7 +61,6 @@ impl<'a> App<'a> {
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
 
         let state = State::from_file();
-        let library_songs = crate::files::Library::from_file();
         let theme = include_str!("../assets/theme.toml");
         let theme: Theme = toml::from_str(theme).unwrap();
 
@@ -73,7 +72,7 @@ impl<'a> App<'a> {
             None => env::current_dir().unwrap(),
         };
 
-        let library = Arc::new(Library::new(theme, library_songs.songs));
+        let library = Arc::new(Library::new(theme));
         library.on_select({
             let player = player.clone();
             let queue = queue.clone();

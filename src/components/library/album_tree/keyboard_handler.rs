@@ -18,11 +18,17 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
             KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
                 self.filter.lock().unwrap().clear(); // todo: same as file browser - JUMP TO NEXT MATCH
                 self.on_artist_list_directional_key(key);
-                let item = self.selected_item();
+                let Some(item) = self.selected_item() else {
+                    log::warn!(target: target, "No selected item");
+                    return;
+                };
                 self.on_select_fn.lock().unwrap()(item);
             },
             KeyCode::Enter => {
-                let item = self.selected_item();
+                let Some(item) = self.selected_item() else {
+                    log::warn!(target: target, "No selected item");
+                    return;
+                };
                 self.on_confirm_fn.lock().unwrap()(item);
             },
             KeyCode::Char(' ') => {

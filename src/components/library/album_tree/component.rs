@@ -115,16 +115,15 @@ impl<'a> AlbumTree<'a> {
         *self.on_delete_fn.lock().unwrap() = Box::new(cb);
     }
 
-    pub fn selected_item(&self) -> AlbumTreeItem {
+    pub fn selected_item(&self) -> Option<AlbumTreeItem> {
         let i = self.selected_artist.load(AtomicOrdering::SeqCst);
         let artist_list = self.artist_list.lock().unwrap();
         let Some(artist) = artist_list.get(i) else {
-            log::error!("selected_artist {i} >= len {}", artist_list.len());
-            panic!("no artist at selected index!");
+            return None;
         };
 
         if !artist.is_open {
-            AlbumTreeItem::Artist(artist.artist.clone())
+            Some(AlbumTreeItem::Artist(artist.artist.clone()))
         } else {
             let selected_album = self.selected_album.load(AtomicOrdering::SeqCst);
 
@@ -133,7 +132,7 @@ impl<'a> AlbumTree<'a> {
                 panic!("no album at selected index!");
             };
 
-            AlbumTreeItem::Album(artist.artist.clone(), album.clone())
+            Some(AlbumTreeItem::Album(artist.artist.clone(), album.clone()))
 
         }
     }

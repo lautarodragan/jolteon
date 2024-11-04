@@ -9,13 +9,13 @@ use crate::{
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Library {
-    pub songs: Vec<Song>,
+    pub songs_by_artist: HashMap<String, Vec<Song>>,
 }
 
 impl Default for Library {
     fn default() -> Self {
         Self {
-            songs: vec![],
+            songs_by_artist: HashMap::new(),
         }
     }
 }
@@ -23,20 +23,6 @@ impl Default for Library {
 impl Library {
     pub fn from_file() -> Self {
         read_toml_file_or_default("library")
-    }
-
-    pub fn from_hash_map(songs_by_artist: &HashMap<String, Vec<Song>>) -> Self {
-        let mut songs = vec![];
-
-        for (_artist, artist_songs) in songs_by_artist {
-            for song in artist_songs {
-                songs.push(song.clone());
-            }
-        }
-
-        Self {
-            songs,
-        }
     }
 
     pub fn to_file(&self) -> Result<(), TomlFileError> {
@@ -49,8 +35,34 @@ impl Library {
         }
     }
 
-    pub fn save_hash_map(songs_by_artist: &HashMap<String, Vec<Song>>) {
-        let library = Self::from_hash_map(&*songs_by_artist);
-        library.save();
+    pub fn add_songs(&mut self, songs_to_add: Vec<Song>) {
+        for song in songs_to_add {
+            let Some(ref artist) = song.artist else {
+                log::error!("Library.add_song() -> no artist! {:?}", song);
+                continue;
+            };
+
+            let artist_songs = self.songs_by_artist.entry(artist.clone()).or_insert(vec![]);
+            if let Err(i) = artist_songs.binary_search(&song) {
+                artist_songs.insert(i, song);
+            }
+        }
+
+        self.save();
     }
+
+    pub fn remove_artist(&mut self, artist: &str) {
+        self.songs_by_artist.remove(artist);
+        self.save();
+    }
+
+    pub fn remove_album(&mut self, artist: &str, album: &str) {
+        let Some(artist_songs) = self.songs_by_artist.get_mut(artist) else {
+            log::error!(target: "::library.album_tree.on_delete", "Tried to delete artist's songs, but the artist has no songs.");
+            return;
+        };
+        artist_songs.retain(|s| s.album.as_ref().is_some_and(|a| *a != album));
+        self.save();
+    }
+
 }

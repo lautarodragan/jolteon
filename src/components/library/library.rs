@@ -1,10 +1,10 @@
 use std::{
     cmp::Ordering,
-    collections::HashMap,
     rc::Rc,
     sync::{
         atomic::{AtomicU8, Ordering as AtomicOrdering},
         Mutex,
+        MutexGuard,
     },
     path::PathBuf,
 };
@@ -56,7 +56,8 @@ pub struct Library<'a> {
     #[allow(dead_code)]
     pub(super) theme: Theme,
 
-    pub(super) songs_by_artist: Rc<Mutex<HashMap<String, Vec<Song>>>>,
+    pub(super) songs_by_artist: Rc<Mutex<crate::files::Library>>,
+
     pub(super) song_list: Rc<SongList<'a>>,
     pub(super) album_tree: Rc<AlbumTree<'a>>,
 
@@ -105,11 +106,11 @@ impl PartialOrd for Song {
 }
 
 impl<'a> Library<'a> {
-    pub fn new(theme: Theme, songs: Vec<Song>) -> Self {
+    pub fn new(theme: Theme) -> Self {
         let on_select_fn: Rc<Mutex<Box<dyn FnMut(Song, KeyEvent) + 'a>>> = Rc::new(Mutex::new(Box::new(|_, _| {}) as _));
         let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
-        let songs_by_artist = Rc::new(Mutex::new(HashMap::<String, Vec<Song>>::new()));
+        let songs_by_artist = Rc::new(Mutex::new(crate::files::Library::from_file()));
         let album_tree = Rc::new(AlbumTree::new(theme));
         let song_list = Rc::new(SongList::new(theme));
 
@@ -128,7 +129,7 @@ impl<'a> Library<'a> {
                 let artist_songs = {
                     let songs = songs.lock().unwrap();
 
-                    match songs.get(artist.as_str()) {
+                    match songs.songs_by_artist.get(artist.as_str()) {
                         Some(artist_songs) => {
                             match album {
                                 Some(album) => {
@@ -166,7 +167,7 @@ impl<'a> Library<'a> {
 
                 let songs = {
                     let songs = songs.lock().unwrap();
-                    let Some(songs) = songs.get(artist.as_str()) else {
+                    let Some(songs) = songs.songs_by_artist.get(artist.as_str()) else {
                         log::warn!(target: "::library.album_tree.on_confirm", "no songs for artist {:?}", artist);
                         return;
                     };
@@ -191,16 +192,10 @@ impl<'a> Library<'a> {
                 let mut songs_by_artist = songs_by_artist.lock().unwrap();
                 match item {
                     AlbumTreeItem::Artist(ref artist) => {
-                        songs_by_artist.remove(artist);
-                        crate::files::Library::save_hash_map(&*songs_by_artist);
+                        songs_by_artist.remove_artist(artist);
                     }
-                    AlbumTreeItem::Album(ref artist, album) => {
-                        let Some(artist_songs) = songs_by_artist.get_mut(artist) else {
-                            log::error!(target: "::library.album_tree.on_delete", "Tried to delete artist's songs, but the artist has no songs.");
-                            return;
-                        };
-                        artist_songs.retain(|s| s.album.as_ref().is_some_and(|a| *a != album));
-                        crate::files::Library::save_hash_map(&*songs_by_artist);
+                    AlbumTreeItem::Album(ref artist, ref album) => {
+                        songs_by_artist.remove_album(artist, album);
                     }
                 };
             }
@@ -228,8 +223,7 @@ impl<'a> Library<'a> {
             album_tree,
         };
 
-        lib.add_songs(songs); // TODO: we're saving when we load the file!
-
+        lib.refresh_components();
         lib
     }
 
@@ -251,28 +245,38 @@ impl<'a> Library<'a> {
 
     pub fn add_songs(&self, songs_to_add: Vec<Song>) {
         let mut songs_by_artist = self.songs_by_artist.lock().unwrap();
+        songs_by_artist.add_songs(songs_to_add);
+        drop(songs_by_artist);
 
-        for song in songs_to_add {
-            let Some(ref artist) = song.artist else {
-                log::error!("Library.add_song() -> no artist! {:?}", song);
-                continue;
-            };
+        self.refresh_components();
+    }
 
-            let album = song.album.clone().unwrap_or("(no album)".to_string());
-            self.album_tree.add_album(artist.clone(), album);
+    pub fn refresh_components(&self) {
+        let mut songs_by_artist = self.songs_by_artist.lock().unwrap();
+        self.refresh_artist_tree(&mut songs_by_artist);
+        self.refresh_song_list(&mut songs_by_artist);
+    }
 
-            let artist_songs = songs_by_artist.entry(artist.clone()).or_insert(vec![]);
-            if let Err(i) = artist_songs.binary_search(&song) {
-                artist_songs.insert(i, song);
+    fn refresh_artist_tree(&self, songs_by_artist: &MutexGuard<crate::files::Library>) {
+        for (artist, songs) in &songs_by_artist.songs_by_artist {
+            for song in songs {
+                let album = song.album.clone().unwrap_or("(no album)".to_string());
+                self.album_tree.add_album(artist.clone(), album);
             }
         }
+    }
 
-        let (selected_artist, selected_album) = match self.album_tree.selected_item() {
+    fn refresh_song_list(&self, songs_by_artist: &MutexGuard<crate::files::Library>) {
+        let Some(selected_item) = self.album_tree.selected_item() else {
+            return;
+        };
+
+        let (selected_artist, selected_album) = match selected_item {
             AlbumTreeItem::Artist(selected_artist) => (selected_artist, None),
             AlbumTreeItem::Album(selected_artist, selected_album) => (selected_artist, Some(selected_album)),
         };
 
-        let Some(songs) = songs_by_artist.get(&selected_artist) else {
+        let Some(songs) = songs_by_artist.songs_by_artist.get(&selected_artist) else {
             log::error!(target: "::library.add_songs", "This should never happen! There's an error with songs_by_artist/songs_by_artist.");
             return;
         };
@@ -283,8 +287,6 @@ impl<'a> Library<'a> {
             songs.clone()
         };
         self.song_list.set_songs(songs);
-
-        crate::files::Library::save_hash_map(&*songs_by_artist);
     }
 
     pub fn add_song(&self, song: Song) {
