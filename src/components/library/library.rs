@@ -109,12 +109,12 @@ impl<'a> Library<'a> {
         let on_select_fn: Rc<Mutex<Box<dyn FnMut(Song, KeyEvent) + 'a>>> = Rc::new(Mutex::new(Box::new(|_, _| {}) as _));
         let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
-        let song_map = Rc::new(Mutex::new(HashMap::<String, Vec<Song>>::new()));
+        let songs_by_artist = Rc::new(Mutex::new(HashMap::<String, Vec<Song>>::new()));
         let album_tree = Rc::new(AlbumTree::new(theme));
         let song_list = Rc::new(SongList::new(theme));
 
         album_tree.on_select({
-            let songs = song_map.clone();
+            let songs = songs_by_artist.clone();
             let song_list = song_list.clone();
 
             move |item| {
@@ -149,7 +149,7 @@ impl<'a> Library<'a> {
         });
 
         album_tree.on_confirm({
-            let songs = song_map.clone();
+            let songs = songs_by_artist.clone();
             let on_select_songs_fn = on_select_songs_fn.clone();
 
             move |item| {
@@ -183,22 +183,24 @@ impl<'a> Library<'a> {
         });
 
         album_tree.on_delete({
-            let songs = song_map.clone();
+            let songs_by_artist = songs_by_artist.clone();
 
             move |item| {
                 log::trace!(target: "::library.album_tree.on_delete", "item deleted {:?}", item);
 
-                let mut songs = songs.lock().unwrap();
+                let mut songs_by_artist = songs_by_artist.lock().unwrap();
                 match item {
                     AlbumTreeItem::Artist(ref artist) => {
-                        songs.remove(artist);
+                        songs_by_artist.remove(artist);
+                        crate::files::Library::save_hash_map(&*songs_by_artist);
                     }
                     AlbumTreeItem::Album(ref artist, album) => {
-                        let Some(artist_songs) = songs.get_mut(artist) else {
+                        let Some(artist_songs) = songs_by_artist.get_mut(artist) else {
                             log::error!(target: "::library.album_tree.on_delete", "Tried to delete artist's songs, but the artist has no songs.");
                             return;
                         };
                         artist_songs.retain(|s| s.album.as_ref().is_some_and(|a| *a != album));
+                        crate::files::Library::save_hash_map(&*songs_by_artist);
                     }
                 };
             }
@@ -221,12 +223,12 @@ impl<'a> Library<'a> {
             on_select_fn,
             on_select_songs_fn,
 
-            songs_by_artist: song_map,
+            songs_by_artist,
             song_list,
             album_tree,
         };
 
-        lib.add_songs(songs);
+        lib.add_songs(songs); // TODO: we're saving when we load the file!
 
         lib
     }
@@ -245,18 +247,6 @@ impl<'a> Library<'a> {
 
     pub fn on_select_songs_fn(&self, cb: impl FnMut(Vec<Song>) + 'a) {
         *self.on_select_songs_fn.lock().unwrap() = Box::new(cb);
-    }
-
-    pub fn songs(&self) -> Vec<Song> {
-        let mut songs = vec![];
-
-        for (_artist, artist_songs) in &*self.songs_by_artist.lock().unwrap() {
-            for song in artist_songs {
-                songs.push(song.clone());
-            }
-        }
-
-        songs
     }
 
     pub fn add_songs(&self, songs_to_add: Vec<Song>) {
@@ -292,7 +282,9 @@ impl<'a> Library<'a> {
         } else {
             songs.clone()
         };
-        self.song_list.set_songs(songs)
+        self.song_list.set_songs(songs);
+
+        crate::files::Library::save_hash_map(&*songs_by_artist);
     }
 
     pub fn add_song(&self, song: Song) {

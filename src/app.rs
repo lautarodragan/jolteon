@@ -193,12 +193,6 @@ impl<'a> App<'a> {
 
         self.to_state().to_file()?;
 
-        let library_songs = self.library.songs();
-
-        crate::files::Library::to_file(&crate::files::Library {
-           songs: library_songs,
-        })?;
-
         Ok(())
     }
 
@@ -254,7 +248,6 @@ impl<'a> App<'a> {
                 media_library.add_song(song.clone());
             }
             (FileBrowserSelection::CueSheet(cue_sheet), KeyCode::Char('j')) => {
-                // log::debug!("on_file_browser_key CUE ({:#?})", cue_sheet);
                 media_library.add_cue(cue_sheet);
             }
             (FileBrowserSelection::Directory(path), KeyCode::Char('j')) => {
