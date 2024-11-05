@@ -37,6 +37,7 @@ pub struct Playlists<'a> {
     selected_song_index: AtomicUsize,
     renaming: AtomicBool,
     on_select_fn: Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>,
+    on_select_playlist_fn: Mutex<Box<dyn FnMut(Vec<Song>, KeyEvent) + 'a>>,
 }
 
 impl<'a> Playlists<'a> {
@@ -54,11 +55,16 @@ impl<'a> Playlists<'a> {
             focused_element: Mutex::new(PlaylistScreenElement::PlaylistList),
             renaming: AtomicBool::new(false),
             on_select_fn: Mutex::new(Box::new(|_| {}) as _),
+            on_select_playlist_fn: Mutex::new(Box::new(|_, _| {}) as _),
         }
     }
 
     pub fn on_select(&self, cb: impl FnMut((Song, KeyEvent)) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
+    }
+
+    pub fn on_select_playlist(&self, cb: impl FnMut(Vec<Song>, KeyEvent) + 'a) {
+        *self.on_select_playlist_fn.lock().unwrap() = Box::new(cb);
     }
 
     pub fn playlists(&self) -> Vec<Playlist> {
@@ -97,6 +103,11 @@ impl<'a> Playlists<'a> {
     pub fn add_song(&self, song: Song) {
         self.selected_playlist_mut(move |pl| {
             pl.songs.push(song.clone());
+        });
+    }
+    pub fn add_songs(&self, songs: &mut Vec<Song>) {
+        self.selected_playlist_mut(move |pl| {
+            pl.songs.append(songs);
         });
     }
 
@@ -265,6 +276,19 @@ fn on_key_event_playlist_list(s: &Playlists, key: KeyEvent) {
                         s.selected_playlist_index.store(playlists.len().saturating_sub(1), Ordering::Relaxed);
                     }
                 }
+            }
+            KeyCode::Enter => {
+                let selected_playlist_index = s.selected_playlist_index.load(Ordering::Relaxed);
+                let playlists = s.playlists.lock().unwrap();
+                let Some(selected_playlist) = playlists.get(selected_playlist_index) else {
+                    log::error!(target: "::playlist", "on_key_event_playlist_list(Enter) error. No selected playlist at selected playlist index!");
+                    return;
+                };
+
+                let songs = selected_playlist.songs.clone();
+
+                let mut cb = s.on_select_playlist_fn.lock().unwrap();
+                cb(songs, key);
             }
             _ => {},
         }

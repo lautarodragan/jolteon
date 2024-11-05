@@ -73,7 +73,7 @@ impl<'a> App<'a> {
         };
 
         let library = Arc::new(Library::new(theme));
-        library.on_select({
+        library.on_select({ // selected individual song
             let player = player.clone();
             let queue = queue.clone();
             let library = library.clone();
@@ -87,7 +87,7 @@ impl<'a> App<'a> {
                 }
             }
         });
-        library.on_select_songs_fn({
+        library.on_select_songs_fn({ // selected artist/album
             let queue = queue.clone();
             let library = library.clone();
 
@@ -108,6 +108,12 @@ impl<'a> App<'a> {
                 } else if key.code == KeyCode::Char('a') {
                     queue.add_back(song);
                 }
+            }
+        });
+        playlist.on_select_playlist({
+            let queue = queue.clone();
+            move |songs, _key| {
+                queue.append(&mut std::collections::VecDeque::from(songs));
             }
         });
 
@@ -232,8 +238,6 @@ impl<'a> App<'a> {
         file_browser_selection: FileBrowserSelection,
         key_event: KeyEvent,
     ) {
-        // log::debug!("on_file_browser_key({:?}, {:?})", key_event.code, file_browser_selection);
-        // log::debug!("on_file_browser_key({:?})", key_event.code);
         match (file_browser_selection, key_event.code) {
             (FileBrowserSelection::Song(song), KeyCode::Enter) => {
                 player.play_song(song);
@@ -272,8 +276,8 @@ impl<'a> App<'a> {
                 playlists.add_cue(cue_sheet);
             }
             (FileBrowserSelection::Directory(path), KeyCode::Char('y')) => {
-                log::debug!("TODO: file_browser().on_select(Directory({}), y)", path.display());
-                // directory_to_songs_and_folders
+                let mut songs = Song::from_dir(&path);
+                playlists.add_songs(&mut songs);
             }
             _ => {}
         }
