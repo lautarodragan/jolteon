@@ -12,6 +12,7 @@ use lofty::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    structs::Jolt,
     cue::CueSheet,
     components::{FileBrowserSelection, directory_to_songs_and_folders},
 };
@@ -31,12 +32,7 @@ pub struct Song {
 impl Song {
     pub fn from_file(path: &PathBuf) -> Result<Self, LoftyError> {
         let tagged_file = Probe::open(path)?.read()?;
-
-        // for tag in tagged_file.tags() {
-        //     for tag_item in tag.items() {
-        //         log::debug!("tag_item {:?}", tag_item);
-        //     }
-        // }
+        let jolt = Jolt::from_path(path.parent().unwrap().join(".jolt")).ok();
 
         let (artist, album, title, track, year) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
@@ -54,8 +50,8 @@ impl Song {
             start_time: Duration::ZERO,
             length: tagged_file.properties().duration(),
             title: title.unwrap_or(path.file_name().unwrap().to_str().unwrap().to_string()),
-            artist,
-            album,
+            artist: jolt.as_ref().and_then(|j| j.artist.clone()).or(artist),
+            album: jolt.as_ref().and_then(|j| j.album.clone()).or(album),
             track,
             year,
         })
@@ -63,7 +59,7 @@ impl Song {
 
     pub fn from_dir(path: &PathBuf) -> Vec<Self> {
         // TODO: improve this. stop using the FileBrowser stuff.
-        //   check for songs, cue, .jolt
+        //   check for songs, cue
         let entries = directory_to_songs_and_folders(path);
 
         let jolt = entries.iter().find_map(|e| match e {
@@ -113,17 +109,17 @@ impl Song {
             }
         };
 
-        // log::debug!(target: "::Song.from_cue_sheet()", "{:#?}", tracks);
+        let jolt = Jolt::from_path(song_path.parent().unwrap().join(".jolt")).ok();
 
         let mut songs: Vec<Song> = tracks
             .iter()
             .map(|t| Song {
                 path: song_path.clone(),
                 length: Duration::ZERO,
-                artist: performer.clone().or(t.performer()),
+                artist: jolt.as_ref().and_then(|j| j.artist.clone()).or(performer.clone()).or(t.performer()),
                 title: t.title(),
                 start_time: t.start_time(),
-                album: cue_sheet.title(),
+                album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
                 track: t.index().split_whitespace().nth(0).map(|i| i.parse().ok()).flatten(),
                 year: song.year, // TODO: cue sheet year as a fallback? (it's usually stored as a comment in it...)
             })
