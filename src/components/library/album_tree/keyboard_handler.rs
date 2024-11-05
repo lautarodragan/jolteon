@@ -6,7 +6,10 @@ use crate::{
     ui::KeyboardHandlerRef,
 };
 
-use super::component::{AlbumTreeItem, AlbumTree};
+use super::{
+    component::AlbumTree,
+    album_tree_item::AlbumTreeItem,
+};
 
 impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
 
