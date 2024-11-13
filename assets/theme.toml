@@ -4,11 +4,11 @@ top_bar_background = "#443222"
 top_bar_foreground_selected = "#e5c07b"
 
 foreground = "#d19a66"
-foreground_selected = "black"
-foreground_secondary = "white"
+foreground_selected = "#000000"
+foreground_secondary = "#ffffff"
 
-background = "black"
+background = "#000000"
 background_selected = "#d19a66"
 background_selected_blur = "#865528"
 
-search = "red"
+search = "#ff0000"
