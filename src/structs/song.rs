@@ -137,4 +137,21 @@ impl Song {
 
         songs
     }
+
+    pub fn _tags(&self) {
+        let tagged_file = Probe::open(&self.path).unwrap().read().unwrap();
+
+        // log::debug!("properties {:?}", tagged_file.properties());
+
+        let asd = tagged_file.tags();
+
+        for tag in asd {
+            let items: Vec<_> = tag.items().map(|i| (i.key(), i.value())).collect();
+            log::debug!("tag {:?} {:#?}", tag.tag_type(), items);
+
+            // for item in tag.items() {
+            //     log::debug!("tag item {:?}", item);
+            // }
+        }
+    }
 }
