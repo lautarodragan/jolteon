@@ -45,7 +45,7 @@ impl<'a> WidgetRef for Playlists<'a> {
         let focused_element = self.focused_element.lock().unwrap();
         let is_renaming = self.renaming.load(Ordering::Relaxed);
 
-        for i in 0..playlists.len() {
+        for i in 0..playlists.len().min(area_right.height as usize) {
             let playlist = &playlists[i];
             let area = Rect {
                 y: area_left.y + i as u16,
@@ -91,7 +91,7 @@ impl<'a> WidgetRef for Playlists<'a> {
 
         let selected_playlist = &playlists[selected_playlist_index];
 
-        for i in 0..selected_playlist.songs.len() {
+        for i in 0..selected_playlist.songs.len().min(area_right.height as usize) {
             let song = &selected_playlist.songs[i];
             let area = Rect {
                 y: area_right.y + i as u16,
