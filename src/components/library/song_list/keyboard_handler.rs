@@ -27,7 +27,7 @@ impl<'a> KeyboardHandlerRef<'a> for SongList<'a> {
                     log::error!(target: target, "library on_key_event_song_list enter: selected_song_index > song_list.len");
                     return;
                 }
-                let song = songs[self.selected_song_index.load(Ordering::SeqCst)].clone();
+                let song = songs[i].clone();
                 drop(songs);
                 self.on_select_fn.lock().unwrap()((song, key));
             },
