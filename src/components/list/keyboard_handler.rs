@@ -14,7 +14,7 @@ impl<'a, T: 'a + Clone> KeyboardHandlerRef<'a> for List<'a, T> {
 
         match key.code {
             KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
-                self.on_song_list_directional_key(key);
+                self.on_directional_key(key);
             },
             KeyCode::Enter | KeyCode::Char(_) => {
                 let items = self.items.lock().unwrap();
@@ -26,8 +26,19 @@ impl<'a, T: 'a + Clone> KeyboardHandlerRef<'a> for List<'a, T> {
                 }
                 let item = items[i].clone();
                 drop(items);
-                self.on_select_fn.lock().unwrap()((item, key));
+                self.on_select_fn.lock().unwrap()(item, key);
             },
+            // KeyCode::Delete => {
+            //     let selected_song = self.selected_item_index.load(Ordering::Relaxed);
+            //     self.selected_playlist_mut(|pl| {
+            //         if pl.len() > 0 {
+            //             pl.songself.remove(selected_song);
+            //             if selected_song >= pl.songself.len() {
+            //                 self.selected_item_index.store(selected_song.saturating_sub(1), Ordering::Relaxed);
+            //             }
+            //         }
+            //     });
+            // },
             _ => {},
         }
     }
@@ -36,7 +47,7 @@ impl<'a, T: 'a + Clone> KeyboardHandlerRef<'a> for List<'a, T> {
 
 impl<'a, T> List<'a, T> {
 
-    fn on_song_list_directional_key(&self, key: KeyEvent) {
+    fn on_directional_key(&self, key: KeyEvent) {
         let items = self.items.lock().unwrap();
         let length = items.len() as i32;
 
@@ -77,6 +88,25 @@ impl<'a, T> List<'a, T> {
                 }
 
             },
+
+            // KeyCode::Up if key.modifiers == KeyModifiers::ALT => {
+            //     let selected_song = s.selected_song_index.load(Ordering::Relaxed);
+            //     s.selected_playlist_mut(|pl| {
+            //         if pl.songs.len() > 1 && selected_song > 0 {
+            //             pl.songs.swap(selected_song, selected_song - 1);
+            //             s.selected_song_index.store(selected_song - 1, Ordering::Relaxed);
+            //         }
+            //     });
+            // },
+            // KeyCode::Down if key.modifiers == KeyModifiers::ALT => {
+            //     let selected_song = s.selected_song_index.load(Ordering::Relaxed);
+            //     s.selected_playlist_mut(|pl| {
+            //         if pl.songs.len() > 1 && selected_song < pl.songs.len() - 1 {
+            //             pl.songs.swap(selected_song, selected_song + 1);
+            //             s.selected_song_index.store(selected_song + 1, Ordering::Relaxed);
+            //         }
+            //     });
+            // },
             KeyCode::Home => {
                 i = 0;
                 offset = 0;

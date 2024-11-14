@@ -100,7 +100,7 @@ impl<'a> App<'a> {
         playlist.on_select({
             let player = player.clone();
             let queue = queue.clone();
-            move |(song, key)| {
+            move |song, key| {
                 if key.code == KeyCode::Enter {
                     player.play_song(song);
                 } else if key.code == KeyCode::Char('a') {

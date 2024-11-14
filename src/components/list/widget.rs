@@ -1,7 +1,6 @@
 use std::sync::atomic::Ordering;
 
 use ratatui::{
-    prelude::Widget,
     buffer::Buffer,
     layout::Rect,
     style::Style,
@@ -22,13 +21,9 @@ fn line_style(theme: &crate::config::Theme, index: usize, selected_index: usize,
     }
 }
 
-impl<'a, T> Widget for List<'a, T> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        WidgetRef::render_ref(&self, area, buf);
-    }
-}
-
-impl<'a, T> WidgetRef for List<'a, T> {
+impl<'a, T> WidgetRef for List<'a, T>
+where T: std::fmt::Display,
+{
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.height.store(area.height as usize, Ordering::Relaxed);
 
@@ -57,15 +52,7 @@ impl<'a, T> WidgetRef for List<'a, T> {
             };
 
             let style = line_style(&self.theme, item_index, selected_item_index, true);
-            let line = ratatui::text::Line::from(
-                // format!("{} - {} - {} - {}",
-                //         song.year.as_ref().map(|y| y.to_string()).unwrap_or("(no year)".to_string()),
-                //         song.album.clone().unwrap_or("(no album)".to_string()),
-                //         song.track.unwrap_or(0),
-                //         song.title.clone()
-                // ),
-                "some text"
-            ).style(style);
+            let line = ratatui::text::Line::from(item.to_string()).style(style);
 
             line.render_ref(area, buf);
         }

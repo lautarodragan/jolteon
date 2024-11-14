@@ -3,6 +3,7 @@ use std::{
         atomic::{AtomicUsize, AtomicBool, Ordering},
         Mutex,
     },
+    rc::Rc,
 };
 
 use chrono::Local;
@@ -12,6 +13,7 @@ use crate::{
     structs::{Song, Playlist},
     config::Theme,
     cue::CueSheet,
+    components::List,
 };
 
 #[derive(Eq, PartialEq)]
@@ -27,12 +29,17 @@ pub struct Playlists<'a> {
     pub(super) selected_playlist_index: AtomicUsize,
     pub(super) selected_song_index: AtomicUsize,
     pub(super) renaming: AtomicBool,
-    pub(super) on_select_fn: Mutex<Box<dyn FnMut((Song, KeyEvent)) + 'a>>,
+
     pub(super) on_select_playlist_fn: Mutex<Box<dyn FnMut(Vec<Song>, KeyEvent) + 'a>>,
+
+    pub(super) song_list: List<'a, Song>,
 }
 
 impl<'a> Playlists<'a> {
     pub fn new(theme: Theme, playlists: Vec<Playlist>) -> Self {
+        let playlist_songs = playlists.get(0).map(|pl| pl.songs.clone()).unwrap_or(vec![]);
+        let song_list = List::new(theme, playlist_songs);
+
         Self {
             // playlists: Mutex::new(vec![
             //     Playlist::new("My first Jolteon playlist".to_string()),
@@ -45,13 +52,15 @@ impl<'a> Playlists<'a> {
             theme,
             focused_element: Mutex::new(PlaylistScreenElement::PlaylistList),
             renaming: AtomicBool::new(false),
-            on_select_fn: Mutex::new(Box::new(|_| {}) as _),
+
             on_select_playlist_fn: Mutex::new(Box::new(|_, _| {}) as _),
+
+            song_list,
         }
     }
 
-    pub fn on_select(&self, cb: impl FnMut((Song, KeyEvent)) + 'a) {
-        *self.on_select_fn.lock().unwrap() = Box::new(cb);
+    pub fn on_select(&self, cb: impl FnMut(Song, KeyEvent) + 'a) {
+        self.song_list.on_select(cb);
     }
 
     pub fn on_select_playlist(&self, cb: impl FnMut(Vec<Song>, KeyEvent) + 'a) {

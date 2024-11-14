@@ -3,6 +3,7 @@ use std::{
     sync::{
         atomic::{Ordering},
     },
+    fmt::{Display, Formatter},
 };
 
 use ratatui::{
@@ -16,6 +17,17 @@ use ratatui::{
 use crate::ui::song_to_string;
 
 use super::Playlists;
+
+impl Display for crate::structs::Song {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} - {} - {} - {}",
+                self.year.as_ref().map(|y| y.to_string()).unwrap_or("(no year)".to_string()),
+                self.album.clone().unwrap_or("(no album)".to_string()),
+                self.track.unwrap_or(0),
+                self.title.clone()
+        )
+    }
+}
 
 impl<'a> Widget for Playlists<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -88,28 +100,6 @@ impl<'a> WidgetRef for Playlists<'a> {
             return;
         }
 
-        let selected_playlist = &playlists[selected_playlist_index];
-
-        for i in 0..selected_playlist.songs.len().min(area_right.height as usize) {
-            let song = &selected_playlist.songs[i];
-            let area = Rect {
-                y: area_right.y + i as u16,
-                height: 1,
-                ..area_right
-            };
-
-            let style = if i == selected_song {
-                if *focused_element == crate::components::playlists::playlists::PlaylistScreenElement::SongList {
-                    Style::default().fg(self.theme.foreground_selected).bg(self.theme.background_selected)
-                } else {
-                    Style::default().fg(self.theme.foreground_selected).bg(self.theme.background_selected_blur)
-                }
-            } else {
-                Style::default().fg(self.theme.foreground_secondary).bg(self.theme.background)
-            };
-
-            let line = ratatui::text::Line::from(song_to_string(song)).style(style);
-            line.render_ref(area, buf);
-        }
+        self.song_list.render_ref(area_right, buf);
     }
 }

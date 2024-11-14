@@ -20,16 +20,24 @@ impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
             }
             _ if *focused_element_guard == crate::components::playlists::playlists::PlaylistScreenElement::PlaylistList  => {
                 on_key_event_playlist_list(&self, key);
+
+                // overkill but ok for now: we clone the song list whenever any key is pressed, no matter what happened.
+                let selected_playlist_index = self.selected_playlist_index.load(Ordering::Relaxed);
+                let playlists = self.playlists.lock().unwrap();
+                let Some(selected_playlist) = playlists.get(selected_playlist_index) else {
+                    return;
+                };
+
+                self.song_list.set_items(selected_playlist.songs.clone());
             },
             _ if *focused_element_guard == crate::components::playlists::playlists::PlaylistScreenElement::SongList  => {
-                on_key_event_song_list(&self, key);
+                self.song_list.on_key(key);
             },
             _ => {},
         }
     }
 
 }
-
 
 fn on_key_event_playlist_list(s: &Playlists, key: KeyEvent) {
     let len = s.playlists.lock().unwrap().len();
@@ -108,54 +116,5 @@ fn on_key_event_playlist_list(s: &Playlists, key: KeyEvent) {
             }
             _ => {},
         }
-    }
-}
-
-fn on_key_event_song_list(s: &Playlists, key: KeyEvent) {
-    let Some(len) = s.selected_playlist(|pl| pl.songs.len()) else { return };
-
-    match key.code {
-        KeyCode::Up if key.modifiers == KeyModifiers::NONE => {
-            let _ = s.selected_song_index.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |a| { Some(a.saturating_sub(1)) });
-        },
-        KeyCode::Down if key.modifiers == KeyModifiers::NONE => {
-            let _ = s.selected_song_index.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |a| { Some(a.saturating_add(1).min(len.saturating_sub(1))) });
-        },
-        KeyCode::Up if key.modifiers == KeyModifiers::ALT => {
-            let selected_song = s.selected_song_index.load(Ordering::Relaxed);
-            s.selected_playlist_mut(|pl| {
-                if pl.songs.len() > 1 && selected_song > 0 {
-                    pl.songs.swap(selected_song, selected_song - 1);
-                    s.selected_song_index.store(selected_song - 1, Ordering::Relaxed);
-                }
-            });
-        },
-        KeyCode::Down if key.modifiers == KeyModifiers::ALT => {
-            let selected_song = s.selected_song_index.load(Ordering::Relaxed);
-            s.selected_playlist_mut(|pl| {
-                if pl.songs.len() > 1 && selected_song < pl.songs.len() - 1 {
-                    pl.songs.swap(selected_song, selected_song + 1);
-                    s.selected_song_index.store(selected_song + 1, Ordering::Relaxed);
-                }
-            });
-        },
-        KeyCode::Enter | KeyCode::Char(_) => {
-            let selected_song = s.selected_playlist(|pl| pl.songs[s.selected_song_index.load(Ordering::Relaxed)].clone());
-            if let Some(song) = selected_song {
-                s.on_select_fn.lock().unwrap()((song, key));
-            }
-        },
-        KeyCode::Delete => {
-            let selected_song = s.selected_song_index.load(Ordering::Relaxed);
-            s.selected_playlist_mut(|pl| {
-                if pl.songs.len() > 0 {
-                    pl.songs.remove(selected_song);
-                    if selected_song >= pl.songs.len() {
-                        s.selected_song_index.store(selected_song.saturating_sub(1), Ordering::Relaxed);
-                    }
-                }
-            });
-        },
-        _ => {},
     }
 }
