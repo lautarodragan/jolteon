@@ -18,6 +18,7 @@ pub struct List<'a, T: 'a> {
     pub(super) selected_item_index: AtomicUsize,
 
     pub(super) on_select_fn: Mutex<Box<dyn FnMut(T, KeyEvent) + 'a>>,
+    pub(super) on_reorder_fn: Mutex<Box<dyn FnMut(usize, usize) + 'a>>,
 
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
@@ -29,6 +30,7 @@ impl<'a, T> List<'a, T> {
             theme,
 
             on_select_fn: Mutex::new(Box::new(|_, _| {}) as _),
+            on_reorder_fn: Mutex::new(Box::new(|_, _| {}) as _),
 
             items: Mutex::new(items),
             selected_item_index: AtomicUsize::new(0),
@@ -40,6 +42,10 @@ impl<'a, T> List<'a, T> {
 
     pub fn on_select(&self, cb: impl FnMut(T, KeyEvent) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
+    }
+
+    pub fn on_reorder(&self, cb: impl FnMut(usize, usize) + 'a) {
+        *self.on_reorder_fn.lock().unwrap() = Box::new(cb);
     }
 
     pub fn set_items(&self, items: Vec<T>) {

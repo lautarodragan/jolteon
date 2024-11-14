@@ -48,7 +48,7 @@ impl<'a, T: 'a + Clone> KeyboardHandlerRef<'a> for List<'a, T> {
 impl<'a, T> List<'a, T> {
 
     fn on_directional_key(&self, key: KeyEvent) {
-        let items = self.items.lock().unwrap();
+        let mut items = self.items.lock().unwrap();
         let length = items.len() as i32;
 
         let height = self.height.load(Ordering::Relaxed) as i32;
@@ -56,6 +56,8 @@ impl<'a, T> List<'a, T> {
 
         let mut offset = self.offset.load(Ordering::SeqCst) as i32;
         let mut i = self.selected_item_index.load(Ordering::SeqCst) as i32;
+
+        let mut swapped: Option<(usize, usize)> = None;
 
         match key.code {
             KeyCode::Up | KeyCode::Down => {
@@ -69,6 +71,22 @@ impl<'a, T> List<'a, T> {
                 //     if let Some(next) = next_index_by_album(&*items, i, key.code) {
                 //         i = next as i32;
                 //     }
+                } else if key.modifiers == KeyModifiers::CONTROL && items.len() > 1 {
+                    // swap
+                    let nexti = if key.code == KeyCode::Up && i > 0 {
+                        i - 1
+                    } else if key.code == KeyCode::Down && (i as usize) < items.len().saturating_sub(1) {
+                        i + 1
+                    } else {
+                        i
+                    };
+
+                    if nexti != i {
+                        items.swap(i as usize, nexti as usize);
+                        swapped = Some((i as usize, nexti as usize));
+                        i = nexti;
+                    }
+
                 } else {
                     return;
                 }
@@ -89,24 +107,6 @@ impl<'a, T> List<'a, T> {
 
             },
 
-            // KeyCode::Up if key.modifiers == KeyModifiers::ALT => {
-            //     let selected_song = s.selected_song_index.load(Ordering::Relaxed);
-            //     s.selected_playlist_mut(|pl| {
-            //         if pl.songs.len() > 1 && selected_song > 0 {
-            //             pl.songs.swap(selected_song, selected_song - 1);
-            //             s.selected_song_index.store(selected_song - 1, Ordering::Relaxed);
-            //         }
-            //     });
-            // },
-            // KeyCode::Down if key.modifiers == KeyModifiers::ALT => {
-            //     let selected_song = s.selected_song_index.load(Ordering::Relaxed);
-            //     s.selected_playlist_mut(|pl| {
-            //         if pl.songs.len() > 1 && selected_song < pl.songs.len() - 1 {
-            //             pl.songs.swap(selected_song, selected_song + 1);
-            //             s.selected_song_index.store(selected_song + 1, Ordering::Relaxed);
-            //         }
-            //     });
-            // },
             KeyCode::Home => {
                 i = 0;
                 offset = 0;
@@ -123,6 +123,12 @@ impl<'a, T> List<'a, T> {
 
         self.offset.store(offset as usize, Ordering::SeqCst);
         self.selected_item_index.store(i as usize, Ordering::SeqCst);
+
+        drop(items);
+
+        if let Some(swapped) = swapped {
+            self.on_reorder_fn.lock().unwrap()(swapped.0, swapped.1);
+        }
     }
 
 }

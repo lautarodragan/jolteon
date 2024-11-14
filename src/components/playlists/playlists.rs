@@ -23,10 +23,12 @@ pub(super) enum PlaylistScreenElement {
 }
 
 pub struct Playlists<'a> {
-    pub(super) playlists: Mutex<Vec<Playlist>>,
     pub(super) theme: Theme,
+
+    pub(super) playlists: Rc<Mutex<Vec<Playlist>>>,
+
     pub(super) focused_element: Mutex<PlaylistScreenElement>,
-    pub(super) selected_playlist_index: AtomicUsize,
+    pub(super) selected_playlist_index: Rc<AtomicUsize>,
     pub(super) selected_song_index: AtomicUsize,
     pub(super) renaming: AtomicBool,
 
@@ -38,7 +40,30 @@ pub struct Playlists<'a> {
 impl<'a> Playlists<'a> {
     pub fn new(theme: Theme, playlists: Vec<Playlist>) -> Self {
         let playlist_songs = playlists.get(0).map(|pl| pl.songs.clone()).unwrap_or(vec![]);
+
+        let selected_playlist_index = Rc::new(AtomicUsize::new(0));
+        let playlists = Rc::new(Mutex::new(playlists));
+
         let song_list = List::new(theme, playlist_songs);
+
+        song_list.on_reorder({
+            let selected_playlist_index = selected_playlist_index.clone();
+            let playlists = playlists.clone();
+
+            move |a, b| {
+                log::debug!(target: "::playlists", "on_reorder {a} {b}");
+
+                let i = selected_playlist_index.load(Ordering::SeqCst);
+                let mut pls = playlists.lock().unwrap();
+
+                let Some(pl) = pls.get_mut(i) else {
+                    log::error!(target: "::playlists", "on_reorder {a} {b} -> invalid selected_playlist_index {i}");
+                    return;
+                };
+
+                pl.songs.swap(a, b);
+            }
+        });
 
         Self {
             // playlists: Mutex::new(vec![
@@ -46,8 +71,8 @@ impl<'a> Playlists<'a> {
             //     Playlist::new("Ctrl+N to create new ones".to_string()),
             //     Playlist::new("Alt+N to rename".to_string()),
             // ]),
-            playlists: Mutex::new(playlists),
-            selected_playlist_index: AtomicUsize::new(0),
+            playlists,
+            selected_playlist_index,
             selected_song_index: AtomicUsize::new(0),
             theme,
             focused_element: Mutex::new(PlaylistScreenElement::PlaylistList),
