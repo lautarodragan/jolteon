@@ -325,7 +325,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                 KeyCode::Left => self.player.seek_backward(),
                 KeyCode::Char('-') => self.player.change_volume(-0.05),
                 KeyCode::Char('+') => self.player.change_volume(0.05),
-                KeyCode::Char('p') if key.modifiers == KeyModifiers::CONTROL => self.player.toggle(),
+                KeyCode::Char(' ') => self.player.toggle(),
                 KeyCode::Char('g') if key.modifiers == KeyModifiers::CONTROL => self.player.stop(),
                 KeyCode::Char('c') if key.modifiers == KeyModifiers::ALT => self.spawn_terminal(),
                 KeyCode::Char('q') if key.modifiers == KeyModifiers::CONTROL => {
