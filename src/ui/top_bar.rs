@@ -30,14 +30,16 @@ fn time_format() -> String {
 
 pub struct TopBar {
     theme: crate::config::Theme,
-    active_tab: AppTab
+    active_tab: AppTab,
+    frame_count: u64,
 }
 
 impl TopBar {
-    pub fn new(theme: crate::config::Theme, active_tab: AppTab) -> Self {
+    pub fn new(theme: crate::config::Theme, active_tab: AppTab, frame_count: u64) -> Self {
         Self {
             theme,
             active_tab,
+            frame_count,
         }
     }
 }
@@ -71,5 +73,10 @@ impl Widget for TopBar {
 
         let clock = Line::from(time_format()).alignment(Alignment::Center);
         clock.render(area, buf);
+
+        Line::from(format!("FRAME {}", self.frame_count))
+            .style(Style::default())
+            .right_aligned()
+            .render(area, buf);
     }
 }

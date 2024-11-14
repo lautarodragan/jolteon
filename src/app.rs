@@ -381,15 +381,15 @@ impl<'a> WidgetRef for &App<'a> {
             .render(area, buf);
 
         let [area_top, _, area_center, area_bottom] =
-            Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0), Constraint::Length(3)]).areas(area);
+            Layout::vertical([
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Min(0),
+                Constraint::Length(3),
+            ]).areas(area);
 
-        let top_bar = TopBar::new(self.theme, self.active_tab);
+        let top_bar = TopBar::new(self.theme, self.active_tab, self.frame.load(Ordering::Relaxed));
         top_bar.render(area_top, buf);
-
-        Line::from(format!("FRAME {}", self.frame.load(Ordering::Relaxed)))
-            .style(Style::default())
-            .right_aligned()
-            .render(area_top, buf);
 
         match self.active_tab {
             AppTab::Library => {
