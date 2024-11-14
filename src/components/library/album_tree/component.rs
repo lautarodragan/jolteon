@@ -1,5 +1,4 @@
 use std::{
-    fmt::{Display, Formatter},
     sync::{
         atomic::{AtomicUsize, Ordering as AtomicOrdering},
         Mutex,

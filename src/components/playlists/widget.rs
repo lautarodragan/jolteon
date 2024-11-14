@@ -1,8 +1,7 @@
 use std::{
     time::{SystemTime, UNIX_EPOCH},
     sync::{
-        atomic::{AtomicUsize, AtomicBool, Ordering},
-        Mutex,
+        atomic::{Ordering},
     },
 };
 

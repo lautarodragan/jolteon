@@ -1,5 +1,4 @@
 use std::{
-    time::{SystemTime, UNIX_EPOCH},
     sync::{
         atomic::{AtomicUsize, AtomicBool, Ordering},
         Mutex,
@@ -7,14 +6,12 @@ use std::{
 };
 
 use chrono::Local;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-
+use crossterm::event::{KeyEvent};
 
 use crate::{
     structs::{Song, Playlist},
     config::Theme,
     cue::CueSheet,
-    ui::{song_to_string, KeyboardHandlerRef},
 };
 
 #[derive(Eq, PartialEq)]

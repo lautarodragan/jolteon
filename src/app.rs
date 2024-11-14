@@ -11,7 +11,6 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     prelude::{Style, Widget},
     widgets::{Block, WidgetRef},
-    text::Line,
 };
 use rodio::OutputStream;
 
@@ -21,7 +20,6 @@ use crate::{
     player::Player,
     state::State,
     term::set_terminal,
-    ui,
     ui::{KeyboardHandler, KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
     Command,
     components::{FileBrowser, FileBrowserSelection, Library, Playlists, Queue, Help},
