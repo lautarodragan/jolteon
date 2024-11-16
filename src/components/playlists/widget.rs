@@ -14,8 +14,6 @@ use ratatui::{
     widgets::{WidgetRef},
 };
 
-use crate::ui::song_to_string;
-
 use super::Playlists;
 
 impl Display for crate::structs::Song {
