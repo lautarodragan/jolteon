@@ -86,7 +86,6 @@ where T: std::fmt::Display
             padding
         };
 
-        let mut offset = self.offset.load(Ordering::SeqCst) as i32;
         let mut i = self.selected_item_index.load(Ordering::SeqCst) as i32;
 
         let mut swapped: Option<(usize, usize)> = None;
@@ -134,64 +133,43 @@ where T: std::fmt::Display
                 } else {
                     return;
                 }
-
-                if (key.code == KeyCode::Up && i < offset + padding) || (key.code == KeyCode::Down && i > offset + padding) {
-                    offset = if i > padding {
-                        i - padding
-                    } else {
-                        0
-                    };
-                }
-
             },
-
             KeyCode::Home => {
                 if is_filtering {
                     if let Some(n) = items.iter().position(|item| item.is_match) {
                         i = n as i32;
-
-                        offset = if i > padding {
-                            i - padding
-                        } else {
-                            0
-                        };
-
                     } else {
                         i = 0;
-                        offset = 0;
                     }
                 } else {
                     i = 0;
-                    offset = 0;
                 }
             },
             KeyCode::End => {
                 if is_filtering {
                     if let Some(n) = items.iter().rposition(|item| item.is_match) {
                         i = n as i32;
-
-                        offset = if i > padding {
-                            i - padding
-                        } else {
-                            0
-                        };
-
                     } else {
                         i = length - 1;
-                        offset = i - height + padding;
                     }
                 } else {
                     i = length - 1;
-                    offset = i - height + padding;
                 }
             },
             _ => {},
         }
 
-        offset = offset.min(length - height).max(0);
-        i = i.min(length - 1).max(0);
+        let mut offset = self.offset.load(Ordering::Acquire) as i32;
+        if (key.code == KeyCode::Up && i < offset + padding) || (key.code == KeyCode::Down && i > offset + padding) || key.code == KeyCode::Home || key.code == KeyCode::End {
+            let offset = if i > padding {
+                (i - padding).min(length - height).max(0)
+            } else {
+                0
+            };
+            self.offset.store(offset as usize, Ordering::Release);
+        }
 
-        self.offset.store(offset as usize, Ordering::SeqCst);
+        i = i.min(length - 1).max(0);
         self.selected_item_index.store(i as usize, Ordering::SeqCst);
 
         drop(items);
