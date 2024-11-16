@@ -28,17 +28,19 @@ impl<'a, T: 'a + Clone> KeyboardHandlerRef<'a> for List<'a, T> {
                 drop(items);
                 self.on_select_fn.lock().unwrap()(item, key);
             },
-            // KeyCode::Delete => {
-            //     let selected_song = self.selected_item_index.load(Ordering::Relaxed);
-            //     self.selected_playlist_mut(|pl| {
-            //         if pl.len() > 0 {
-            //             pl.songself.remove(selected_song);
-            //             if selected_song >= pl.songself.len() {
-            //                 self.selected_item_index.store(selected_song.saturating_sub(1), Ordering::Relaxed);
-            //             }
-            //         }
-            //     });
-            // },
+            KeyCode::Delete => {
+                let i = self.selected_item_index.load(Ordering::Acquire);
+                let mut items = self.items.lock().unwrap();
+                let removed_item = items.remove(i);
+
+                if i >= items.len() {
+                    self.selected_item_index.store(items.len().saturating_sub(1), Ordering::Release);
+                }
+
+                drop(items);
+
+                self.on_delete_fn.lock().unwrap()(removed_item, i);
+            },
             _ => {},
         }
     }

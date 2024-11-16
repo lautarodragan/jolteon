@@ -65,6 +65,24 @@ impl<'a> Playlists<'a> {
             }
         });
 
+        song_list.on_delete({
+            let selected_playlist_index = selected_playlist_index.clone();
+            let playlists = playlists.clone();
+
+            move |song, index| {
+                log::trace!(target: "::playlists", "on_delete {index} {}", song.title);
+
+                let mut playlists = playlists.lock().unwrap();
+                let playlist = playlists.get_mut(selected_playlist_index.load(Ordering::Acquire));
+                let Some(playlist) = playlist else {
+                    log::error!(target: "::playlists", "on_delete error: index {index} out of bounds");
+                    return;
+                };
+
+                playlist.songs.remove(index);
+            }
+        });
+
         Self {
             // playlists: Mutex::new(vec![
             //     Playlist::new("My first Jolteon playlist".to_string()),
