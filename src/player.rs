@@ -132,13 +132,7 @@ impl Player {
         };
 
         let thread = thread::Builder::new().name("player".to_string()).spawn(move || {
-            loop {
-                // Grab the next song in the queue. If there isn't one, we block until one comes in.
-                let Ok(song) = queue_items.pop() else {
-                    log::debug!("queue_items.pop() returned an error");
-                    break;
-                };
-
+            while let Ok(song) = queue_items.pop() {
                 let path = song.path.clone();
                 let start_time = song.start_time.clone();
                 let length = song.length.clone();
@@ -304,7 +298,7 @@ impl Player {
                     }
                 }
 
-                while command_receiver.try_recv().is_ok() {}
+                while command_receiver.try_recv().is_ok() {} // "drain" the command queue - dropping everything that might have accumulated.
 
                 wait_until_song_ends();
 
