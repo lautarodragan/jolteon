@@ -9,15 +9,20 @@ use ratatui::{
 
 use super::component::List;
 
-fn line_style(theme: &crate::config::Theme, index: usize, selected_index: usize, list_has_focus: bool) -> Style {
-    if index == selected_index {
+fn line_style(theme: &crate::config::Theme, list_has_focus: bool, is_selected: bool, is_search_match: bool) -> Style {
+    if is_selected {
         if list_has_focus {
             Style::default().fg(theme.foreground_selected).bg(theme.background_selected)
         } else {
             Style::default().fg(theme.foreground_selected).bg(theme.background_selected_blur)
         }
     } else {
-        Style::default().fg(theme.foreground_secondary).bg(theme.background)
+        let c = if is_search_match {
+            theme.search
+        } else {
+            theme.foreground_secondary
+        };
+        Style::default().fg(c).bg(theme.background)
     }
 }
 
@@ -51,8 +56,8 @@ where T: std::fmt::Display,
                 ..area
             };
 
-            let style = line_style(&self.theme, item_index, selected_item_index, true);
-            let line = ratatui::text::Line::from(item.to_string()).style(style);
+            let style = line_style(&self.theme, true, item_index == selected_item_index, item.is_match);
+            let line = ratatui::text::Line::from(item.inner.to_string()).style(style);
 
             line.render_ref(area, buf);
         }
