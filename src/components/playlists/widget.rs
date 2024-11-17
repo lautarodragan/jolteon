@@ -50,36 +50,6 @@ impl<'a> WidgetRef for Playlists<'a> {
 
         playlists.render_ref(area_left, buf);
 
-        // let focused_element = self.focused_element.lock().unwrap();
-        // let is_renaming = self.renaming.load(Ordering::Relaxed);
-        //
-        // for i in 0..playlists.len().min(area_right.height as usize) {
-        //     let style = if i == selected_playlist_index {
-        //         if *focused_element == crate::components::playlists::playlists::PlaylistScreenElement::PlaylistList {
-        //             if is_renaming {
-        //                 Style::default().fg(self.theme.foreground_selected).bg(self.theme.search)
-        //             } else {
-        //                 Style::default().fg(self.theme.foreground_selected).bg(self.theme.background_selected)
-        //             }
-        //         } else {
-        //             Style::default().fg(self.theme.foreground_selected).bg(self.theme.background_selected_blur)
-        //         }
-        //     } else {
-        //         Style::default().fg(self.theme.foreground_secondary).bg(self.theme.background)
-        //     };
-        //
-        //     let line = if is_renaming && i == selected_playlist_index {
-        //         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-        //         let caret = if now % 500 < 250 {
-        //             '⎸'
-        //         } else {
-        //             ' '
-        //         };
-        //         format!("{}{}", playlist.name, caret)
-        //     } else {
-        //         playlist.name.clone()
-        //     };
-
         let Ok(song_list) = self.song_list.try_borrow() else {
             return;
         };

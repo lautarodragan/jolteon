@@ -41,6 +41,10 @@ impl<'a> Playlists<'a> {
             }
         });
 
+        playlist_list.borrow_mut().on_rename({
+            |pl, new_name| pl.name = new_name.to_string()
+        });
+
         song_list.borrow_mut().on_reorder({
             let playlists = playlist_list.clone();
 

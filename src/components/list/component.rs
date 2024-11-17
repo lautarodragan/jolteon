@@ -30,12 +30,14 @@ where T: std::fmt::Display
     pub(super) on_enter_fn: Mutex<Box<dyn FnMut(T) + 'a>>,
     pub(super) on_reorder_fn: Mutex<Box<dyn FnMut(usize, usize) + 'a>>,
     pub(super) on_delete_fn: Mutex<Box<dyn FnMut(T, usize) + 'a>>,
+    pub(super) on_rename_fn: Mutex<Box<dyn FnMut(&mut T, &str) + 'a>>,
     pub(super) on_request_focus_trap_fn: Mutex<Box<dyn FnMut() + 'a>>,
 
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
 
     pub(super) filter: Mutex<String>,
+    pub(super) rename: Mutex<Option<String>>,
 }
 
 impl<'a, T> List<'a, T>
@@ -54,6 +56,7 @@ where T: std::fmt::Display
             on_enter_fn: Mutex::new(Box::new(|_| {}) as _),
             on_reorder_fn: Mutex::new(Box::new(|_, _| {}) as _),
             on_delete_fn: Mutex::new(Box::new(|_, _| {}) as _),
+            on_rename_fn: Mutex::new(Box::new(|_, _| {})),
             on_request_focus_trap_fn: Mutex::new(Box::new(|| {}) as _),
 
             items: Mutex::new(items),
@@ -63,6 +66,7 @@ where T: std::fmt::Display
             height: AtomicUsize::new(0),
 
             filter: Mutex::new("".to_string()),
+            rename: Mutex::new(None),
         }
     }
 
@@ -70,6 +74,12 @@ where T: std::fmt::Display
         let items = self.items.lock().unwrap();
         let items_inner = (*items).iter().map(|a| &a.inner).collect();
         cb(items_inner)
+    }
+
+    pub fn with_selected_item<R>(&self, cb: impl FnOnce(&T) -> R) -> R {
+        let items = self.items.lock().unwrap();
+        let i = self.selected_item_index.load(Ordering::Acquire);
+        cb(&items[i].inner)
     }
 
     pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut T)) {
@@ -92,6 +102,10 @@ where T: std::fmt::Display
 
     pub fn on_delete(&self, cb: impl FnMut(T, usize) + 'a) {
         *self.on_delete_fn.lock().unwrap() = Box::new(cb);
+    }
+
+    pub fn on_rename(&self, cb: impl FnMut(&mut T, &str) + 'a) {
+        *self.on_rename_fn.lock().unwrap() = Box::new(cb);
     }
 
     pub fn on_request_focus_trap_fn(&self, cb: impl FnMut() + 'a) {
@@ -139,8 +153,8 @@ where T: std::fmt::Display
                 self.selected_item_index.store(i, Ordering::Release);
             }
         }
-
     }
+
 }
 
 impl<T: std::fmt::Display> Drop for List<'_, T> {

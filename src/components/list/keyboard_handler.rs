@@ -1,4 +1,7 @@
-use std::sync::atomic::Ordering;
+use std::sync::{
+    atomic::Ordering,
+    MutexGuard,
+};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -13,6 +16,13 @@ where T: std::fmt::Display
     fn on_key(&self, key: KeyEvent) {
         let target = "::List.on_key";
         log::trace!(target: target, "{:?}", key);
+
+        let mut rename = self.rename.lock().unwrap();
+
+        if rename.is_some() {
+            self.on_rename_key(key, rename);
+            return;
+        }
 
         match key.code {
             KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
@@ -52,6 +62,11 @@ where T: std::fmt::Display
                 drop(items);
 
                 self.on_delete_fn.lock().unwrap()(removed_item.inner, i);
+            },
+            KeyCode::Char('r') if key.modifiers == KeyModifiers::CONTROL => {
+                *rename = self.with_selected_item(|item| {
+                    Some(item.to_string())
+                });
             },
             KeyCode::Char(char) => {
                 self.filter_mut(|filter| {
@@ -180,6 +195,42 @@ where T: std::fmt::Display + Clone
             self.on_reorder_fn.lock().unwrap()(swapped.0, swapped.1);
         } else { // TODO: if i != previous_i
             self.on_select_fn.lock().unwrap()(newly_selected_item, key);
+        }
+    }
+
+    fn on_rename_key(&self, key: KeyEvent, mut rename_opt: MutexGuard<Option<String>>) {
+        let Some(ref mut rename) = *rename_opt else {
+            return;
+        };
+
+        match key.code {
+            KeyCode::Char(char) => {
+                rename.push(char);
+            },
+            KeyCode::Backspace => {
+                if key.modifiers == KeyModifiers::ALT {
+                    rename.clear();
+                } else if rename.len() > 0 {
+                    rename.remove(rename.len().saturating_sub(1));
+                }
+            },
+            KeyCode::Esc => {
+                *rename_opt = None;
+            },
+            KeyCode::Enter => {
+                if rename.is_empty() {
+                    return;
+                }
+
+                let i = self.selected_item_index.load(Ordering::Acquire);
+                let mut items = self.items.lock().unwrap();
+                let item = &mut items[i].inner;
+
+                self.on_rename_fn.lock().unwrap()(item, rename.as_str());
+
+                *rename_opt = None;
+            }
+            _ => {}
         }
     }
 
