@@ -97,7 +97,7 @@ impl<'a> App<'a> {
         });
 
         let playlist = Arc::new(Playlists::new(theme, state.playlists));
-        playlist.on_select({
+        playlist.on_enter_song({
             let player = player.clone();
             let queue = queue.clone();
             move |song, key| {
@@ -108,10 +108,10 @@ impl<'a> App<'a> {
                 }
             }
         });
-        playlist.on_select_playlist({
+        playlist.on_enter_playlist({
             let queue = queue.clone();
-            move |songs, _key| {
-                queue.append(&mut std::collections::VecDeque::from(songs));
+            move |playlist| {
+                queue.append(&mut std::collections::VecDeque::from(playlist.songs));
             }
         });
 

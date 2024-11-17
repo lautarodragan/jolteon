@@ -1,11 +1,8 @@
 use std::{
-    sync::{
-        atomic::{AtomicUsize, AtomicBool, Ordering},
-        Mutex,
-    },
+    sync::Mutex,
     rc::Rc,
+    cell::RefCell,
 };
-
 use chrono::Local;
 use crossterm::event::{KeyEvent};
 
@@ -23,63 +20,55 @@ pub(super) enum PlaylistScreenElement {
 }
 
 pub struct Playlists<'a> {
-    pub(super) theme: Theme,
-
-    pub(super) playlists: Rc<Mutex<Vec<Playlist>>>,
-
+    pub(super) playlist_list: Rc<RefCell<List<'a, Playlist>>>,
+    pub(super) song_list: Rc<RefCell<List<'a, Song>>>,
     pub(super) focused_element: Mutex<PlaylistScreenElement>,
-    pub(super) selected_playlist_index: Rc<AtomicUsize>,
-    pub(super) selected_song_index: AtomicUsize,
-    pub(super) renaming: AtomicBool,
-
-    pub(super) on_select_playlist_fn: Mutex<Box<dyn FnMut(Vec<Song>, KeyEvent) + 'a>>,
-
-    pub(super) song_list: List<'a, Song>,
 }
 
 impl<'a> Playlists<'a> {
     pub fn new(theme: Theme, playlists: Vec<Playlist>) -> Self {
-        let playlist_songs = playlists.get(0).map(|pl| pl.songs.clone()).unwrap_or(vec![]);
+        let song_list = Rc::new(RefCell::new(List::new(theme, playlists.get(0).map(|pl| pl.songs.clone()).unwrap_or(vec![]))));
+        let playlist_list = Rc::new(RefCell::new(List::new(theme, playlists)));
 
-        let selected_playlist_index = Rc::new(AtomicUsize::new(0));
-        let playlists = Rc::new(Mutex::new(playlists));
+        playlist_list.borrow_mut().on_select({
+            let song_list = song_list.clone();
+            move |pl, _| {
+                let Ok(song_list) = song_list.try_borrow_mut() else {
+                    return;
+                };
 
-        let song_list = List::new(theme, playlist_songs);
+                song_list.set_items(pl.songs.clone());
+            }
+        });
 
-        song_list.on_reorder({
-            let selected_playlist_index = selected_playlist_index.clone();
-            let playlists = playlists.clone();
+        song_list.borrow_mut().on_reorder({
+            let playlists = playlist_list.clone();
 
             move |a, b| {
                 log::debug!(target: "::playlists", "on_reorder {a} {b}");
 
-                let i = selected_playlist_index.load(Ordering::SeqCst);
-                let mut pls = playlists.lock().unwrap();
-
-                let Some(pl) = pls.get_mut(i) else {
-                    log::error!(target: "::playlists", "on_reorder {a} {b} -> invalid selected_playlist_index {i}");
+                let Ok(pls) = playlists.try_borrow_mut() else {
                     return;
                 };
 
-                pl.songs.swap(a, b);
+                pls.with_selected_item_mut(move |pl| {
+                    pl.songs.swap(a, b);
+                });
             }
         });
-
-        song_list.on_delete({
-            let selected_playlist_index = selected_playlist_index.clone();
-            let playlists = playlists.clone();
+        song_list.borrow_mut().on_delete({
+            let playlists = playlist_list.clone();
 
             move |song, index| {
                 log::trace!(target: "::playlists", "on_delete {index} {}", song.title);
 
-                let mut playlists = playlists.lock().unwrap();
-                let playlist = playlists.get_mut(selected_playlist_index.load(Ordering::Acquire));
-                let Some(playlist) = playlist else {
-                    log::error!(target: "::playlists", "on_delete error: index {index} out of bounds");
+                let Ok(pls) = playlists.try_borrow_mut() else {
                     return;
                 };
 
-                playlist.songs.remove(index);
+                pls.with_selected_item_mut(move |pl| {
+                    pl.songs.remove(index);
+                });
             }
         });
 
@@ -89,30 +78,37 @@ impl<'a> Playlists<'a> {
             //     Playlist::new("Ctrl+N to create new ones".to_string()),
             //     Playlist::new("Alt+N to rename".to_string()),
             // ]),
-            playlists,
-            selected_playlist_index,
-            selected_song_index: AtomicUsize::new(0),
-            theme,
-            focused_element: Mutex::new(PlaylistScreenElement::PlaylistList),
-            renaming: AtomicBool::new(false),
-
-            on_select_playlist_fn: Mutex::new(Box::new(|_, _| {}) as _),
-
+            playlist_list,
             song_list,
+            focused_element: Mutex::new(PlaylistScreenElement::PlaylistList),
         }
     }
 
-    pub fn on_select(&self, cb: impl FnMut(Song, KeyEvent) + 'a) {
-        self.song_list.on_select(cb);
+    pub fn on_enter_song(&self, cb: impl FnMut(Song, KeyEvent) + 'a) {
+        let Ok(song_list) = self.song_list.try_borrow_mut() else {
+            log::error!("try_borrow_mut failed");
+            return;
+        };
+        song_list.on_select(cb);
     }
 
-    pub fn on_select_playlist(&self, cb: impl FnMut(Vec<Song>, KeyEvent) + 'a) {
-        *self.on_select_playlist_fn.lock().unwrap() = Box::new(cb);
+    pub fn on_enter_playlist(&self, cb: impl Fn(Playlist) + 'a) {
+        let Ok(playlists) = self.playlist_list.try_borrow_mut() else {
+            log::error!("playlists.try_borrow_mut() failed...");
+            return;
+        };
+        playlists.on_enter(cb);
     }
 
     pub fn playlists(&self) -> Vec<Playlist> {
-        let playlists = self.playlists.lock().unwrap();
-        playlists.clone()
+        let Ok(playlists) = self.playlist_list.try_borrow() else {
+            log::error!("Could not borrow playlists");
+            return vec![];
+        };
+
+        playlists.with_items(|pl| {
+            pl.clone().iter().map(|x| (*x).clone()).map(|x| x).collect()
+        })
     }
 
     pub fn create_playlist(&self) {
@@ -120,27 +116,19 @@ impl<'a> Playlists<'a> {
             name: format!("New playlist created at {}", Local::now().format("%A %-l:%M:%S%P").to_string()),
             songs: vec![],
         };
-        self.playlists.lock().unwrap().push(playlist);
-    }
+        let Ok(playlists) = self.playlist_list.try_borrow_mut() else {
+            return;
+        };
+        playlists.push_item(playlist);
 
-    pub fn selected_playlist<T>(&self, f: impl FnOnce(&Playlist) -> T) -> Option<T> {
-        let selected_playlist_index = self.selected_playlist_index.load(Ordering::Relaxed);
-        let mut playlists = self.playlists.lock().unwrap();
-
-        if let Some(selected_playlist) = playlists.get_mut(selected_playlist_index) {
-            Some(f(selected_playlist))
-        } else {
-            None
-        }
     }
 
     pub fn selected_playlist_mut(&self, f: impl FnOnce(&mut Playlist)) {
-        let selected_playlist_index = self.selected_playlist_index.load(Ordering::Relaxed);
-        let mut playlists = self.playlists.lock().unwrap();
+        let Ok(playlists) = self.playlist_list.try_borrow_mut() else {
+            return;
+        };
 
-        if let Some(selected_playlist) = playlists.get_mut(selected_playlist_index) {
-            f(selected_playlist);
-        }
+        playlists.with_selected_item_mut(f);
     }
 
     pub fn add_song(&self, song: Song) {

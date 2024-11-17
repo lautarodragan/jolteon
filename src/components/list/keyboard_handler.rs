@@ -23,7 +23,7 @@ where T: std::fmt::Display
                     filter.clear();
                 });
 
-                let mut items = self.items.lock().unwrap();
+                let items = self.items.lock().unwrap();
 
                 let i = self.selected_item_index.load(Ordering::Acquire);
                 if i >= items.len() {
@@ -33,7 +33,7 @@ where T: std::fmt::Display
                 let item = items[i].inner.clone();
                 drop(items);
 
-                if key.modifiers == KeyModifiers::CONTROL {
+                if key.modifiers == KeyModifiers::ALT {
                     self.on_enter_fn.lock().unwrap()(item);
                 } else {
                     self.on_select_fn.lock().unwrap()(item, key);
@@ -70,7 +70,7 @@ where T: std::fmt::Display
 
 
 impl<'a, T> List<'a, T>
-where T: std::fmt::Display
+where T: std::fmt::Display + Clone
 {
     fn on_directional_key(&self, key: KeyEvent) {
         let is_filtering = !self.filter.lock().unwrap().is_empty();
@@ -159,7 +159,7 @@ where T: std::fmt::Display
             _ => {},
         }
 
-        let mut offset = self.offset.load(Ordering::Acquire) as i32;
+        let offset = self.offset.load(Ordering::Acquire) as i32;
         if (key.code == KeyCode::Up && i < offset + padding) || (key.code == KeyCode::Down && i > offset + padding) || key.code == KeyCode::Home || key.code == KeyCode::End {
             let offset = if i > padding {
                 (i - padding).min(length - height).max(0)
@@ -172,10 +172,14 @@ where T: std::fmt::Display
         i = i.min(length - 1).max(0);
         self.selected_item_index.store(i as usize, Ordering::SeqCst);
 
+        let newly_selected_item = items[i as usize].inner.clone();
+
         drop(items);
 
         if let Some(swapped) = swapped {
             self.on_reorder_fn.lock().unwrap()(swapped.0, swapped.1);
+        } else { // TODO: if i != previous_i
+            self.on_select_fn.lock().unwrap()(newly_selected_item, key);
         }
     }
 

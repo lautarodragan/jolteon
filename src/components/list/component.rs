@@ -14,7 +14,7 @@ use crate::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ListItem<T> {
     pub inner: T,
-    // pub is_open: bool,
+    // pub is_visible: bool,
     pub is_match: bool,
 }
 
@@ -66,11 +66,23 @@ where T: std::fmt::Display
         }
     }
 
+    pub fn with_items<R>(&self, cb: impl FnOnce(Vec<&T>) -> R) -> R {
+        let items = self.items.lock().unwrap();
+        let items_inner = (*items).iter().map(|a| &a.inner).collect();
+        cb(items_inner)
+    }
+
+    pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut T)) {
+        let mut items = self.items.lock().unwrap();
+        let i = self.selected_item_index.load(Ordering::Acquire);
+        cb(&mut items[i].inner);
+    }
+
     pub fn on_select(&self, cb: impl FnMut(T, KeyEvent) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
     }
 
-    pub fn on_enter_fn(&self, cb: impl FnMut(T) + 'a) {
+    pub fn on_enter(&self, cb: impl FnMut(T) + 'a) {
         *self.on_enter_fn.lock().unwrap() = Box::new(cb);
     }
 
@@ -93,6 +105,14 @@ where T: std::fmt::Display
             inner: item,
             is_match: false,
         }).collect();
+    }
+
+    pub fn push_item(&self, item: T) {
+        let mut items = self.items.lock().unwrap();
+        items.push(ListItem {
+            inner: item,
+            is_match: false,
+        });
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
