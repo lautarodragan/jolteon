@@ -6,11 +6,6 @@ use ratatui::{
     widgets::{Block, Tabs},
 };
 
-use crate::{
-    app::AppTab,
-    constants::MAIN_SECTIONS,
-};
-
 // static TIME_FORMAT: &str = "%A %-l:%M%P, %B %-e | %F";
 // static TIME_FORMAT: &str = "%A %-l:%M%P, %B %-e";
 static TIME_FORMAT: &str = "%A %-l:%M%P";
@@ -28,29 +23,31 @@ fn time_format() -> String {
     Local::now().format(TIME_FORMAT).to_string()
 }
 
-pub struct TopBar {
+pub struct TopBar<'a> {
     theme: crate::config::Theme,
-    active_tab: AppTab,
+    tab_titles: &'a [&'a str],
+    active_tab: usize,
     frame_count: u64,
 }
 
-impl TopBar {
-    pub fn new(theme: crate::config::Theme, active_tab: AppTab, frame_count: u64) -> Self {
+impl<'a> TopBar<'a> {
+    pub fn new(theme: crate::config::Theme, tab_titles: &'a [&'a str], active_tab: usize, frame_count: u64) -> Self {
         Self {
             theme,
+            tab_titles,
             active_tab,
             frame_count,
         }
     }
 }
 
-impl Widget for TopBar {
+impl<'a> Widget for TopBar<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let tab_titles: Vec<Line> = MAIN_SECTIONS
+        let tab_titles: Vec<Line> = self.tab_titles
             .iter()
             .map(|t| {
                 Line::from(Span::styled(
-                    t.to_string(),
+                    (**t).to_string(),
                     Style::default().fg(self.theme.foreground),
                 ))
             })
@@ -58,7 +55,7 @@ impl Widget for TopBar {
 
         let tabs = Tabs::new(tab_titles)
             .block(Block::default())
-            .select(self.active_tab as usize)
+            .select(self.active_tab)
             .style(
                 Style::default()
                     .fg(self.theme.foreground)

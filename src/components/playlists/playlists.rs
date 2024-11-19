@@ -22,8 +22,8 @@ pub(super) enum PlaylistScreenElement {
 
 pub struct Playlists<'a> {
     pub(super) theme: Theme,
-    pub(super) playlist_list: Rc<RefCell<List<'a, Playlist>>>,
-    pub(super) deleted_playlist_list: Rc<RefCell<List<'a, Playlist>>>,
+    pub(super) playlist_list: Rc<List<'a, Playlist>>,
+    pub(super) deleted_playlist_list: Rc<List<'a, Playlist>>,
     pub(super) song_list: Rc<RefCell<List<'a, Song>>>,
     pub(super) focused_element: Mutex<PlaylistScreenElement>,
     pub(super) show_deleted_playlists: Cell<bool>,
@@ -34,60 +34,63 @@ impl<'a> Playlists<'a> {
         let playlists_file = crate::files::Playlists::from_file();
 
         let song_list = Rc::new(RefCell::new(List::new(theme, playlists_file.playlists.get(0).map(|pl| pl.songs.clone()).unwrap_or(vec![]))));
-        let playlist_list = Rc::new(RefCell::new(List::new(theme, playlists_file.playlists)));
-        let deleted_playlist_list = Rc::new(RefCell::new(List::new(theme, playlists_file.deleted)));
+        let playlist_list = Rc::new(List::new(theme, playlists_file.playlists));
+        let deleted_playlist_list = Rc::new(List::new(theme, playlists_file.deleted));
 
-        playlist_list.borrow_mut().on_select({
+        playlist_list.on_select({
             let song_list = song_list.clone();
             move |pl, _| {
-                let Ok(song_list) = song_list.try_borrow_mut() else {
-                    return;
-                };
-
+                let song_list = song_list.borrow();
                 song_list.set_items(pl.songs.clone());
             }
         });
 
-        playlist_list.borrow_mut().on_rename({
-            |pl, new_name| pl.name = new_name.to_string()
-        });
+        playlist_list.rename_fn(
+            |pl, new_name| {
+                pl.name = new_name.to_string();
+            }
+        );
 
-        playlist_list.borrow_mut().on_delete({
+        playlist_list.on_rename({
+            let playlist_list = playlist_list.clone();
             let deleted_playlist_list = deleted_playlist_list.clone();
-            move |pl, _| {
-                let deleted_playlist_list = deleted_playlist_list.borrow_mut();
-                deleted_playlist_list.push_item(pl);
+
+            move |_| {
+                save(&*playlist_list, &*deleted_playlist_list);
             }
         });
 
-        song_list.borrow_mut().on_reorder({
-            let playlists = playlist_list.clone();
+        playlist_list.on_delete({
+            let playlist_list = playlist_list.clone();
+            let deleted_playlist_list = deleted_playlist_list.clone();
+            move |pl, _| {
+                deleted_playlist_list.push_item(pl);
+                save(&*playlist_list, &*deleted_playlist_list);
+            }
+        });
+
+        song_list.borrow().on_reorder({
+            let playlist_list = playlist_list.clone();
+            let deleted_playlist_list = deleted_playlist_list.clone();
 
             move |a, b| {
                 log::debug!(target: "::playlists", "on_reorder {a} {b}");
-
-                let Ok(pls) = playlists.try_borrow_mut() else {
-                    return;
-                };
-
-                pls.with_selected_item_mut(move |pl| {
+                playlist_list.with_selected_item_mut(move |pl| {
                     pl.songs.swap(a, b);
                 });
+                save(&*playlist_list, &*deleted_playlist_list);
             }
         });
-        song_list.borrow_mut().on_delete({
-            let playlists = playlist_list.clone();
+        song_list.borrow().on_delete({
+            let playlist_list = playlist_list.clone();
+            let deleted_playlist_list = deleted_playlist_list.clone();
 
             move |song, index| {
                 log::trace!(target: "::playlists", "on_delete {index} {}", song.title);
-
-                let Ok(pls) = playlists.try_borrow_mut() else {
-                    return;
-                };
-
-                pls.with_selected_item_mut(move |pl| {
+                playlist_list.with_selected_item_mut(move |pl| {
                     pl.songs.remove(index);
                 });
+                save(&*playlist_list, &*deleted_playlist_list);
             }
         });
 
@@ -107,60 +110,34 @@ impl<'a> Playlists<'a> {
     }
 
     pub fn on_enter_song(&self, cb: impl FnMut(Song, KeyEvent) + 'a) {
-        let Ok(song_list) = self.song_list.try_borrow_mut() else {
-            log::error!("try_borrow_mut failed");
-            return;
-        };
+        let song_list = self.song_list.borrow();
         song_list.on_select(cb);
     }
 
     pub fn on_enter_playlist(&self, cb: impl Fn(Playlist) + 'a) {
-        let Ok(playlists) = self.playlist_list.try_borrow_mut() else {
-            log::error!("playlists.try_borrow_mut() failed...");
-            return;
-        };
-        playlists.on_enter(cb);
+        self.playlist_list.on_enter(cb);
     }
 
     pub fn on_request_focus_trap_fn(&self, cb: impl FnMut(bool) + 'a) {
-        let Ok(playlist_list) = self.playlist_list.try_borrow_mut() else {
-            log::error!("playlist_list.try_borrow_mut() failed...");
-            return;
-        };
-        playlist_list.on_request_focus_trap_fn(cb);
-    }
-
-    pub fn playlists(&self) -> Vec<Playlist> {
-        let Ok(playlists) = self.playlist_list.try_borrow() else {
-            log::error!("Could not borrow playlists");
-            return vec![];
-        };
-
-        playlists.with_items(|pl| {
-            pl.clone().iter().map(|x| (*x).clone()).collect()
-        })
+        self.playlist_list.on_request_focus_trap_fn(cb);
     }
 
     pub fn create_playlist(&self) {
-        let Ok(playlists) = self.playlist_list.try_borrow_mut() else {
-            log::error!("playlist_list.try_borrow_mut() failure");
-            return;
-        };
         let playlist = Playlist::new(
-            format!("New playlist created at {}", Local::now().format("%A %-l:%M:%S%P").to_string()),
+            format!("New playlist created at {}", Local::now().format("%A %-l:%M:%S%P")),
         );
-        playlists.push_item(playlist);
+        self.playlist_list.push_item(playlist);
+
+        save(&self.playlist_list, &self.deleted_playlist_list);
     }
 
     pub fn selected_playlist_mut(&self, f: impl FnOnce(&mut Playlist)) {
-        let Ok(playlists) = self.playlist_list.try_borrow_mut() else {
-            return;
-        };
-        playlists.with_selected_item_mut(f);
+        self.playlist_list.with_selected_item_mut(f);
+        save(&self.playlist_list, &self.deleted_playlist_list);
     }
 
     pub fn add_song(&self, song: Song) {
-        let song_list = self.song_list.borrow_mut(); // todo: try_borrow_mut
+        let song_list = self.song_list.borrow();
         song_list.push_item(song.clone());
 
         self.selected_playlist_mut(move |pl| {
@@ -179,24 +156,22 @@ impl<'a> Playlists<'a> {
             pl.songs.append(&mut songs);
         });
     }
-
-    pub fn save(&self) {
-        let playlist_list = self.playlist_list.borrow();
-        let deleted_playlist_list = self.deleted_playlist_list.borrow();
-        let playlists: Vec<Playlist> = playlist_list.with_items(|i| i.iter().map(|i| (*i).clone()).collect());
-        let deleted: Vec<Playlist> = deleted_playlist_list.with_items(|i| i.iter().map(|i| (*i).clone()).collect());
-
-        let f = crate::files::Playlists {
-            playlists,
-            deleted,
-        };
-
-        f.save();
-    }
 }
 
 impl Drop for Playlists<'_> {
     fn drop(&mut self) {
         log::trace!("Playlists.drop()");
     }
+}
+
+fn clone_vec(v: Vec<&Playlist>) -> Vec<Playlist> {
+    v.into_iter().cloned().collect()
+}
+
+fn save(playlist_list: &List<Playlist>, deleted_playlist_list: &List<Playlist>) {
+    let f = crate::files::Playlists {
+        playlists: playlist_list.with_items(clone_vec),
+        deleted: deleted_playlist_list.with_items(clone_vec),
+    };
+    f.save();
 }

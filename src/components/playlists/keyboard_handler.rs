@@ -24,10 +24,7 @@ impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
                     self.create_playlist();
                     return;
                 }
-                let Ok(playlists) = self.playlist_list.try_borrow() else {
-                    return;
-                };
-                playlists.on_key(key);
+                self.playlist_list.on_key(key);
             },
             _ if *focused_element_guard == crate::components::playlists::playlists::PlaylistScreenElement::SongList  => {
                 let Ok(song_list) = self.song_list.try_borrow() else {

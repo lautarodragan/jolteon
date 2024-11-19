@@ -10,6 +10,7 @@ use std::{
     time::Duration,
 };
 
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -21,7 +22,7 @@ use rodio::OutputStreamHandle;
 use crate::{
     structs::Song,
     source::{Source, Controls},
-    ui::CurrentlyPlaying,
+    ui::{KeyboardHandlerRef, CurrentlyPlaying},
     config::Theme,
     components::Queue,
 };
@@ -403,5 +404,20 @@ impl WidgetRef for Player {
             self.queue_items.length(),
             is_paused,
         ).render(area, buf);
+    }
+}
+
+impl KeyboardHandlerRef<'_, bool> for Player {
+    fn on_key(&self, key: KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Right => self.seek_forward(),
+            KeyCode::Left => self.seek_backward(),
+            KeyCode::Char('-') => self.change_volume(-0.05),
+            KeyCode::Char('+') => self.change_volume(0.05),
+            KeyCode::Char(' ') if key.modifiers == KeyModifiers::CONTROL => self.toggle(),
+            KeyCode::Char('g') if key.modifiers == KeyModifiers::CONTROL => self.stop(),
+            _ => { return false; },
+        };
+        true
     }
 }

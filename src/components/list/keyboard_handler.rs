@@ -77,6 +77,12 @@ where T: 'a + Clone + std::fmt::Display
                 });
                 self.on_request_focus_trap_fn.lock().unwrap()(true);
             },
+            KeyCode::F(2) | KeyCode::F(6) => {
+                *rename = self.with_selected_item(|item| {
+                    Some(item.to_string())
+                });
+                self.on_request_focus_trap_fn.lock().unwrap()(true);
+            },
             KeyCode::Char(char) => {
                 self.filter_mut(|filter| {
                     filter.push(char);
@@ -236,11 +242,28 @@ where T: std::fmt::Display + Clone
                     return;
                 }
 
+                let rename_fn = self.rename_fn.lock().unwrap();
+                let on_rename_fn = self.on_rename_fn.lock().unwrap();
+
+                let Some(ref rename_fn) = *rename_fn else {
+                    return;
+                };
+
+                let Some(ref on_rename_fn) = *on_rename_fn else {
+                    return;
+                };
+
                 let i = self.selected_item_index.load(Ordering::Acquire);
                 let mut items = self.items.lock().unwrap();
-                let item = &mut items[i].inner;
+                let mut item = &mut items[i].inner;
 
-                self.on_rename_fn.lock().unwrap()(item, rename.as_str());
+                rename_fn(&mut item, rename.as_str());
+
+                let item = item.clone();
+
+                drop(items);
+
+                on_rename_fn(item.clone());
 
                 *rename_opt = None;
                 self.on_request_focus_trap_fn.lock().unwrap()(false);

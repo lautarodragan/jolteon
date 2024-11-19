@@ -45,10 +45,6 @@ impl<'a> WidgetRef for Playlists<'a> {
             .horizontal_margin(2)
             .areas(area);
 
-        let Ok(playlists) = self.playlist_list.try_borrow() else {
-            return;
-        };
-
         let show_deleted_playlists = self.show_deleted_playlists.get();
 
         if show_deleted_playlists {
@@ -61,7 +57,7 @@ impl<'a> WidgetRef for Playlists<'a> {
             ])
                 .areas(area_left);
 
-            playlists.render_ref(left_top, buf);
+            self.playlist_list.render_ref(left_top, buf);
 
             let block = ratatui::widgets::Block::new()
                 .borders(ratatui::widgets::Borders::TOP)
@@ -71,14 +67,9 @@ impl<'a> WidgetRef for Playlists<'a> {
                 .title_alignment(Alignment::Center);
             block.render_ref(left_bottom_header, buf);
 
-            let Ok(deleted_playlists) = self.deleted_playlist_list.try_borrow() else {
-                RenderingError { theme: self.theme }.render_ref(left_bottom_list, buf);
-                return;
-            };
-
-            deleted_playlists.render_ref(left_bottom_list, buf);
+            self.deleted_playlist_list.render_ref(left_bottom_list, buf);
         } else {
-            playlists.render_ref(area_left, buf);
+            self.playlist_list.render_ref(area_left, buf);
         }
 
         let Ok(song_list) = self.song_list.try_borrow() else {

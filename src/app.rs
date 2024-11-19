@@ -20,39 +20,40 @@ use crate::{
     player::Player,
     state::State,
     term::set_terminal,
-    ui::{KeyboardHandler, KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
+    ui::{KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
     Command,
     components::{FileBrowser, FileBrowserSelection, Library, Playlists, Queue, Help},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AppTab {
-    Library,
-    Playlists,
-    Queue,
-    FileBrowser,
-    Help,
+pub trait ComponentRef<'a>: KeyboardHandlerRef<'a> + WidgetRef {}
+pub trait ComponentMut<'a>: KeyboardHandlerMut<'a> + WidgetRef {}
+
+impl<'a, T: KeyboardHandlerRef<'a> + WidgetRef> ComponentRef<'a> for T {}
+impl<'a, T: KeyboardHandlerMut<'a> + WidgetRef> ComponentMut<'a> for T {}
+
+pub enum Component<'a> {
+    Ref(Arc<dyn 'a + ComponentRef<'a>>),
+    Mut(Arc<Mutex<dyn 'a + ComponentMut<'a>>>),
 }
 
 pub struct App<'a> {
     must_quit: bool,
+
     theme: Theme,
     frame: Arc<AtomicU64>,
 
     _music_output: OutputStream,
-    player: Arc<Player>,
-    queue: Arc<Queue>,
-    player_command_receiver: Arc<Mutex<Receiver<Command>>>,
-    media_rec_t: Option<JoinHandle<()>>,
 
-    target: Option<KeyboardHandler<'a>>,
-    active_tab: AppTab,
+    screens: Vec<(String, Component<'a>)>,
+    focused_screen: usize,
     focus_trap: Arc<AtomicBool>,
 
-    library: Arc<Library<'a>>,
-    playlist: Arc<Playlists<'a>>,
+    player: Arc<Player>,
+    queue: Arc<Queue>,
     browser: Arc<Mutex<FileBrowser<'a>>>,
-    help: Arc<Mutex<Help<'a>>>,
+
+    player_command_receiver: Arc<Mutex<Receiver<Command>>>,
+    player_command_receiver_thread: Option<JoinHandle<()>>,
 }
 
 impl<'a> App<'a> {
@@ -136,25 +137,33 @@ impl<'a> App<'a> {
             }
         });
 
+        let browser = Arc::new(Mutex::new(browser));
+        let help = Arc::new(Mutex::new(Help::new(theme)));
+
         Self {
             must_quit: false,
+
             theme,
             frame: Arc::new(AtomicU64::new(0)),
 
             _music_output: output_stream,
-            player,
-            queue,
-            player_command_receiver: Arc::new(Mutex::new(player_command_receiver)),
-            media_rec_t: None,
 
-            target: Some(KeyboardHandler::Ref(library.clone())),
-            active_tab: AppTab::Library,
+            screens: vec![
+                ("Library".to_string(), Component::Ref(library.clone())),
+                ("Playlists".to_string(), Component::Ref(playlist.clone())),
+                ("Queue".to_string(), Component::Ref(queue.clone())),
+                ("File Browser".to_string(), Component::Mut(browser.clone())),
+                ("Help".to_string(), Component::Mut(help.clone())),
+            ],
+            focused_screen: 0,
             focus_trap,
 
-            library,
-            playlist,
-            browser: Arc::new(Mutex::new(browser)),
-            help: Arc::new(Mutex::new(Help::new(theme))),
+            player,
+            queue,
+            browser,
+
+            player_command_receiver: Arc::new(Mutex::new(player_command_receiver)),
+            player_command_receiver_thread: None,
         }
     }
 
@@ -164,12 +173,10 @@ impl<'a> App<'a> {
 
     fn to_state(&self) -> State {
         let queue_items = self.queue.songs().clone();
-        let playlists = self.playlist.playlists();
 
         State {
             last_visited_path: self.file_browser().current_directory().to_str().map(String::from),
             queue_items: Vec::from(queue_items),
-            playlists,
         }
     }
 
@@ -206,8 +213,6 @@ impl<'a> App<'a> {
 
         self.to_state().to_file()?;
 
-        self.playlist.save(); // TODO: save on each change, like the library
-
         Ok(())
     }
 
@@ -237,7 +242,7 @@ impl<'a> App<'a> {
             log::trace!("spawn_media_key_receiver_thread loop exit");
         }).unwrap();
 
-        self.media_rec_t = Some(t);
+        self.player_command_receiver_thread = Some(t);
     }
 
     fn on_file_browser_select(
@@ -333,54 +338,33 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
             return;
         }
 
-        let mut handled = true;
+        if !self.focus_trap.load(Ordering::Acquire) {
+            if let KeyCode::Char(c) = key.code {
+                if let Some(n) = c.to_digit(10) {
+                    let n = n.saturating_sub(1) as usize;
+                    if n < self.screens.len() {
+                        self.focused_screen = n;
+                        return;
+                    }
+                };
+            }
 
-        let focus_trapped = self.focus_trap.load(Ordering::Acquire);
-        if !focus_trapped {
-            match key.code {
-                KeyCode::Right => self.player.seek_forward(),
-                KeyCode::Left => self.player.seek_backward(),
-                KeyCode::Char('-') => self.player.change_volume(-0.05),
-                KeyCode::Char('+') => self.player.change_volume(0.05),
-                KeyCode::Char(' ') => self.player.toggle(),
-                KeyCode::Char('g') if key.modifiers == KeyModifiers::CONTROL => self.player.stop(),
-                KeyCode::Char('c') if key.modifiers == KeyModifiers::ALT => self.spawn_terminal(),
-                KeyCode::Char('1') => {
-                    self.active_tab = AppTab::Library;
-                    self.target = Some(KeyboardHandler::Ref(self.library.clone()));
-                }
-                KeyCode::Char('2') => {
-                    self.active_tab = AppTab::Playlists;
-                    self.target = Some(KeyboardHandler::Ref(self.playlist.clone()));
-                }
-                KeyCode::Char('3') => {
-                    self.active_tab = AppTab::Queue;
-                    self.target = Some(KeyboardHandler::Ref(self.queue.clone()));
-                }
-                KeyCode::Char('4') => {
-                    self.active_tab = AppTab::FileBrowser;
-                    self.target = Some(KeyboardHandler::Mut(self.browser.clone()));
-                }
-                KeyCode::Char('5') => {
-                    self.active_tab = AppTab::Help;
-                    self.target = Some(KeyboardHandler::Mut(self.help.clone()));
-                }
-                _ => {
-                    handled = false;
-                }
-            };
+            if self.player.on_key(key) {
+                return;
+            }
+        }
+
+        let Some((_, component)) = self.screens.get(self.focused_screen) else {
+            log::error!("focused_screen is {}, which is out of bounds.", self.focused_screen);
+            return;
         };
 
-        if focus_trapped || !handled {
-            if let Some(target) = &self.target {
-                match target {
-                    KeyboardHandler::Ref(target) => {
-                        target.on_key(key);
-                    }
-                    KeyboardHandler::Mut(target) => {
-                        target.lock().unwrap().on_key(key);
-                    }
-                }
+        match component {
+            Component::Ref(ref target) => {
+                target.on_key(key);
+            }
+            Component::Mut(ref target) => {
+                target.lock().unwrap().on_key(key);
             }
         }
     }
@@ -400,26 +384,25 @@ impl<'a> WidgetRef for &App<'a> {
                 Constraint::Length(3),
             ]).areas(area);
 
-        let top_bar = TopBar::new(self.theme, self.active_tab, self.frame.load(Ordering::Relaxed));
+        let screen_titles: Vec<&str> = self.screens.iter().map(|screen| screen.0.as_str()).collect();
+
+        let top_bar = TopBar::new(
+            self.theme,
+            &screen_titles,
+            self.focused_screen,
+            self.frame.load(Ordering::Relaxed),
+        );
         top_bar.render(area_top, buf);
 
-        match self.active_tab {
-            AppTab::Library => {
-                self.library.render_ref(area_center, buf);
-            },
-            AppTab::Playlists => {
-                self.playlist.render_ref(area_center, buf);
-            },
-            AppTab::Queue => {
-                self.queue.render_ref(area_center, buf);
-            },
-            AppTab::FileBrowser => {
-                self.browser.lock().unwrap().render_ref(area_center, buf);
-            },
-            AppTab::Help => {
-                self.help.lock().unwrap().render_ref(area_center, buf);
-            },
+        let Some((_, component)) = self.screens.get(self.focused_screen) else {
+            log::error!("focused_screen is {}, which is out of bounds.", self.focused_screen);
+            return;
         };
+
+        match component {
+            Component::Ref(ref s) => { s.render_ref(area_center, buf); }
+            Component::Mut(ref s) => { s.lock().unwrap().render_ref(area_center, buf); }
+        }
 
         self.player.render(area_bottom, buf);
     }
@@ -431,7 +414,7 @@ impl Drop for App<'_> {
 
         self.queue.quit();
 
-        if let Some(a) = self.media_rec_t.take() {
+        if let Some(a) = self.player_command_receiver_thread.take() {
             log::trace!("App.drop: joining media_key_rx thread");
             match a.join() {
                 Ok(_) => {
