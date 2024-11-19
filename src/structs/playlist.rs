@@ -6,13 +6,15 @@ use crate::structs::Song;
 pub struct Playlist {
     pub name: String,
     pub songs: Vec<Song>,
+    pub is_deleted: bool,
 }
 
 impl Playlist {
-    fn _new(name: String) -> Self {
+    pub fn new(name: String) -> Self {
         Self {
             name,
             songs: vec![],
+            is_deleted: false,
         }
     }
 }

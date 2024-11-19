@@ -2,7 +2,7 @@ use std::error::Error;
 use std::sync::{mpsc::Receiver, Arc, Mutex, MutexGuard};
 use std::{env, path::PathBuf, thread, time::Duration};
 use std::io::BufRead;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread::JoinHandle;
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
@@ -47,6 +47,7 @@ pub struct App<'a> {
 
     target: Option<KeyboardHandler<'a>>,
     active_tab: AppTab,
+    focus_trap: Arc<AtomicBool>,
 
     library: Arc<Library<'a>>,
     playlist: Arc<Playlists<'a>>,
@@ -69,6 +70,8 @@ impl<'a> App<'a> {
             Some(s) => PathBuf::from(s),
             None => env::current_dir().unwrap(),
         };
+
+        let focus_trap = Arc::new(AtomicBool::new(false));
 
         let library = Arc::new(Library::new(theme));
         library.on_select({ // selected individual song
@@ -96,7 +99,7 @@ impl<'a> App<'a> {
             }
         });
 
-        let playlist = Arc::new(Playlists::new(theme, state.playlists));
+        let playlist = Arc::new(Playlists::new(theme));
         playlist.on_enter_song({
             let player = player.clone();
             let queue = queue.clone();
@@ -112,6 +115,12 @@ impl<'a> App<'a> {
             let queue = queue.clone();
             move |playlist| {
                 queue.append(&mut std::collections::VecDeque::from(playlist.songs));
+            }
+        });
+        playlist.on_request_focus_trap_fn({
+            let focus_trap = focus_trap.clone();
+            move |v| {
+                focus_trap.store(v, Ordering::Release);
             }
         });
 
@@ -140,6 +149,7 @@ impl<'a> App<'a> {
 
             target: Some(KeyboardHandler::Ref(library.clone())),
             active_tab: AppTab::Library,
+            focus_trap,
 
             library,
             playlist,
@@ -195,6 +205,8 @@ impl<'a> App<'a> {
         log::trace!("App.start() -> exiting");
 
         self.to_state().to_file()?;
+
+        self.playlist.save(); // TODO: save on each change, like the library
 
         Ok(())
     }
@@ -316,9 +328,14 @@ impl<'a> App<'a> {
 
 impl<'a> KeyboardHandlerMut<'a> for App<'a> {
     fn on_key(&mut self, key: KeyEvent) {
+        if key.code == KeyCode::Char('q') && key.modifiers == KeyModifiers::CONTROL  {
+            self.must_quit = true;
+            return;
+        }
+
         let mut handled = true;
 
-        let focus_trapped = false; // TODO: bring back focus trap, but properly
+        let focus_trapped = self.focus_trap.load(Ordering::Acquire);
         if !focus_trapped {
             match key.code {
                 KeyCode::Right => self.player.seek_forward(),
@@ -328,9 +345,6 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                 KeyCode::Char(' ') => self.player.toggle(),
                 KeyCode::Char('g') if key.modifiers == KeyModifiers::CONTROL => self.player.stop(),
                 KeyCode::Char('c') if key.modifiers == KeyModifiers::ALT => self.spawn_terminal(),
-                KeyCode::Char('q') if key.modifiers == KeyModifiers::CONTROL => {
-                    self.must_quit = true;
-                }
                 KeyCode::Char('1') => {
                     self.active_tab = AppTab::Library;
                     self.target = Some(KeyboardHandler::Ref(self.library.clone()));

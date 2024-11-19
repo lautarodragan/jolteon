@@ -3,10 +3,11 @@ use std::{
 };
 
 use ratatui::{
-    prelude::Widget,
+    prelude::{Alignment, Widget},
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     widgets::{WidgetRef},
+    style::{Color, Style},
 };
 
 use super::Playlists;
@@ -48,11 +49,64 @@ impl<'a> WidgetRef for Playlists<'a> {
             return;
         };
 
-        playlists.render_ref(area_left, buf);
+        let show_deleted_playlists = self.show_deleted_playlists.get();
+
+        if show_deleted_playlists {
+            let [left_top, _, left_bottom_header, _, left_bottom_list] = Layout::vertical([
+                Constraint::Percentage(50),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Percentage(50),
+            ])
+                .areas(area_left);
+
+            playlists.render_ref(left_top, buf);
+
+            let block = ratatui::widgets::Block::new()
+                .borders(ratatui::widgets::Borders::TOP)
+                .border_style(Style::new().fg(self.theme.foreground))
+                .title(" Playlist Graveyard ")
+                .title_style(Style::new().fg(self.theme.foreground))
+                .title_alignment(Alignment::Center);
+            block.render_ref(left_bottom_header, buf);
+
+            let Ok(deleted_playlists) = self.deleted_playlist_list.try_borrow() else {
+                RenderingError { theme: self.theme }.render_ref(left_bottom_list, buf);
+                return;
+            };
+
+            deleted_playlists.render_ref(left_bottom_list, buf);
+        } else {
+            playlists.render_ref(area_left, buf);
+        }
 
         let Ok(song_list) = self.song_list.try_borrow() else {
             return;
         };
         song_list.render_ref(area_right, buf);
+    }
+}
+
+pub struct RenderingError {
+    theme: crate::config::Theme,
+}
+
+impl WidgetRef for RenderingError {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+        ratatui::widgets::Block::new()
+            .style(Style::new().bg(Color::Rgb(255, 0, 0)))
+            .borders(ratatui::widgets::Borders::ALL)
+            .border_style(Style::new().fg(Color::Rgb(255, 255, 255)))
+            .render_ref(area.clone(), buf);
+
+        let [_, area_center, _] = Layout::vertical([
+            Constraint::Percentage(50),
+            Constraint::Length(1),
+            Constraint::Percentage(50),
+        ])
+            .areas(area);
+
+        ratatui::text::Line::from("RENDERING ERROR").style(Style::new().fg(Color::Rgb(255, 255, 255))).centered().render_ref(area_center, buf);
     }
 }

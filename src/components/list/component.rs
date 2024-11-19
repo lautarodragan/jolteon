@@ -31,7 +31,7 @@ where T: std::fmt::Display
     pub(super) on_reorder_fn: Mutex<Box<dyn FnMut(usize, usize) + 'a>>,
     pub(super) on_delete_fn: Mutex<Box<dyn FnMut(T, usize) + 'a>>,
     pub(super) on_rename_fn: Mutex<Box<dyn FnMut(&mut T, &str) + 'a>>,
-    pub(super) on_request_focus_trap_fn: Mutex<Box<dyn FnMut() + 'a>>,
+    pub(super) on_request_focus_trap_fn: Mutex<Box<dyn FnMut(bool) + 'a>>,
 
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
@@ -57,7 +57,7 @@ where T: std::fmt::Display
             on_reorder_fn: Mutex::new(Box::new(|_, _| {}) as _),
             on_delete_fn: Mutex::new(Box::new(|_, _| {}) as _),
             on_rename_fn: Mutex::new(Box::new(|_, _| {})),
-            on_request_focus_trap_fn: Mutex::new(Box::new(|| {}) as _),
+            on_request_focus_trap_fn: Mutex::new(Box::new(|_| {}) as _),
 
             items: Mutex::new(items),
             selected_item_index: AtomicUsize::new(0),
@@ -108,7 +108,7 @@ where T: std::fmt::Display
         *self.on_rename_fn.lock().unwrap() = Box::new(cb);
     }
 
-    pub fn on_request_focus_trap_fn(&self, cb: impl FnMut() + 'a) {
+    pub fn on_request_focus_trap_fn(&self, cb: impl FnMut(bool) + 'a) {
         *self.on_request_focus_trap_fn.lock().unwrap() = Box::new(cb);
     }
 
@@ -145,7 +145,7 @@ where T: std::fmt::Display
         }
 
         let selected_item_index = self.selected_item_index.load(Ordering::Acquire);
-        if !items[selected_item_index].is_match {
+        if !items[selected_item_index].is_match { // TODO: panic when list is empty
             if let Some(i) = items.iter().skip(selected_item_index).position(|item| item.is_match) {
                 let i = i + selected_item_index;
                 self.selected_item_index.store(i, Ordering::Release);

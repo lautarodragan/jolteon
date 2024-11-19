@@ -9,8 +9,8 @@ use crate::{ui::KeyboardHandlerRef};
 
 use super::component::List;
 
-impl<'a, T: 'a + Clone> KeyboardHandlerRef<'a> for List<'a, T>
-where T: std::fmt::Display
+impl<'a, T> KeyboardHandlerRef<'a> for List<'a, T>
+where T: 'a + Clone + std::fmt::Display
 {
 
     fn on_key(&self, key: KeyEvent) {
@@ -50,9 +50,17 @@ where T: std::fmt::Display
                 }
 
             },
+            KeyCode::Insert => {
+                // self.push_item(T::default());
+            }
             KeyCode::Delete => {
-                let i = self.selected_item_index.load(Ordering::Acquire);
                 let mut items = self.items.lock().unwrap();
+
+                if items.is_empty() {
+                    return;
+                }
+
+                let i = self.selected_item_index.load(Ordering::Acquire);
                 let removed_item = items.remove(i);
 
                 if i >= items.len() {
@@ -67,6 +75,7 @@ where T: std::fmt::Display
                 *rename = self.with_selected_item(|item| {
                     Some(item.to_string())
                 });
+                self.on_request_focus_trap_fn.lock().unwrap()(true);
             },
             KeyCode::Char(char) => {
                 self.filter_mut(|filter| {
@@ -91,6 +100,10 @@ where T: std::fmt::Display + Clone
         let is_filtering = !self.filter.lock().unwrap().is_empty();
         let mut items = self.items.lock().unwrap();
         let length = items.len() as i32;
+
+        if length == 0 {
+            return;
+        }
 
         let height = self.height.load(Ordering::Relaxed) as i32;
         let padding = 5;
@@ -187,7 +200,7 @@ where T: std::fmt::Display + Clone
         i = i.min(length - 1).max(0);
         self.selected_item_index.store(i as usize, Ordering::SeqCst);
 
-        let newly_selected_item = items[i as usize].inner.clone();
+        let newly_selected_item = items[i as usize].inner.clone(); // index out of bounds: the len is 0 but the index is 0
 
         drop(items);
 
@@ -216,6 +229,7 @@ where T: std::fmt::Display + Clone
             },
             KeyCode::Esc => {
                 *rename_opt = None;
+                self.on_request_focus_trap_fn.lock().unwrap()(false);
             },
             KeyCode::Enter => {
                 if rename.is_empty() {
@@ -229,6 +243,7 @@ where T: std::fmt::Display + Clone
                 self.on_rename_fn.lock().unwrap()(item, rename.as_str());
 
                 *rename_opt = None;
+                self.on_request_focus_trap_fn.lock().unwrap()(false);
             }
             _ => {}
         }
