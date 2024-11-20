@@ -20,21 +20,10 @@ use crate::{
     player::Player,
     state::State,
     term::set_terminal,
-    ui::{KeyboardHandlerRef, KeyboardHandlerMut, TopBar},
+    ui::{KeyboardHandlerRef, KeyboardHandlerMut, TopBar, Component},
     Command,
     components::{FileBrowser, FileBrowserSelection, Library, Playlists, Queue, Help},
 };
-
-pub trait ComponentRef<'a>: KeyboardHandlerRef<'a> + WidgetRef {}
-pub trait ComponentMut<'a>: KeyboardHandlerMut<'a> + WidgetRef {}
-
-impl<'a, T: KeyboardHandlerRef<'a> + WidgetRef> ComponentRef<'a> for T {}
-impl<'a, T: KeyboardHandlerMut<'a> + WidgetRef> ComponentMut<'a> for T {}
-
-pub enum Component<'a> {
-    Ref(Arc<dyn 'a + ComponentRef<'a>>),
-    Mut(Arc<Mutex<dyn 'a + ComponentMut<'a>>>),
-}
 
 pub struct App<'a> {
     must_quit: bool,

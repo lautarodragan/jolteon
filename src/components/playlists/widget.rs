@@ -3,11 +3,11 @@ use std::{
 };
 
 use ratatui::{
-    prelude::{Alignment, Widget},
+    prelude::Alignment,
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    widgets::{WidgetRef},
-    style::{Color, Style},
+    widgets::WidgetRef,
+    style::Style,
 };
 
 use super::Playlists;
@@ -26,12 +26,6 @@ impl Display for crate::structs::Song {
 impl Display for crate::structs::Playlist {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.name)
-    }
-}
-
-impl<'a> Widget for Playlists<'a> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        WidgetRef::render_ref(&self, area, buf);
     }
 }
 
@@ -76,28 +70,5 @@ impl<'a> WidgetRef for Playlists<'a> {
             return;
         };
         song_list.render_ref(area_right, buf);
-    }
-}
-
-pub struct RenderingError {
-    theme: crate::config::Theme,
-}
-
-impl WidgetRef for RenderingError {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        ratatui::widgets::Block::new()
-            .style(Style::new().bg(Color::Rgb(255, 0, 0)))
-            .borders(ratatui::widgets::Borders::ALL)
-            .border_style(Style::new().fg(Color::Rgb(255, 255, 255)))
-            .render_ref(area.clone(), buf);
-
-        let [_, area_center, _] = Layout::vertical([
-            Constraint::Percentage(50),
-            Constraint::Length(1),
-            Constraint::Percentage(50),
-        ])
-            .areas(area);
-
-        ratatui::text::Line::from("RENDERING ERROR").style(Style::new().fg(Color::Rgb(255, 255, 255))).centered().render_ref(area_center, buf);
     }
 }

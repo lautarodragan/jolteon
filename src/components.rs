@@ -4,6 +4,7 @@ mod queue;
 mod help;
 mod playlists;
 mod list;
+mod rendering_error;
 
 pub use file_browser::{directory_to_songs_and_folders, FileBrowser, FileBrowserSelection};
 pub use library::Library;
