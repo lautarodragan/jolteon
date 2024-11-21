@@ -1,7 +1,7 @@
 use std::{
     sync::Mutex,
     rc::Rc,
-    cell::{Cell, RefCell},
+    cell::Cell,
 };
 
 use chrono::Local;
@@ -24,7 +24,7 @@ pub struct Playlists<'a> {
     pub(super) theme: Theme,
     pub(super) playlist_list: Rc<List<'a, Playlist>>,
     pub(super) deleted_playlist_list: Rc<List<'a, Playlist>>,
-    pub(super) song_list: Rc<RefCell<List<'a, Song>>>,
+    pub(super) song_list: Rc<List<'a, Song>>,
     pub(super) focused_element: Mutex<PlaylistScreenElement>,
     pub(super) show_deleted_playlists: Cell<bool>,
 }
@@ -33,14 +33,13 @@ impl<'a> Playlists<'a> {
     pub fn new(theme: Theme) -> Self {
         let playlists_file = crate::files::Playlists::from_file();
 
-        let song_list = Rc::new(RefCell::new(List::new(theme, playlists_file.playlists.get(0).map(|pl| pl.songs.clone()).unwrap_or(vec![]))));
+        let song_list = Rc::new(List::new(theme, playlists_file.playlists.get(0).map(|pl| pl.songs.clone()).unwrap_or(vec![])));
         let playlist_list = Rc::new(List::new(theme, playlists_file.playlists));
         let deleted_playlist_list = Rc::new(List::new(theme, playlists_file.deleted));
 
         playlist_list.on_select({
             let song_list = song_list.clone();
             move |pl, _| {
-                let song_list = song_list.borrow();
                 song_list.set_items(pl.songs.clone());
             }
         });
@@ -53,7 +52,19 @@ impl<'a> Playlists<'a> {
                 playlist_list.with_selected_item_mut(|i| {
                     i.name = v;
                 });
-                save(&*playlist_list, &*deleted_playlist_list);
+                save(&playlist_list, &deleted_playlist_list);
+            }
+        });
+
+        playlist_list.on_insert({
+            let playlist_list = playlist_list.clone();
+            let deleted_playlist_list = deleted_playlist_list.clone();
+            move || {
+                let playlist = Playlist::new(
+                    format!("New playlist created at {}", Local::now().format("%A %-l:%M:%S%P")),
+                );
+                playlist_list.push_item(playlist);
+                save(&playlist_list, &deleted_playlist_list);
             }
         });
 
@@ -62,11 +73,11 @@ impl<'a> Playlists<'a> {
             let deleted_playlist_list = deleted_playlist_list.clone();
             move |pl, _| {
                 deleted_playlist_list.push_item(pl);
-                save(&*playlist_list, &*deleted_playlist_list);
+                save(&playlist_list, &deleted_playlist_list);
             }
         });
 
-        song_list.borrow().on_reorder({
+        song_list.on_reorder({
             let playlist_list = playlist_list.clone();
             let deleted_playlist_list = deleted_playlist_list.clone();
 
@@ -75,10 +86,10 @@ impl<'a> Playlists<'a> {
                 playlist_list.with_selected_item_mut(move |pl| {
                     pl.songs.swap(a, b);
                 });
-                save(&*playlist_list, &*deleted_playlist_list);
+                save(&playlist_list, &deleted_playlist_list);
             }
         });
-        song_list.borrow().on_delete({
+        song_list.on_delete({
             let playlist_list = playlist_list.clone();
             let deleted_playlist_list = deleted_playlist_list.clone();
 
@@ -87,7 +98,7 @@ impl<'a> Playlists<'a> {
                 playlist_list.with_selected_item_mut(move |pl| {
                     pl.songs.remove(index);
                 });
-                save(&*playlist_list, &*deleted_playlist_list);
+                save(&playlist_list, &deleted_playlist_list);
             }
         });
 
@@ -106,26 +117,16 @@ impl<'a> Playlists<'a> {
         }
     }
 
-    pub fn on_enter_song(&self, cb: impl FnMut(Song, KeyEvent) + 'a) {
-        let song_list = self.song_list.borrow();
-        song_list.on_select(cb);
+    pub fn on_enter_song(&self, cb: impl Fn(Song, KeyEvent) + 'a) {
+        self.song_list.on_select(cb);
     }
 
     pub fn on_enter_playlist(&self, cb: impl Fn(Playlist) + 'a) {
         self.playlist_list.on_enter(cb);
     }
 
-    pub fn on_request_focus_trap_fn(&self, cb: impl FnMut(bool) + 'a) {
+    pub fn on_request_focus_trap_fn(&self, cb: impl Fn(bool) + 'a) {
         self.playlist_list.on_request_focus_trap_fn(cb);
-    }
-
-    pub fn create_playlist(&self) {
-        let playlist = Playlist::new(
-            format!("New playlist created at {}", Local::now().format("%A %-l:%M:%S%P")),
-        );
-        self.playlist_list.push_item(playlist);
-
-        save(&self.playlist_list, &self.deleted_playlist_list);
     }
 
     pub fn selected_playlist_mut(&self, f: impl FnOnce(&mut Playlist)) {
@@ -134,8 +135,7 @@ impl<'a> Playlists<'a> {
     }
 
     pub fn add_song(&self, song: Song) {
-        let song_list = self.song_list.borrow();
-        song_list.push_item(song.clone());
+        self.song_list.push_item(song.clone());
 
         self.selected_playlist_mut(move |pl| {
             pl.songs.push(song);

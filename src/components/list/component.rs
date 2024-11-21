@@ -26,12 +26,13 @@ where T: std::fmt::Display
     pub(super) items: Mutex<Vec<ListItem<T>>>,
     pub(super) selected_item_index: AtomicUsize,
 
-    pub(super) on_select_fn: Mutex<Box<dyn FnMut(T, KeyEvent) + 'a>>,
-    pub(super) on_enter_fn: Mutex<Box<dyn FnMut(T) + 'a>>,
-    pub(super) on_reorder_fn: Mutex<Box<dyn FnMut(usize, usize) + 'a>>,
-    pub(super) on_delete_fn: Mutex<Box<dyn FnMut(T, usize) + 'a>>,
+    pub(super) on_select_fn: Mutex<Box<dyn Fn(T, KeyEvent) + 'a>>,
+    pub(super) on_enter_fn: Mutex<Box<dyn Fn(T) + 'a>>,
+    pub(super) on_reorder_fn: Mutex<Option<Box<dyn Fn(usize, usize) + 'a>>>,
+    pub(super) on_insert_fn: Mutex<Option<Box<dyn Fn() + 'a>>>,
+    pub(super) on_delete_fn: Mutex<Option<Box<dyn Fn(T, usize) + 'a>>>,
     pub(super) on_rename_fn: Mutex<Option<Box<dyn Fn(String) + 'a>>>,
-    pub(super) on_request_focus_trap_fn: Mutex<Box<dyn FnMut(bool) + 'a>>,
+    pub(super) on_request_focus_trap_fn: Mutex<Box<dyn Fn(bool) + 'a>>,
 
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
@@ -54,8 +55,9 @@ where T: std::fmt::Display
 
             on_select_fn: Mutex::new(Box::new(|_, _| {}) as _),
             on_enter_fn: Mutex::new(Box::new(|_| {}) as _),
-            on_reorder_fn: Mutex::new(Box::new(|_, _| {}) as _),
-            on_delete_fn: Mutex::new(Box::new(|_, _| {}) as _),
+            on_reorder_fn: Mutex::new(None),
+            on_insert_fn: Mutex::new(None),
+            on_delete_fn: Mutex::new(None),
             on_rename_fn: Mutex::new(None),
             on_request_focus_trap_fn: Mutex::new(Box::new(|_| {}) as _),
 
@@ -88,27 +90,31 @@ where T: std::fmt::Display
         cb(&mut items[i].inner);
     }
 
-    pub fn on_select(&self, cb: impl FnMut(T, KeyEvent) + 'a) {
+    pub fn on_select(&self, cb: impl Fn(T, KeyEvent) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
     }
 
-    pub fn on_enter(&self, cb: impl FnMut(T) + 'a) {
+    pub fn on_enter(&self, cb: impl Fn(T) + 'a) {
         *self.on_enter_fn.lock().unwrap() = Box::new(cb);
     }
 
-    pub fn on_reorder(&self, cb: impl FnMut(usize, usize) + 'a) {
-        *self.on_reorder_fn.lock().unwrap() = Box::new(cb);
+    pub fn on_reorder(&self, cb: impl Fn(usize, usize) + 'a) {
+        *self.on_reorder_fn.lock().unwrap() = Some(Box::new(cb));
     }
 
-    pub fn on_delete(&self, cb: impl FnMut(T, usize) + 'a) {
-        *self.on_delete_fn.lock().unwrap() = Box::new(cb);
+    pub fn on_insert(&self, cb: impl Fn() + 'a) {
+        *self.on_insert_fn.lock().unwrap() = Some(Box::new(cb));
+    }
+
+    pub fn on_delete(&self, cb: impl Fn(T, usize) + 'a) {
+        *self.on_delete_fn.lock().unwrap() = Some(Box::new(cb));
     }
 
     pub fn on_rename(&self, cb: impl Fn(String) + 'a) {
         *self.on_rename_fn.lock().unwrap() = Some(Box::new(cb));
     }
 
-    pub fn on_request_focus_trap_fn(&self, cb: impl FnMut(bool) + 'a) {
+    pub fn on_request_focus_trap_fn(&self, cb: impl Fn(bool) + 'a) {
         *self.on_request_focus_trap_fn.lock().unwrap() = Box::new(cb);
     }
 

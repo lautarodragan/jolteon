@@ -51,9 +51,17 @@ where T: 'a + Clone + std::fmt::Display
 
             },
             KeyCode::Insert => {
-                // self.push_item(T::default());
+                let f = self.on_insert_fn.lock().unwrap();
+                let Some(f) = &*f else {
+                    return;
+                };
+                f();
             }
             KeyCode::Delete => {
+                let Some(on_delete) = &*self.on_delete_fn.lock().unwrap() else {
+                    return;
+                };
+
                 let mut items = self.items.lock().unwrap();
 
                 if items.is_empty() {
@@ -69,18 +77,14 @@ where T: 'a + Clone + std::fmt::Display
 
                 drop(items);
 
-                self.on_delete_fn.lock().unwrap()(removed_item.inner, i);
+                on_delete(removed_item.inner, i);
             },
             KeyCode::Char('r') if key.modifiers == KeyModifiers::CONTROL => {
-                *rename = self.with_selected_item(|item| {
-                    Some(item.to_string())
-                });
-                self.on_request_focus_trap_fn.lock().unwrap()(true);
-            },
-            KeyCode::F(2) | KeyCode::F(6) => {
-                *rename = self.with_selected_item(|item| {
-                    Some(item.to_string())
-                });
+                if self.on_rename_fn.lock().unwrap().is_none() {
+                    return;
+                }
+                *rename = self.with_selected_item(|item| Some(item.to_string()));
+                drop(rename);
                 self.on_request_focus_trap_fn.lock().unwrap()(true);
             },
             KeyCode::Char(char) => {
@@ -121,7 +125,9 @@ where T: std::fmt::Display + Clone
         };
 
         let mut i = self.selected_item_index.load(Ordering::SeqCst) as i32;
+        let initial_i = i;
 
+        let on_reorder = self.on_reorder_fn.lock().unwrap();
         let mut swapped: Option<(usize, usize)> = None;
 
         match key.code {
@@ -148,7 +154,7 @@ where T: std::fmt::Display + Clone
                 //     if let Some(next) = next_index_by_album(&*items, i, key.code) {
                 //         i = next as i32;
                 //     }
-                } else if key.modifiers == KeyModifiers::CONTROL && items.len() > 1 {
+                } else if on_reorder.is_some() && key.modifiers == KeyModifiers::CONTROL && items.len() > 1 {
                     // swap
                     let nexti = if key.code == KeyCode::Up && i > 0 {
                         i - 1
@@ -172,9 +178,7 @@ where T: std::fmt::Display + Clone
                 if is_filtering {
                     if let Some(n) = items.iter().position(|item| item.is_match) {
                         i = n as i32;
-                    } else {
-                        i = 0;
-                    }
+                    };
                 } else {
                     i = 0;
                 }
@@ -183,14 +187,16 @@ where T: std::fmt::Display + Clone
                 if is_filtering {
                     if let Some(n) = items.iter().rposition(|item| item.is_match) {
                         i = n as i32;
-                    } else {
-                        i = length - 1;
-                    }
+                    };
                 } else {
                     i = length - 1;
                 }
             },
             _ => {},
+        }
+
+        if i == initial_i {
+            return;
         }
 
         let offset = self.offset.load(Ordering::Acquire) as i32;
@@ -211,8 +217,11 @@ where T: std::fmt::Display + Clone
         drop(items);
 
         if let Some(swapped) = swapped {
-            self.on_reorder_fn.lock().unwrap()(swapped.0, swapped.1);
-        } else { // TODO: if i != previous_i
+            if let Some(f) = &*on_reorder {
+                f(swapped.0, swapped.1);
+            }
+        } else {
+            drop(on_reorder);
             self.on_select_fn.lock().unwrap()(newly_selected_item, key);
         }
     }

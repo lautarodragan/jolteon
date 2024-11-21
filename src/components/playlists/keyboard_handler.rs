@@ -1,6 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::ui::KeyboardHandlerRef;
+use crate::{
+    components::playlists::playlists::PlaylistScreenElement,
+    ui::KeyboardHandlerRef,
+};
 
 use super::Playlists;
 
@@ -15,22 +18,15 @@ impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
             }
             KeyCode::Tab => {
                 *focused_element_guard = match *focused_element_guard {
-                    crate::components::playlists::playlists::PlaylistScreenElement::PlaylistList => crate::components::playlists::playlists::PlaylistScreenElement::SongList,
-                    crate::components::playlists::playlists::PlaylistScreenElement::SongList => crate::components::playlists::playlists::PlaylistScreenElement::PlaylistList,
+                    PlaylistScreenElement::PlaylistList => PlaylistScreenElement::SongList,
+                    PlaylistScreenElement::SongList => PlaylistScreenElement::PlaylistList,
                 };
             }
-            _ if *focused_element_guard == crate::components::playlists::playlists::PlaylistScreenElement::PlaylistList  => {
-                if key.code == KeyCode::Insert {
-                    self.create_playlist();
-                    return;
-                }
+            _ if *focused_element_guard == PlaylistScreenElement::PlaylistList  => {
                 self.playlist_list.on_key(key);
             },
-            _ if *focused_element_guard == crate::components::playlists::playlists::PlaylistScreenElement::SongList  => {
-                let Ok(song_list) = self.song_list.try_borrow() else {
-                    return;
-                };
-                song_list.on_key(key);
+            _ if *focused_element_guard == PlaylistScreenElement::SongList  => {
+                self.song_list.on_key(key);
             },
             _ => {},
         }

@@ -66,9 +66,6 @@ impl<'a> WidgetRef for Playlists<'a> {
             self.playlist_list.render_ref(area_left, buf);
         }
 
-        let Ok(song_list) = self.song_list.try_borrow() else {
-            return;
-        };
-        song_list.render_ref(area_right, buf);
+        self.song_list.render_ref(area_right, buf);
     }
 }
