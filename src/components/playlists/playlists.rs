@@ -45,17 +45,14 @@ impl<'a> Playlists<'a> {
             }
         });
 
-        playlist_list.rename_fn(
-            |pl, new_name| {
-                pl.name = new_name.to_string();
-            }
-        );
-
         playlist_list.on_rename({
             let playlist_list = playlist_list.clone();
             let deleted_playlist_list = deleted_playlist_list.clone();
 
-            move |_| {
+            move |v| {
+                playlist_list.with_selected_item_mut(|i| {
+                    i.name = v;
+                });
                 save(&*playlist_list, &*deleted_playlist_list);
             }
         });

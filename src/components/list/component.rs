@@ -30,8 +30,7 @@ where T: std::fmt::Display
     pub(super) on_enter_fn: Mutex<Box<dyn FnMut(T) + 'a>>,
     pub(super) on_reorder_fn: Mutex<Box<dyn FnMut(usize, usize) + 'a>>,
     pub(super) on_delete_fn: Mutex<Box<dyn FnMut(T, usize) + 'a>>,
-    pub(super) rename_fn: Mutex<Option<Box<dyn Fn(&mut T, &str) + 'a>>>,
-    pub(super) on_rename_fn: Mutex<Option<Box<dyn Fn(T) + 'a>>>,
+    pub(super) on_rename_fn: Mutex<Option<Box<dyn Fn(String) + 'a>>>,
     pub(super) on_request_focus_trap_fn: Mutex<Box<dyn FnMut(bool) + 'a>>,
 
     pub(super) offset: AtomicUsize,
@@ -58,7 +57,6 @@ where T: std::fmt::Display
             on_reorder_fn: Mutex::new(Box::new(|_, _| {}) as _),
             on_delete_fn: Mutex::new(Box::new(|_, _| {}) as _),
             on_rename_fn: Mutex::new(None),
-            rename_fn: Mutex::new(None),
             on_request_focus_trap_fn: Mutex::new(Box::new(|_| {}) as _),
 
             items: Mutex::new(items),
@@ -106,11 +104,7 @@ where T: std::fmt::Display
         *self.on_delete_fn.lock().unwrap() = Box::new(cb);
     }
 
-    pub fn rename_fn(&self, cb: impl Fn(&mut T, &str) + 'a) {
-        *self.rename_fn.lock().unwrap() = Some(Box::new(cb));
-    }
-
-    pub fn on_rename(&self, cb: impl Fn(T) + 'a) {
+    pub fn on_rename(&self, cb: impl Fn(String) + 'a) {
         *self.on_rename_fn.lock().unwrap() = Some(Box::new(cb));
     }
 

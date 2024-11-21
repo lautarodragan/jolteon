@@ -242,28 +242,13 @@ where T: std::fmt::Display + Clone
                     return;
                 }
 
-                let rename_fn = self.rename_fn.lock().unwrap();
                 let on_rename_fn = self.on_rename_fn.lock().unwrap();
-
-                let Some(ref rename_fn) = *rename_fn else {
-                    return;
-                };
 
                 let Some(ref on_rename_fn) = *on_rename_fn else {
                     return;
                 };
 
-                let i = self.selected_item_index.load(Ordering::Acquire);
-                let mut items = self.items.lock().unwrap();
-                let mut item = &mut items[i].inner;
-
-                rename_fn(&mut item, rename.as_str());
-
-                let item = item.clone();
-
-                drop(items);
-
-                on_rename_fn(item.clone());
+                on_rename_fn(rename.to_string());
 
                 *rename_opt = None;
                 self.on_request_focus_trap_fn.lock().unwrap()(false);
