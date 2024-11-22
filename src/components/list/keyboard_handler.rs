@@ -102,6 +102,13 @@ where T: 'a + Clone + std::fmt::Display
     }
 }
 
+fn is_key_dir_upwards(key_code: KeyCode) -> bool {
+    key_code == KeyCode::Up || key_code == KeyCode::Home || key_code == KeyCode::PageUp
+}
+
+fn is_key_dir_downwards(key_code: KeyCode) -> bool {
+    key_code == KeyCode::Down || key_code == KeyCode::End || key_code == KeyCode::PageDown
+}
 
 impl<'a, T> List<'a, T>
 where T: std::fmt::Display + Clone
@@ -119,7 +126,7 @@ where T: std::fmt::Display + Clone
         let padding = self.padding.load(Ordering::Relaxed) as i32;
         let page_size = self.page_size.load(Ordering::Relaxed) as i32;
 
-        let padding = if key.code == KeyCode::Down || key.code == KeyCode::End || key.code == KeyCode::PageDown {
+        let padding = if is_key_dir_downwards(key.code) {
             height.saturating_sub(padding).saturating_sub(1)
         } else {
             padding
@@ -206,8 +213,11 @@ where T: std::fmt::Display + Clone
             return;
         }
 
+        i = i.min(length - 1).max(0);
+        self.selected_item_index.store(i as usize, Ordering::SeqCst);
+
         let offset = self.offset.load(Ordering::Acquire) as i32;
-        if ((key.code == KeyCode::Up || key.code == KeyCode::Home || key.code == KeyCode::PageUp) && i < offset + padding) || ((key.code == KeyCode::Down || key.code == KeyCode::End || key.code == KeyCode::PageDown) && i > offset + padding) {
+        if (is_key_dir_upwards(key.code) && i < offset + padding) || (is_key_dir_downwards(key.code) && i > offset + padding) {
             let offset = if i > padding {
                 (i - padding).min(length - height).max(0)
             } else {
@@ -216,10 +226,7 @@ where T: std::fmt::Display + Clone
             self.offset.store(offset as usize, Ordering::Release);
         }
 
-        i = i.min(length - 1).max(0);
-        self.selected_item_index.store(i as usize, Ordering::SeqCst);
-
-        let newly_selected_item = items[i as usize].inner.clone(); // index out of bounds: the len is 0 but the index is 0
+        let newly_selected_item = items[i as usize].inner.clone();
 
         drop(items);
 
