@@ -148,6 +148,10 @@ where T: std::fmt::Display
 
         let mut items = self.items.lock().unwrap();
 
+        if items.len() < 2 {
+            return;
+        }
+
         for item in items.iter_mut() {
             if filter.is_empty() {
                 item.is_match = false;
@@ -157,7 +161,7 @@ where T: std::fmt::Display
         }
 
         let selected_item_index = self.selected_item_index.load(Ordering::Acquire);
-        if !items[selected_item_index].is_match { // TODO: panic when list is empty
+        if !items[selected_item_index].is_match {
             if let Some(i) = items.iter().skip(selected_item_index).position(|item| item.is_match) {
                 let i = i + selected_item_index;
                 self.selected_item_index.store(i, Ordering::Release);
