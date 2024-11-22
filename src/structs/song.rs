@@ -125,7 +125,7 @@ impl Song {
                 album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
                 track: t.index().split_whitespace().nth(0).map(|i| i.parse().ok()).flatten(),
                 year: song.year, // TODO: cue sheet year as a fallback? (it's usually stored as a comment in it...)
-                disc_number: jolt.and_then(|j| j.disc_number.clone()), // There seems to be no standard disc number field for Cue Sheets...
+                disc_number: jolt.as_ref().and_then(|j| j.disc_number.clone()), // There seems to be no standard disc number field for Cue Sheets...
             })
             .collect();
 
