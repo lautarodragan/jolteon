@@ -200,7 +200,7 @@ where T: std::fmt::Display + Clone
         }
 
         let offset = self.offset.load(Ordering::Acquire) as i32;
-        if (key.code == KeyCode::Up && i < offset + padding) || (key.code == KeyCode::Down && i > offset + padding) || key.code == KeyCode::Home || key.code == KeyCode::End {
+        if ((key.code == KeyCode::Up || key.code == KeyCode::Home) && i < offset + padding) || ((key.code == KeyCode::Down || key.code == KeyCode::End) && i > offset + padding) {
             let offset = if i > padding {
                 (i - padding).min(length - height).max(0)
             } else {
