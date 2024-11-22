@@ -47,7 +47,7 @@ fn get_config_dir_path() -> Result<PathBuf, TomlFileError> {
         .ok_or(TomlFileError::NoPath(".config/jolteon".to_string()))
 }
 
-fn get_config_file_path(file_name: &str) -> Result<PathBuf, TomlFileError> {
+pub fn get_config_file_path(file_name: &str) -> Result<PathBuf, TomlFileError> {
     // TODO: XDG_CONFIG_HOME
     get_config_dir_path().map(|path| path.as_path().join(file_name).with_extension("toml"))
 }
@@ -85,7 +85,7 @@ where
 {
     create_dir()?;
     let path = get_config_file_path(file_name)?;
-    let serialized = toml::to_string(file_contents)?;
+    let serialized = toml::to_string_pretty(file_contents)?;
     write(path, serialized)?;
     Ok(())
 }

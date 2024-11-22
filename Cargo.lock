@@ -616,6 +616,7 @@ dependencies = [
  "mio",
  "parking_lot",
  "rustix",
+ "serde",
  "signal-hook",
  "signal-hook-mio",
  "winapi",

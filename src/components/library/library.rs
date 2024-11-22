@@ -1,7 +1,7 @@
 use std::{
+    cell::Cell,
     rc::Rc,
     sync::{
-        atomic::{AtomicU8, Ordering},
         Mutex,
         MutexGuard,
     },
@@ -16,42 +16,10 @@ use crate::{
     cue::CueSheet,
     components::List,
     components::list::Direction,
+    ui::Component,
 };
 
 use super::{album_tree::{AlbumTree, AlbumTreeItem}};
-
-#[derive(Eq, PartialEq)]
-#[repr(u8)]
-pub enum LibraryScreenElement {
-    AlbumTree,
-    SongList,
-}
-
-impl From<u8> for LibraryScreenElement {
-    fn from(value: u8) -> Self {
-        if value == 0 {
-            LibraryScreenElement::AlbumTree
-        } else {
-            LibraryScreenElement::SongList
-        }
-    }
-}
-
-pub(super) struct AtomicLibraryScreenElement(AtomicU8);
-
-impl AtomicLibraryScreenElement {
-    fn new() -> Self {
-        Self(AtomicU8::new(0))
-    }
-
-    fn load(&self) -> LibraryScreenElement {
-        self.0.load(Ordering::Relaxed).into()
-    }
-
-    fn store(&self, v: LibraryScreenElement) {
-        self.0.store(v as u8, Ordering::Relaxed);
-    }
-}
 
 pub struct Library<'a> {
     #[allow(dead_code)]
@@ -61,8 +29,8 @@ pub struct Library<'a> {
 
     pub(super) song_list: Rc<List<'a, Song>>,
     pub(super) album_tree: Rc<AlbumTree<'a>>,
-
-    focused_element: AtomicLibraryScreenElement,
+    pub(super) components: Rc<Vec<Component<'a>>>,
+    pub(super) focused_component: Rc<Cell<usize>>,
 
     pub(super) on_select_fn: Rc<Mutex<Box<dyn FnMut(Song, KeyEvent) + 'a>>>,
     pub(super) on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>>,
@@ -207,9 +175,14 @@ impl<'a> Library<'a> {
             }
         });
 
+        let components: Rc<Vec<Component>> = Rc::new(vec![
+            Component::RefRc(album_tree.clone()),
+            Component::RefRc(song_list.clone()),
+        ]);
+
         let lib = Self {
             theme,
-            focused_element: AtomicLibraryScreenElement::new(),
+            focused_component: Rc::new(Cell::new(0)),
 
             on_select_fn,
             on_select_songs_fn,
@@ -217,18 +190,11 @@ impl<'a> Library<'a> {
             songs_by_artist,
             song_list,
             album_tree,
+            components,
         };
 
         lib.refresh_components();
         lib
-    }
-
-    pub fn focused_element(&self) -> LibraryScreenElement {
-        self.focused_element.load()
-    }
-
-    pub fn set_focused_element(&self, v: LibraryScreenElement) {
-        self.focused_element.store(v);
     }
 
     pub fn on_select(&self, cb: impl FnMut(Song, KeyEvent) + 'a) {

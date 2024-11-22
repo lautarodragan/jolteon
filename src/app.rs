@@ -16,7 +16,7 @@ use rodio::OutputStream;
 
 use crate::{
     config::Theme,
-    structs::Song,
+    structs::{Song, Action, Actions, OnAction},
     player::Player,
     state::State,
     term::set_terminal,
@@ -24,11 +24,13 @@ use crate::{
     Command,
     components::{FileBrowser, FileBrowserSelection, Library, Playlists, Queue, Help},
 };
+use crate::structs::{OnActionMut, ScreenAction};
 
 pub struct App<'a> {
     must_quit: bool,
 
     theme: Theme,
+    actions: Actions,
     frame: Arc<AtomicU64>,
 
     _music_output: OutputStream,
@@ -50,6 +52,8 @@ impl<'a> App<'a> {
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
 
         let state = State::from_file();
+        let actions = Actions::from_file().unwrap();
+
         let theme = include_str!("../assets/theme.toml");
         let theme: Theme = toml::from_str(theme).unwrap();
 
@@ -133,14 +137,15 @@ impl<'a> App<'a> {
             must_quit: false,
 
             theme,
+            actions,
             frame: Arc::new(AtomicU64::new(0)),
 
             _music_output: output_stream,
 
             screens: vec![
-                ("Library".to_string(), Component::Ref(library.clone())),
-                ("Playlists".to_string(), Component::Ref(playlist.clone())),
-                ("Queue".to_string(), Component::Ref(queue.clone())),
+                ("Library".to_string(), Component::RefArc(library.clone())),
+                ("Playlists".to_string(), Component::RefArc(playlist.clone())),
+                ("Queue".to_string(), Component::RefArc(queue.clone())),
                 ("File Browser".to_string(), Component::Mut(browser.clone())),
                 ("Help".to_string(), Component::Mut(help.clone())),
             ],
@@ -201,6 +206,8 @@ impl<'a> App<'a> {
         log::trace!("App.start() -> exiting");
 
         self.to_state().to_file()?;
+
+        // self.actions.to_file();
 
         Ok(())
     }
@@ -320,26 +327,41 @@ impl<'a> App<'a> {
 
 }
 
+fn keycode_to_usize(key_code: KeyCode) -> Option<usize> {
+    if let KeyCode::Char(c) = key_code {
+        if let Some(n) = c.to_digit(10) {
+            return Some(n as usize);
+        };
+    };
+    None
+}
+
 impl<'a> KeyboardHandlerMut<'a> for App<'a> {
     fn on_key(&mut self, key: KeyEvent) {
-        if key.code == KeyCode::Char('q') && key.modifiers == KeyModifiers::CONTROL  {
-            self.must_quit = true;
-            return;
-        }
+        // let Some(action) = self.actions.by_key(key) else {
+        //     return;
+        // };
+        let action = self.actions.by_key(key);
 
-        if !self.focus_trap.load(Ordering::Acquire) {
-            if let KeyCode::Char(c) = key.code {
-                if let Some(n) = c.to_digit(10) {
-                    let n = n.saturating_sub(1) as usize;
-                    if n < self.screens.len() {
-                        self.focused_screen = n;
+        log::debug!("app.on_key action=('{:?}')", action);
+
+        if let Some(action) = action {
+            if action == Action::Quit {
+                self.must_quit = true;
+                return;
+            }
+            if !self.focus_trap.load(Ordering::Acquire) {
+                match action {
+                    Action::ScreenAction(_) => {
+                        self.on_action(action);
                         return;
                     }
-                };
-            }
-
-            if self.player.on_key(key) {
-                return;
+                    Action::PlayerAction(_) => {
+                        self.player.on_action(action);
+                        return;
+                    }
+                    _ => {}
+                }
             }
         }
 
@@ -348,14 +370,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
             return;
         };
 
-        match component {
-            Component::Ref(ref target) => {
-                target.on_key(key);
-            }
-            Component::Mut(ref target) => {
-                target.lock().unwrap().on_key(key);
-            }
-        }
+        component.on_key(key);
     }
 }
 
@@ -389,11 +404,29 @@ impl<'a> WidgetRef for &App<'a> {
         };
 
         match component {
-            Component::Ref(ref s) => { s.render_ref(area_center, buf); }
+            Component::RefArc(ref s) => { s.render_ref(area_center, buf); }
             Component::Mut(ref s) => { s.lock().unwrap().render_ref(area_center, buf); }
+            _ => {}
         }
 
         self.player.render(area_bottom, buf);
+    }
+}
+
+impl<'a> OnActionMut for App<'a> {
+    fn on_action(&mut self, action: Action) {
+        match action {
+            Action::ScreenAction(action) => {
+                match action {
+                    ScreenAction::Library => { self.focused_screen = 0 }
+                    ScreenAction::Playlists => { self.focused_screen = 1 }
+                    ScreenAction::Queue => { self.focused_screen = 2 }
+                    ScreenAction::FileBrowser => { self.focused_screen = 3 }
+                    ScreenAction::Help => { self.focused_screen = 4 }
+                }
+            }
+            _ => {}
+        }
     }
 }
 

@@ -1,32 +1,32 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
-    ui::KeyboardHandlerRef,
+    ui::{Component, KeyboardHandlerRef},
 };
-
-use super::library::{Library, LibraryScreenElement};
+use super::library::{Library};
 
 impl<'a> KeyboardHandlerRef<'a> for Library<'a> {
 
     fn on_key(&self, key: KeyEvent) {
-        log::trace!(target: "::library.on_key", "start {:?}", key);
+        log::trace!(target: "::library.on_key", "{:?}", key);
 
-        let focused_element = self.focused_element();
+        let i = self.focused_component.get();
 
         match key.code {
             KeyCode::Tab => {
-                self.set_focused_element(match focused_element {
-                    LibraryScreenElement::AlbumTree => LibraryScreenElement::SongList,
-                    LibraryScreenElement::SongList => LibraryScreenElement::AlbumTree,
+                self.focused_component.set({
+                    if i < self.components.len().saturating_sub(1) {
+                        i + 1
+                    } else {
+                        0
+                    }
                 });
             }
-            _ if focused_element == LibraryScreenElement::AlbumTree => {
-                self.album_tree.on_key(key)
-            },
-            _ if focused_element == LibraryScreenElement::SongList  => {
-                self.song_list.on_key(key)
-            },
-            _ => (),
+            _ => {
+                if let Some(a) = self.components.get(i) {
+                    a.on_key(key);
+                }
+            }
         }
     }
 }

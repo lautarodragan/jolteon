@@ -20,7 +20,7 @@ use ratatui::{
 use rodio::OutputStreamHandle;
 
 use crate::{
-    structs::Song,
+    structs::{Action, OnAction, PlayerAction, Song},
     source::{Source, Controls},
     ui::{KeyboardHandlerRef, CurrentlyPlaying},
     config::Theme,
@@ -407,8 +407,8 @@ impl WidgetRef for Player {
     }
 }
 
-impl KeyboardHandlerRef<'_, bool> for Player {
-    fn on_key(&self, key: KeyEvent) -> bool {
+impl KeyboardHandlerRef<'_> for Player {
+    fn on_key(&self, key: KeyEvent) {
         match key.code {
             KeyCode::Right => self.seek_forward(),
             KeyCode::Left => self.seek_backward(),
@@ -416,8 +416,25 @@ impl KeyboardHandlerRef<'_, bool> for Player {
             KeyCode::Char('+') => self.change_volume(0.05),
             KeyCode::Char(' ') if key.modifiers == KeyModifiers::CONTROL => self.toggle(),
             KeyCode::Char('g') if key.modifiers == KeyModifiers::CONTROL => self.stop(),
-            _ => { return false; },
+            _ => { },
         };
-        true
+    }
+}
+
+impl OnAction for Player {
+    fn on_action(&self, action: Action) {
+        match action {
+            Action::PlayerAction(action) => {
+                match action {
+                    PlayerAction::PlayPause => {self.toggle();},
+                    PlayerAction::Stop => {self.stop();},
+                    PlayerAction::VolumeUp => {self.change_volume(0.05);},
+                    PlayerAction::VolumeDown => {self.change_volume(-0.05);},
+                    PlayerAction::SeekForwards => {self.seek_forward();},
+                    PlayerAction::SeekBackwards => {self.seek_backward();},
+                }
+            }
+            _ => {},
+        }
     }
 }
