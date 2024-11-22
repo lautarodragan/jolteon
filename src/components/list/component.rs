@@ -40,6 +40,7 @@ where T: std::fmt::Display
     pub(super) filter: Mutex<String>,
     pub(super) rename: Mutex<Option<String>>,
 
+    pub(super) padding: AtomicU8,
     pub(super) page_size: AtomicU8,
 }
 
@@ -72,6 +73,7 @@ where T: std::fmt::Display
             filter: Mutex::new("".to_string()),
             rename: Mutex::new(None),
 
+            padding: AtomicU8::new(5),
             page_size: AtomicU8::new(5),
         }
     }

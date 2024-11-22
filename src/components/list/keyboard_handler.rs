@@ -116,10 +116,10 @@ where T: std::fmt::Display + Clone
         }
 
         let height = self.height.load(Ordering::Relaxed) as i32;
-        let padding = 5;
+        let padding = self.padding.load(Ordering::Relaxed) as i32;
         let page_size = self.page_size.load(Ordering::Relaxed) as i32;
 
-        let padding = if key.code == KeyCode::Down || key.code == KeyCode::End {
+        let padding = if key.code == KeyCode::Down || key.code == KeyCode::End || key.code == KeyCode::PageDown {
             height.saturating_sub(padding).saturating_sub(1)
         } else {
             padding
@@ -207,7 +207,7 @@ where T: std::fmt::Display + Clone
         }
 
         let offset = self.offset.load(Ordering::Acquire) as i32;
-        if ((key.code == KeyCode::Up || key.code == KeyCode::Home) && i < offset + padding) || ((key.code == KeyCode::Down || key.code == KeyCode::End) && i > offset + padding) {
+        if ((key.code == KeyCode::Up || key.code == KeyCode::Home || key.code == KeyCode::PageUp) && i < offset + padding) || ((key.code == KeyCode::Down || key.code == KeyCode::End || key.code == KeyCode::PageDown) && i > offset + padding) {
             let offset = if i > padding {
                 (i - padding).min(length - height).max(0)
             } else {
