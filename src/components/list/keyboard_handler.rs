@@ -7,7 +7,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{ui::KeyboardHandlerRef};
 
-use super::component::List;
+use super::component::{Direction, List};
 
 impl<'a, T> KeyboardHandlerRef<'a> for List<'a, T>
 where T: 'a + Clone + std::fmt::Display
@@ -159,9 +159,13 @@ where T: std::fmt::Display + Clone
                         }
                     }
                 } else if key.modifiers == KeyModifiers::ALT {
-                //     if let Some(next) = next_index_by_album(&*items, i, key.code) {
-                //         i = next as i32;
-                //     }
+                    if let Some(next_item_special) = &*self.find_next_item_by_fn.lock().unwrap() {
+                        let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
+
+                        if let Some(ii) = next_item_special(&inners, i as usize, Direction::from(key.code)) {
+                            i = ii as i32;
+                        }
+                    }
                 } else if on_reorder.is_some() && key.modifiers == KeyModifiers::CONTROL {
                     // swap
                     let nexti = if key.code == KeyCode::Up && i > 0 {

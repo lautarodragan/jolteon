@@ -1,15 +1,31 @@
 use std::{
     sync::{
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicUsize, AtomicU8, Ordering},
         Mutex,
     },
 };
-use std::sync::atomic::AtomicU8;
-use crossterm::event::KeyEvent;
+
+use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
     config::Theme,
 };
+
+#[derive(Eq, PartialEq)]
+pub enum Direction {
+    Backwards,
+    Forwards,
+}
+
+impl From<KeyCode> for Direction {
+    fn from(key_code: KeyCode) -> Self {
+        if key_code == KeyCode::Up || key_code == KeyCode::Home || key_code == KeyCode::PageUp {
+            Self::Backwards
+        } else {
+            Self::Forwards
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ListItem<T> {
@@ -33,6 +49,7 @@ where T: std::fmt::Display
     pub(super) on_delete_fn: Mutex<Option<Box<dyn Fn(T, usize) + 'a>>>,
     pub(super) on_rename_fn: Mutex<Option<Box<dyn Fn(String) + 'a>>>,
     pub(super) on_request_focus_trap_fn: Mutex<Box<dyn Fn(bool) + 'a>>,
+    pub(super) find_next_item_by_fn: Mutex<Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>>,
 
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
@@ -63,6 +80,7 @@ where T: std::fmt::Display
             on_delete_fn: Mutex::new(None),
             on_rename_fn: Mutex::new(None),
             on_request_focus_trap_fn: Mutex::new(Box::new(|_| {}) as _),
+            find_next_item_by_fn: Mutex::new(None),
 
             items: Mutex::new(items),
             selected_item_index: AtomicUsize::new(0),
@@ -122,6 +140,10 @@ where T: std::fmt::Display
 
     pub fn on_request_focus_trap_fn(&self, cb: impl Fn(bool) + 'a) {
         *self.on_request_focus_trap_fn.lock().unwrap() = Box::new(cb);
+    }
+
+    pub fn find_next_item_by_fn(&self, cb: impl Fn(&[&T], usize, Direction) -> Option<usize> + 'a) {
+        *self.find_next_item_by_fn.lock().unwrap() = Some(Box::new(cb));
     }
 
     pub fn set_items(&self, items: Vec<T>) {

@@ -15,8 +15,10 @@ use crate::{
     structs::{Song},
     config::Theme,
     cue::CueSheet,
+    components::List,
+    components::list::Direction,
 };
-use crate::components::List;
+
 use super::{album_tree::{AlbumTree, AlbumTreeItem}};
 
 #[derive(Eq, PartialEq)]
@@ -218,6 +220,37 @@ impl<'a> Library<'a> {
             }
         });
 
+        song_list.find_next_item_by_fn({
+            |songs, i, direction| {
+                let Some(ref selected_album) = songs[i].album else {
+                    log::warn!("no selected song album");
+                    return None;
+                };
+
+                if direction == Direction::Forwards {
+                    songs
+                        .iter()
+                        .skip(i)
+                        .position(|s| s.album.as_ref().is_some_and(|a| a != selected_album))
+                        .map(|ns| ns.saturating_add(i))
+                } else {
+                    songs
+                        .iter()
+                        .take(i)
+                        .rposition(|s| s.album.as_ref().is_some_and(|a| a != selected_album))
+                        .and_then(|ns| songs.get(ns))
+                        .and_then(|ref s| s.album.as_ref())
+                        .and_then(|next_song_album| {
+                            songs
+                                .iter()
+                                .position(|song| {
+                                    song.album.as_ref().is_some_and(|a| a.as_str() == next_song_album)
+                                })
+                        })
+                }
+            }
+        });
+
         let lib = Self {
             theme,
             focused_element: AtomicLibraryScreenElement::new(),
@@ -316,40 +349,4 @@ impl Drop for Library<'_> {
     fn drop(&mut self) {
         log::trace!("Library.drop()");
     }
-}
-
-fn next_index_by_album(songs: &Vec<Song>, i: i32, key: crossterm::event::KeyCode) -> Option<usize> {
-    let Some(song) = (*songs).get(i as usize) else {
-        log::error!("no selected song");
-        return None;
-    };
-
-    let Some(ref selected_album) = song.album else {
-        log::warn!("no selected song album");
-        return None;
-    };
-
-    let next_song_index = if key == crossterm::event::KeyCode::Down {
-        songs
-            .iter()
-            .skip(i as usize)
-            .position(|s| s.album.as_ref().is_some_and(|a| a != selected_album))
-            .map(|ns| ns.saturating_add(i as usize))
-    } else {
-        songs
-            .iter()
-            .take(i as usize)
-            .rposition(|s| s.album.as_ref().is_some_and(|a| a != selected_album))
-            .and_then(|ns| songs.get(ns))
-            .and_then(|ref s| s.album.as_ref())
-            .and_then(|next_song_album| {
-                songs
-                    .iter()
-                    .position(|song| {
-                        song.album.as_ref().is_some_and(|a| a.as_str() == next_song_album)
-                    })
-            })
-    };
-
-    next_song_index
 }
