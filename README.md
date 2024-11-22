@@ -50,11 +50,12 @@ cargo run --release
   - Search/Filter in the artist list. Just start typing. Press `Esc` to clear the filter.
   - Soon, full-library search will be added. The only challenge here is coming up with great UI and UX for this feature — the code itself is simple and most of what's needed is already implemented.
 - Playlists
+  - Deleted playlist are soft-deleted, not truly deleted. The playlist graveyard can be opened and closed with F8.
 - File Browser
   - Search/Filter in File Browser (Ctrl+F)
 - Playing Queue
 - `.cue` sheet file support
-- Customizable color themes
+- `.jolt` files to override audio metadata non-destructively
 - Controls
   - Play/Pause
   - Seek 5 seconds forward/backward
@@ -89,27 +90,15 @@ There's no real reason not to support both approaches at once, by organizing mus
   - _Cowboy Bebop_
   - _Ry Cooder - Crossroads_
 
-#### Media metadata overrides
-
-Have you ever experienced... this?:
-- `Dark Side of the Moon` by `Pink Floyd` 
-- `The Piper at the Gates of Dawn` by `PINK FLOYD`
-
-Even though those are two albums by the same artist, they'll usually show as two different artists in media libraries, because of the different spelling.
-
-Some cases are more complicated, particularly with soundtracks and classic music, in which cases you may want to organize albums under "Johann Sebastian Bach" rather than the names of the interpreters.
-
-Modifying the files themselves is 100% not an acceptable solution to this issue. 
-
-Jolteon will offer an option to "override" the metadata of these files, either by storing a `.jolt` file along the song files in the same folder, or directly in the UI.
-
-This will also help in cases where a media tag or cue sheet entry may have invalid data (such as non-utf encoding), which Jolteon will usually default to an empty string.
-
-### Album Covers
+#### Album Covers
 
 Kitty supports full-resolution, full-color images. It shouldn't be particularly hard to add this feature.
 
 I'll have to figure out the best UI and UX for this, and probably make it optional/configurable.
+
+#### Themes
+
+See dedicated section down below.
 
 ## Supported Audio Formats
 
@@ -142,12 +131,13 @@ Soon, more built-in themes will be added, as well as support for custom ones.
 There aren't any other configuration options available right now, but I have a few in mind:
 - Keyboard shortcuts
 - Texts (translations)
+- Clock show/hide
+- Clock format
 - _Maybe_ some degree UI layout. 
-
 
 ## Performance
 
-I don't bench-mark Jolteon, but I do use it many hours, every day, and the release build always stays at .5-2% of my CPU, and usually 0% RAM.
+I don't bench-mark Jolteon, but I do use it many hours, every day, and the release build always stays at .5-2% of my CPU, and usually 0% RAM (yes, that's a zero).
 I manually compare this to `mpv` and the numbers seem to match, and my machine is 6+ years old, so I'm happy with it.
 Specially considering RustRover and Chrome consume orders of magnitude more, permanently.
 
@@ -158,7 +148,6 @@ If you do experience any sort of performance issues — be it choppy UI, keyboar
 for the same file, please open an issue reporting it. Being able to reproduce this with an audio file available in the public domain, or with a license that permits sharing it, would be ideal,
 even if hard or very unlikely.
 
-
 ## Philosophy
 
 - Support features, UI and UX similar to `cmus`
@@ -168,24 +157,29 @@ even if hard or very unlikely.
 
 See [HISTORY.md](./HISTORY.md).
 
-## Contributing
+## Developing
 
-In general, I won't accept contributions, because I don't have enough time or Rust knowledge to properly do code review. 
+Rust is very friendly language —even to newcomers—, and has a very friendly community. 
 
-You're free to have your own fork of Jolteon, though. Even if you're new to Rust, it's very friendly language with a very friendly community; and I try to keep the source code as clean and intuitive as I can, so modifying it should be relatively easy. 
+If you're new to Rust, I encourage you to give it a try. The Rust Book is pretty awesome, and, for slightly more advanced topic of threading, 
+Mara Bos's [Rust Atomics and Locks](https://marabos.nl/atomics/) is a great resource.
 
-To install Rust and Cargo, see https://www.rust-lang.org/tools/install or https://doc.rust-lang.org/cargo/getting-started/installation.html. Under macOS, Linux, etc, it's just copy-pasting a `curl ...` command. I won't copy it here for safety reasons.
-
-Then, just clone the repo:
+To get started with Jolteon, just clone the repo and then run the project:
 
 ```
 git clone --depth=1 https://github.com/lautarodragan/jolteon.git
 cd jolteon
+
+cargo run
 ```
 
-And `cargo run`, `cargo run --release` and `cargo build` are the commands you'll be running the most.
+To install Rust and Cargo, see https://www.rust-lang.org/tools/install or https://doc.rust-lang.org/cargo/getting-started/installation.html. 
+Under macOS, Linux, etc, it's just copy-pasting a `curl ...` command. I won't copy it here for safety reasons.
 
-Keep in mind I'm using my own fork of `cpal` right now. I have an open [PR for cpal](https://github.com/RustAudio/cpal/pull/909), with a small bugfix, that hasn't been merged yet. 
+I try to keep the source code as clean and intuitive as I can, so modifying it should be (hopefully) relatively easy.
+I'll add an ARCHITECTURE.md soon-ish, which should make the source code friendlier to navigate.
+
+Keep in mind I'm using my own fork of `cpal` right now. I have an open [PR for cpal](https://github.com/RustAudio/cpal/pull/909), with a small bugfix, that hasn't been merged yet.
 
 ## Bugs
 
