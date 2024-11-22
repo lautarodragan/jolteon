@@ -1,6 +1,7 @@
 use std::{
     path::PathBuf,
     time::Duration,
+    cmp::Ordering,
 };
 
 use lofty::{
@@ -157,5 +158,48 @@ impl Song {
                 log::debug!("tag item {:?}", item);
             }
         }
+    }
+}
+
+impl Ord for Song {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (&self.album, &other.album) {
+            (Some(album_a), Some(album_b)) if album_a == album_b => {
+                match self.disc_number.cmp(&other.disc_number) {
+                    Ordering::Equal => {
+                        match (&self.track, &other.track) {
+                            (Some(a), Some(b)) => a.cmp(b),
+                            (Some(_), None) => Ordering::Greater,
+                            (None, Some(_)) => Ordering::Less,
+                            _ => self.title.cmp(&other.title),
+                        }
+                    }
+                    o => o
+                }
+            },
+            (Some(album_a), Some(album_b)) if album_a != album_b => {
+                match (self.year, other.year) {
+                    (Some(ref year_a), Some(ref year_b)) => {
+                        if year_a != year_b {
+                            year_a.cmp(year_b)
+                        } else {
+                            album_a.cmp(album_b)
+                        }
+                    },
+                    (Some(_), None) => Ordering::Greater,
+                    (None, Some(_)) => Ordering::Less,
+                    _ => album_a.cmp(album_b)
+                }
+            },
+            (Some(_), None) => Ordering::Greater,
+            (None, Some(_)) => Ordering::Less,
+            _ => self.title.cmp(&other.title)
+        }
+    }
+}
+
+impl PartialOrd for Song {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }

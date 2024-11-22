@@ -1,8 +1,7 @@
 use std::{
-    cmp::Ordering,
     rc::Rc,
     sync::{
-        atomic::{AtomicU8, Ordering as AtomicOrdering},
+        atomic::{AtomicU8, Ordering},
         Mutex,
         MutexGuard,
     },
@@ -46,11 +45,11 @@ impl AtomicLibraryScreenElement {
     }
 
     fn load(&self) -> LibraryScreenElement {
-        self.0.load(AtomicOrdering::Relaxed).into()
+        self.0.load(Ordering::Relaxed).into()
     }
 
     fn store(&self, v: LibraryScreenElement) {
-        self.0.store(v as u8, AtomicOrdering::Relaxed);
+        self.0.store(v as u8, Ordering::Relaxed);
     }
 }
 
@@ -67,49 +66,6 @@ pub struct Library<'a> {
 
     pub(super) on_select_fn: Rc<Mutex<Box<dyn FnMut(Song, KeyEvent) + 'a>>>,
     pub(super) on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>>,
-}
-
-impl Ord for Song {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match (&self.album, &other.album) {
-            (Some(album_a), Some(album_b)) if album_a == album_b => {
-                match self.disc_number.cmp(&other.disc_number) {
-                    Ordering::Equal => {
-                        match (&self.track, &other.track) {
-                            (Some(a), Some(b)) => a.cmp(b),
-                            (Some(_), None) => Ordering::Greater,
-                            (None, Some(_)) => Ordering::Less,
-                            _ => self.title.cmp(&other.title),
-                        }
-                    }
-                    o => o
-                }
-            },
-            (Some(album_a), Some(album_b)) if album_a != album_b => {
-                match (self.year, other.year) {
-                    (Some(ref year_a), Some(ref year_b)) => {
-                        if year_a != year_b {
-                            year_a.cmp(year_b)
-                        } else {
-                            album_a.cmp(album_b)
-                        }
-                    },
-                    (Some(_), None) => Ordering::Greater,
-                    (None, Some(_)) => Ordering::Less,
-                    _ => album_a.cmp(album_b)
-                }
-            },
-            (Some(_), None) => Ordering::Greater,
-            (None, Some(_)) => Ordering::Less,
-            _ => self.title.cmp(&other.title)
-        }
-    }
-}
-
-impl PartialOrd for Song {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 impl<'a> Library<'a> {
