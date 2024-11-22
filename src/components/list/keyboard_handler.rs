@@ -25,7 +25,7 @@ where T: 'a + Clone + std::fmt::Display
         }
 
         match key.code {
-            KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
+            KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End | KeyCode::PageUp  | KeyCode::PageDown => {
                 self.on_directional_key(key);
             },
             KeyCode::Enter => {
@@ -111,12 +111,13 @@ where T: std::fmt::Display + Clone
         let mut items = self.items.lock().unwrap();
         let length = items.len() as i32;
 
-        if length == 0 {
+        if length < 2 {
             return;
         }
 
         let height = self.height.load(Ordering::Relaxed) as i32;
         let padding = 5;
+        let page_size = self.page_size.load(Ordering::Relaxed) as i32;
 
         let padding = if key.code == KeyCode::Down || key.code == KeyCode::End {
             height.saturating_sub(padding).saturating_sub(1)
@@ -150,11 +151,11 @@ where T: std::fmt::Display + Clone
                             i += 1;
                         }
                     }
-                // } else if key.modifiers == KeyModifiers::ALT {
+                } else if key.modifiers == KeyModifiers::ALT {
                 //     if let Some(next) = next_index_by_album(&*items, i, key.code) {
                 //         i = next as i32;
                 //     }
-                } else if on_reorder.is_some() && key.modifiers == KeyModifiers::CONTROL && items.len() > 1 {
+                } else if on_reorder.is_some() && key.modifiers == KeyModifiers::CONTROL {
                     // swap
                     let nexti = if key.code == KeyCode::Up && i > 0 {
                         i - 1
@@ -174,6 +175,12 @@ where T: std::fmt::Display + Clone
                     return;
                 }
             },
+            KeyCode::PageUp if !is_filtering => {
+                i -= page_size;
+            }
+            KeyCode::PageDown if !is_filtering => {
+                i += page_size;
+            }
             KeyCode::Home => {
                 if is_filtering {
                     if let Some(n) = items.iter().position(|item| item.is_match) {

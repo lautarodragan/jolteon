@@ -4,7 +4,7 @@ use std::{
         Mutex,
     },
 };
-
+use std::sync::atomic::AtomicU8;
 use crossterm::event::KeyEvent;
 
 use crate::{
@@ -39,6 +39,8 @@ where T: std::fmt::Display
 
     pub(super) filter: Mutex<String>,
     pub(super) rename: Mutex<Option<String>>,
+
+    pub(super) page_size: AtomicU8,
 }
 
 impl<'a, T> List<'a, T>
@@ -69,6 +71,8 @@ where T: std::fmt::Display
 
             filter: Mutex::new("".to_string()),
             rename: Mutex::new(None),
+
+            page_size: AtomicU8::new(5),
         }
     }
 
