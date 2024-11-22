@@ -25,6 +25,7 @@ pub struct Song {
     pub title: String,
     pub artist: Option<String>,
     pub album: Option<String>,
+    pub disc_number: Option<u32>,
     pub track: Option<u32>,
     pub year: Option<u32>,
 }
@@ -34,15 +35,16 @@ impl Song {
         let tagged_file = Probe::open(path)?.read()?;
         let jolt = Jolt::from_path(path.parent().unwrap().join(".jolt")).ok();
 
-        let (artist, album, title, track, year) = match tagged_file.primary_tag() {
+        let (artist, album, title, track, year, disc_number) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
                 primary_tag.artist().map(String::from),
                 primary_tag.album().map(String::from),
                 primary_tag.title().map(String::from),
                 primary_tag.track(),
                 primary_tag.year(),
+                primary_tag.disk(),
             ),
-            _ => (None, None, None, None, None),
+            _ => (None, None, None, None, None, None),
         };
 
         Ok(Song {
@@ -52,6 +54,7 @@ impl Song {
             title: title.unwrap_or(path.file_name().unwrap().to_str().unwrap().to_string()),
             artist: jolt.as_ref().and_then(|j| j.artist.clone()).or(artist),
             album: jolt.as_ref().and_then(|j| j.album.clone()).or(album),
+            disc_number,
             track,
             year,
         })
@@ -122,6 +125,7 @@ impl Song {
                 album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
                 track: t.index().split_whitespace().nth(0).map(|i| i.parse().ok()).flatten(),
                 year: song.year, // TODO: cue sheet year as a fallback? (it's usually stored as a comment in it...)
+                disc_number: jolt.and_then(|j| j.disc_number.clone()), // There seems to be no standard disc number field for Cue Sheets...
             })
             .collect();
 
@@ -138,20 +142,20 @@ impl Song {
         songs
     }
 
-    pub fn _tags(&self) {
+    pub fn debug_tags(&self) {
         let tagged_file = Probe::open(&self.path).unwrap().read().unwrap();
 
         // log::debug!("properties {:?}", tagged_file.properties());
 
-        let asd = tagged_file.tags();
+        let tags = tagged_file.tags();
 
-        for tag in asd {
+        for tag in tags {
             let items: Vec<_> = tag.items().map(|i| (i.key(), i.value())).collect();
             log::debug!("tag {:?} {:#?}", tag.tag_type(), items);
 
-            // for item in tag.items() {
-            //     log::debug!("tag item {:?}", item);
-            // }
+            for item in tag.items() {
+                log::debug!("tag item {:?}", item);
+            }
         }
     }
 }

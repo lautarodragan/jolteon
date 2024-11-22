@@ -71,11 +71,16 @@ impl Ord for Song {
     fn cmp(&self, other: &Self) -> Ordering {
         match (&self.album, &other.album) {
             (Some(album_a), Some(album_b)) if album_a == album_b => {
-                match (&self.track, &other.track) {
-                    (Some(a), Some(b)) => a.cmp(b),
-                    (Some(_), None) => Ordering::Greater,
-                    (None, Some(_)) => Ordering::Less,
-                    _ => self.title.cmp(&other.title),
+                match self.disc_number.cmp(&other.disc_number) {
+                    Ordering::Equal => {
+                        match (&self.track, &other.track) {
+                            (Some(a), Some(b)) => a.cmp(b),
+                            (Some(_), None) => Ordering::Greater,
+                            (None, Some(_)) => Ordering::Less,
+                            _ => self.title.cmp(&other.title),
+                        }
+                    }
+                    o => o
                 }
             },
             (Some(album_a), Some(album_b)) if album_a != album_b => {
@@ -204,7 +209,9 @@ impl<'a> Library<'a> {
         song_list.on_select({
             let on_select_fn = on_select_fn.clone();
             move |song, key| {
-                log::trace!(target: "::library.song_list.on_select", "song selected {:?}", song);
+                log::trace!(target: "::library.song_list.on_select", "song selected {:#?}", song);
+
+                // song.debug_tags();
 
                 let mut on_select_fn = on_select_fn.lock().unwrap();
                 on_select_fn(song, key);
@@ -310,7 +317,6 @@ impl Drop for Library<'_> {
         log::trace!("Library.drop()");
     }
 }
-
 
 fn next_index_by_album(songs: &Vec<Song>, i: i32, key: crossterm::event::KeyCode) -> Option<usize> {
     let Some(song) = (*songs).get(i as usize) else {

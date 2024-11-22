@@ -11,6 +11,7 @@ pub struct Jolt {
     pub path: PathBuf,
     pub artist: Option<String>,
     pub album: Option<String>,
+    pub disc_number: Option<u32>,
 }
 
 impl Jolt {
