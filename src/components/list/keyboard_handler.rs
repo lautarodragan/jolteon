@@ -43,10 +43,14 @@ where T: 'a + Clone + std::fmt::Display
                 let item = items[i].inner.clone();
                 drop(items);
 
-                if key.modifiers == KeyModifiers::ALT {
+                if key.modifiers == KeyModifiers::NONE {
                     self.on_enter_fn.lock().unwrap()(item);
-                } else {
-                    self.on_select_fn.lock().unwrap()(item, key);
+                    self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+                } else if key.modifiers == KeyModifiers::ALT {
+                    if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.lock().unwrap() {
+                        on_enter_alt_fn(item);
+                        self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+                    }
                 }
 
             },

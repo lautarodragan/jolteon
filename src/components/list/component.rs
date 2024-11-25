@@ -44,6 +44,7 @@ where T: std::fmt::Display
 
     pub(super) on_select_fn: Mutex<Box<dyn Fn(T, KeyEvent) + 'a>>,
     pub(super) on_enter_fn: Mutex<Box<dyn Fn(T) + 'a>>,
+    pub(super) on_enter_alt_fn: Mutex<Option<Box<dyn Fn(T) + 'a>>>,
     pub(super) on_reorder_fn: Mutex<Option<Box<dyn Fn(usize, usize) + 'a>>>,
     pub(super) on_insert_fn: Mutex<Option<Box<dyn Fn() + 'a>>>,
     pub(super) on_delete_fn: Mutex<Option<Box<dyn Fn(T, usize) + 'a>>>,
@@ -75,6 +76,7 @@ where T: std::fmt::Display
 
             on_select_fn: Mutex::new(Box::new(|_, _| {}) as _),
             on_enter_fn: Mutex::new(Box::new(|_| {}) as _),
+            on_enter_alt_fn: Mutex::new(None),
             on_reorder_fn: Mutex::new(None),
             on_insert_fn: Mutex::new(None),
             on_delete_fn: Mutex::new(None),
@@ -114,12 +116,20 @@ where T: std::fmt::Display
         cb(&mut items[i].inner);
     }
 
+    /// Triggered by moving the selection around, with the Up and Down arrow keys by default.
     pub fn on_select(&self, cb: impl Fn(T, KeyEvent) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
     }
 
+    /// Triggered, by default, with Enter.
+    /// Not the most intuitive name, but it is what it is.
     pub fn on_enter(&self, cb: impl Fn(T) + 'a) {
         *self.on_enter_fn.lock().unwrap() = Box::new(cb);
+    }
+    /// An alternative "on_enter", triggered, by default, with Alt+Enter.
+    /// This is somewhat tightly coupled to functionality required by consumers of this List component.
+    pub fn on_enter_alt(&self, cb: impl Fn(T) + 'a) {
+        *self.on_enter_alt_fn.lock().unwrap() = Some(Box::new(cb));
     }
 
     pub fn on_reorder(&self, cb: impl Fn(usize, usize) + 'a) {

@@ -201,6 +201,14 @@ impl<'a> Library<'a> {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
     }
 
+    pub fn on_enter(&self, cb: impl Fn(Song) + 'a) {
+        self.song_list.on_enter(cb);
+    }
+
+    pub fn on_enter_alt(&self, cb: impl Fn(Song) + 'a) {
+        self.song_list.on_enter_alt(cb);
+    }
+
     pub fn on_select_songs_fn(&self, cb: impl FnMut(Vec<Song>) + 'a) {
         *self.on_select_songs_fn.lock().unwrap() = Box::new(cb);
     }

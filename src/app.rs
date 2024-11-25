@@ -1,9 +1,18 @@
-use std::error::Error;
-use std::sync::{mpsc::Receiver, Arc, Mutex, MutexGuard};
-use std::{env, path::PathBuf, thread, time::Duration};
-use std::io::BufRead;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::thread::JoinHandle;
+use std::{
+    error::Error,
+    env,
+    path::PathBuf,
+    sync::{
+        mpsc::Receiver,
+        Arc,
+        Mutex,
+        MutexGuard,
+        atomic::{AtomicBool, AtomicU64, Ordering},
+    },
+    thread,
+    thread::JoinHandle,
+    time::Duration,
+};
 
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
@@ -68,18 +77,18 @@ impl<'a> App<'a> {
         let focus_trap = Arc::new(AtomicBool::new(false));
 
         let library = Arc::new(Library::new(theme));
-        library.on_select({ // selected individual song
-            let player = player.clone();
+        library.on_enter({
             let queue = queue.clone();
-            let library = library.clone();
 
-            move |song, key| {
-                if key.code == KeyCode::Enter {
-                    player.play_song(song);
-                } else if key.code == KeyCode::Char('a') {
-                    queue.add_back(song);
-                    library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)); // hackish way to "select_next()"
-                }
+            move |song| {
+                queue.add_back(song);
+            }
+        });
+        library.on_enter_alt({
+            let player = player.clone();
+
+            move |song| {
+                player.play_song(song);
             }
         });
         library.on_select_songs_fn({ // selected artist/album
@@ -293,47 +302,6 @@ impl<'a> App<'a> {
             _ => {}
         }
     }
-
-    fn spawn_terminal(&self) {
-        let cwd = self.file_browser().current_directory().clone();
-
-        if let Err(err) = thread::Builder::new().name("term".to_string()).spawn(move || {
-            log::debug!("spawning child process");
-
-            let proc = std::process::Command::new("kitty")
-                .current_dir(cwd)
-                .stdout(std::process::Stdio::piped())
-                .stderr(std::process::Stdio::piped())
-                .spawn();
-
-            if let Ok(mut proc) = proc {
-                log::debug!("spawned child process");
-
-                let stdout = proc.stdout.as_mut().unwrap();
-                let stdout_reader = std::io::BufReader::new(stdout);
-
-                for line in stdout_reader.lines() {
-                    log::debug!("stdout: {:?}", line);
-                }
-
-                log::debug!("child process exited");
-            } else if let Err(err) = proc {
-                log::error!("error spawning thread {:?}", err);
-            }
-        }) {
-            log::error!("Error spawning thread! {:?}", err);
-        }
-    }
-
-}
-
-fn keycode_to_usize(key_code: KeyCode) -> Option<usize> {
-    if let KeyCode::Char(c) = key_code {
-        if let Some(n) = c.to_digit(10) {
-            return Some(n as usize);
-        };
-    };
-    None
 }
 
 impl<'a> KeyboardHandlerMut<'a> for App<'a> {
