@@ -19,14 +19,14 @@ jobs:
 #      - run: type curl
 #      - run: type sh
 
-#      - run: |
-#          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
-#          chmod a+x rustup.sh
-#          ./rustup.sh -y
+      - run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
+          chmod a+x rustup.sh
+          ./rustup.sh -y
 
       - run: rustup install nightly
       - run: rustup override set nightly
-      - run: sudo apt-get update && sudo apt-get install libasound2-dev
+#      - run: sudo apt-get update && sudo apt-get install libasound2-dev
 
       - run: cargo check
       - run: cargo test
