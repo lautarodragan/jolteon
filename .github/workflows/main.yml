@@ -19,10 +19,10 @@ jobs:
 #      - run: type curl
 #      - run: type sh
 
-      - run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
-          chmod a+x rustup.sh
-          ./rustup.sh -y
+#      - run: |
+#          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
+#          chmod a+x rustup.sh
+#          ./rustup.sh -y
 
       - run: rustup install nightly
       - run: rustup override set nightly
