@@ -15,6 +15,7 @@ mod components;
 mod bye;
 mod files;
 mod auto_update;
+mod spawn_terminal;
 
 use std::error::Error;
 use std::io::stdout;

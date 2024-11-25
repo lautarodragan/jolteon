@@ -8,9 +8,9 @@ use std::{
 use crossterm::{
     event::{KeyCode, KeyEvent, KeyModifiers}
 };
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
-use crate::toml::{TomlFileError, write_toml_file, read_toml_file, get_config_file_path};
+use crate::toml::{TomlFileError, get_config_file_path};
 
 static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.kv");
 static DEFAULT_ACTIONS: LazyLock<HashMap<Shortcut, Action>> = LazyLock::new(|| {
@@ -36,6 +36,7 @@ impl From<KeyEvent> for Shortcut {
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[allow(dead_code)]
 pub enum Action {
     Error,
     Quit,
@@ -204,6 +205,7 @@ impl Actions {
         }
     }
 
+    #[allow(dead_code)]
     pub fn to_file(&self) {
 
     }

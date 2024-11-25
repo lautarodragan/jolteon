@@ -180,6 +180,7 @@ pub fn dir_entry_is_dir(dir_entry: &DirEntry) -> bool {
     }
 }
 
+#[allow(dead_code)]
 pub fn path_is_not_hidden(path: &PathBuf) -> bool {
     path.file_name()
         .and_then(|e| e.to_str())

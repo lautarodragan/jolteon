@@ -6,6 +6,7 @@ use ratatui::{
 };
 
 pub struct RenderingError {
+    #[allow(dead_code)]
     theme: crate::config::Theme,
 }
 

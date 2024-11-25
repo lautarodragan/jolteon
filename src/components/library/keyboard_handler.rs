@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
-    ui::{Component, KeyboardHandlerRef},
+    ui::{KeyboardHandlerRef},
 };
 use super::library::{Library};
 

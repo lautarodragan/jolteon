@@ -34,13 +34,6 @@ impl PartialOrd for AlbumTreeItem {
     }
 }
 
-impl AlbumTreeItem {
-    pub fn contains(&self, needle: &str) -> bool {
-        let haystack = self.to_string();
-        haystack.contains(needle) || haystack.to_lowercase().contains(needle.to_lowercase().as_str())
-    }
-}
-
 impl Display for AlbumTreeItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let x = match self {
