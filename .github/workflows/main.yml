@@ -27,6 +27,7 @@ jobs:
       - run: cargo check
       - run: cargo test
       - run: cargo build
+      - run: cargo build -r
 #
 #  test_macos:
 #    name: Test Mac
