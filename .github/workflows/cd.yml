@@ -5,9 +5,15 @@ on:
   pull_request:
     branches: [ "main" ]
 jobs:
-  release_linux:
-    name: Release Linux
-    runs-on: ubuntu-latest
+  release:
+    name: Release ${{ matrix.platform.os }}
+    strategy:
+      matrix:
+        platform:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu  }
+          - { os: ubuntu-latest, target: x86_64-apple-darwin       }
+          - { os: macos-latest , target: x86_64-apple-darwin       }
+    runs-on: ${{ matrix.platform.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -17,19 +23,22 @@ jobs:
           ./rustup.sh -y
 
       - run: rustc --print target-list
-      - run: rustc --target=x86_64-unknown-linux-gnu --print target-cpus
+      - run: rustc --target=${{ matrix.target.os }} --print target-cpus
 
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
 
-      - run: cargo build --locked --release --target x86_64-unknown-linux-gnu
+      - run: cargo build --locked --release --target ${{ matrix.target.os }}
       # - run: cargo build --locked --release --target x86_64-unknown-linux-musl # can't. cpal needs libc.
-#      - run: tar --version
+
       - run: pwd
       - run: tree target/x86_64-unknown-linux-gnu -L 2
+
+#      - run: tar --version
 #      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
+
       - uses: actions/upload-artifact@v4
         with:
 #          name: jolteon-x86_64-unknown-linux-gnu.tar.gz
-          name: jolteon-x86_64-unknown-linux-gnu
-          path: target/x86_64-unknown-linux-gnu/release/jolteon
-          compression-level: 0
+          name: jolteon-${{ matrix.target.os }}
+          path: target/${{ matrix.target.os }}/release/jolteon
+#          compression-level: 0
