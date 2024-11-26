@@ -7,8 +7,8 @@ edition = "2021"
 
 [profile.dev]
 panic = 'abort'
-rustflags = ["-Z", "threads=8"]
-#rustflags = ["-C", "target-cpu=native"]
+# rustflags = ["-Z", "threads=8"]
+# rustflags = ["-C", "target-cpu=native"]
 
 [profile.release]
 panic = 'abort'
