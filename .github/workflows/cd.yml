@@ -37,8 +37,8 @@ jobs:
 
       - run: cargo build --locked --release --target ${{ matrix.platform.target }}
 
-      - run: pwd
-      - run: tree target/x86_64-unknown-linux-gnu -L 2
+#      - run: pwd
+#      - run: tree target/x86_64-unknown-linux-gnu -L 2
 
 #      - run: tar --version
 #      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
