@@ -25,6 +25,7 @@ jobs:
           ./rustup.sh -y
 
       - run: rustc --print target-list
+      - run: rustup target add ${{ matrix.platform.target }}
       - run: rustc --target=${{ matrix.platform.target }} --print target-cpus
 
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
