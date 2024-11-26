@@ -11,10 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-#      - run: curl --version
-#      - run: type curl
-#      - run: type sh
-
       - run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
           chmod a+x rustup.sh
@@ -25,10 +21,11 @@ jobs:
       - run: rustc --print target-list
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
 
-      - run: cargo check
-      - run: cargo test
-      - run: cargo build
-      - run: cargo build --release
+      - run: cargo check --locked
+      - run: cargo test --locked
+      - run: cargo build --locked
+      - run: cargo build --locked --release --target x86_64-unknown-linux-gnu
+      - run: cargo build --locked --release --target x86_64-unknown-linux-musl
 
       - uses: actions/upload-artifact@v4
         with:
