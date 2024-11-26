@@ -25,11 +25,11 @@ jobs:
           ./rustup.sh -y
 
       - run: rustc --print target-list
-      - run: rustc --target=${{ matrix.target.os }} --print target-cpus
+      - run: rustc --target=${{ matrix.platform.target }} --print target-cpus
 
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
 
-      - run: cargo build --locked --release --target ${{ matrix.target.os }}
+      - run: cargo build --locked --release --target ${{ matrix.platform.target }}
       # - run: cargo build --locked --release --target x86_64-unknown-linux-musl # can't. cpal needs libc.
 
       - run: pwd
@@ -41,6 +41,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
 #          name: jolteon-x86_64-unknown-linux-gnu.tar.gz
-          name: jolteon-${{ matrix.target.os }}
-          path: target/${{ matrix.target.os }}/release/jolteon
+          name: jolteon-${{ matrix.platform.target }}
+          path: target/${{ matrix.platform.target }}/release/jolteon
 #          compression-level: 0
