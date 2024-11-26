@@ -164,6 +164,9 @@ Rust is very friendly language —even to newcomers—, and has a very friendly 
 If you're new to Rust, I encourage you to give it a try. The Rust Book is pretty awesome, and, for slightly more advanced topic of threading, 
 Mara Bos's [Rust Atomics and Locks](https://marabos.nl/atomics/) is a great resource.
 
+To install Rust and Cargo, see https://www.rust-lang.org/tools/install or https://doc.rust-lang.org/cargo/getting-started/installation.html.
+Under macOS, Linux, etc, it's just copy-pasting a `curl ...` command. I won't copy it here for safety reasons.
+
 To get started with Jolteon, just clone the repo and then run the project:
 
 ```
@@ -173,8 +176,13 @@ cd jolteon
 cargo run
 ```
 
-To install Rust and Cargo, see https://www.rust-lang.org/tools/install or https://doc.rust-lang.org/cargo/getting-started/installation.html. 
-Under macOS, Linux, etc, it's just copy-pasting a `curl ...` command. I won't copy it here for safety reasons.
+You may need to install `libasound2-dev`:
+
+```
+sudo apt-get update && sudo apt-get install libasound2-dev
+```
+
+Check out the GitHub workflows for CI/CD for more details on what to do to get Jolteon to run and build.
 
 I try to keep the source code as clean and intuitive as I can, so modifying it should be (hopefully) relatively easy.
 I'll add an ARCHITECTURE.md soon-ish, which should make the source code friendlier to navigate.

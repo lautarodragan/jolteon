@@ -1,0 +1,45 @@
+name: Release
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  release:
+    name: "${{ matrix.platform.os }} ${{ matrix.platform.target }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu  }
+#          - { os: ubuntu-latest, target: x86_64-unknown-linux-musl } # cpal needs libc.
+          - { os: macos-latest , target: x86_64-apple-darwin       }
+          - { os: macos-latest , target: aarch64-apple-darwin      }
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: which brew
+        if: ${{ matrix.platform.os == 'macos-latest' }}
+
+      - run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
+          chmod a+x rustup.sh
+          ./rustup.sh -y
+
+      - run: rustc --print target-list
+      - run: rustup target add ${{ matrix.platform.target }}
+      - run: rustc --target=${{ matrix.platform.target }} --print target-cpus
+
+      - run: sudo apt-get update && sudo apt-get install libasound2-dev
+        if: ${{ matrix.platform.os == 'ubuntu-latest' }}
+
+      - run: cargo build --locked --release --target ${{ matrix.platform.target }}
+
+#      - run: tar --version
+#      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jolteon-${{ matrix.platform.target }}
+          path: target/${{ matrix.platform.target }}/release/jolteon
