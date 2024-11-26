@@ -26,15 +26,13 @@ jobs:
       # - run: cargo build --locked --release --target x86_64-unknown-linux-musl # can't. cpal needs libc.
       - run: tar --version
       - run: pwd
-      - run: ls -a
-      - run: ls -a target
-      - run: ls -a target/x86_64-unknown-linux-gnu
-      - run: type tree
+      - run: tree target -L 3 -d
 #      - run: ls -a target/x86_64-unknown-linux-gnu/release
-      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
+#      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
 #      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/debug jolteon
       - uses: actions/upload-artifact@v4
         with:
-          name: jolteon-x86_64-unknown-linux-gnu.tar.gz
-          path: jolteon.tar.gz
+#          name: jolteon-x86_64-unknown-linux-gnu.tar.gz
+          name: jolteon-x86_64-unknown-linux-gnu
+          path: target/x86_64-unknown-linux-gnu/release/jolteon
           compression-level: 0
