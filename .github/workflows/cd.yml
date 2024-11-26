@@ -21,10 +21,12 @@ jobs:
       - run: rustc --print target-list
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
 
-      - run: cargo build --locked --release --target x86_64-unknown-linux-gnu
+      - run: cargo build --locked --target x86_64-unknown-linux-gnu
+#      - run: cargo build --locked --release --target x86_64-unknown-linux-gnu
       # - run: cargo build --locked --release --target x86_64-unknown-linux-musl # can't. cpal needs libc.
-      - run: tar czf jolteon.tar.gz target/x86_64-unknown-linux-gnu/release/jolteon
+      - run: tar czf jolteon.tar.gz jolteon --directory=target/x86_64-unknown-linux-gnu/release
       - uses: actions/upload-artifact@v4
         with:
           name: jolteon-x86_64-unknown-linux-gnu.tar.gz
           path: jolteon.tar.gz
+          compression-level: '0'
