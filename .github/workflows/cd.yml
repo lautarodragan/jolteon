@@ -35,6 +35,9 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
         if: ${{ matrix.platform.os == 'ubuntu-latest' }}
 
+      - run: brew uninstall llvm
+        if: ${{ matrix.platform.os == 'macos-latest' }}
+
       - run: cargo build --locked --release --target ${{ matrix.platform.target }}
 
 #      - run: pwd
