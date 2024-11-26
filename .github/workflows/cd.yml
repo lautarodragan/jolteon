@@ -1,4 +1,4 @@
-name: Cargo Tests
+name: Cargo Release
 on:
   push:
     branches: [ "main" ]
