@@ -12,7 +12,7 @@ rustflags = ["-Z", "threads=8"]
 [profile.release]
 panic = 'abort'
 strip = "debuginfo"
-#lto = true
+lto = true
 codegen-units = 1
 #rustflags = ["-C", "target-cpu=native"]
 

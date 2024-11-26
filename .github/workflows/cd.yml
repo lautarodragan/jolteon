@@ -26,7 +26,7 @@ jobs:
       # - run: cargo build --locked --release --target x86_64-unknown-linux-musl # can't. cpal needs libc.
       - run: tar --version
       - run: pwd
-      - run: tree target -L 3 -d
+      - run: tree target/x86_64-unknown-linux-gnu -L 2
 #      - run: ls -a target/x86_64-unknown-linux-gnu/release
 #      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
 #      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/debug jolteon
