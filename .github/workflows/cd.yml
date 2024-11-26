@@ -27,6 +27,9 @@ jobs:
       - run: tar --version
       - run: pwd
       - run: ls -a
+      - run: ls -a target
+      - run: ls -a target/x86_64-unknown-linux-gnu
+      - run: ls -a target/x86_64-unknown-linux-gnu/release
       - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
       - uses: actions/upload-artifact@v4
         with:
