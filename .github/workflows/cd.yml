@@ -28,6 +28,7 @@ jobs:
       - run: rustc --target=${{ matrix.platform.target }} --print target-cpus
 
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
+        if: ${{ matrix.platform.os == 'ubuntu-latest' }}
 
       - run: cargo build --locked --release --target ${{ matrix.platform.target }}
       # - run: cargo build --locked --release --target x86_64-unknown-linux-musl # can't. cpal needs libc.
