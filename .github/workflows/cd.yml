@@ -6,7 +6,7 @@ on:
     branches: [ "main" ]
 jobs:
   release:
-    name: "Release ${{ matrix.platform.os }} ${{ matrix.platform.target }}"
+    name: "${{ matrix.platform.os }} ${{ matrix.platform.target }}"
     strategy:
       fail-fast: false
       matrix:
