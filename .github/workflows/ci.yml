@@ -1,13 +1,20 @@
-name: Cargo Tests
+name: Cargo Release
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 jobs:
-  test_linux:
-    name: Test Linux
-    runs-on: ubuntu-latest
+  test:
+    name: "${{ matrix.platform.os }} ${{ matrix.platform.target }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu  }
+          - { os: macos-latest , target: x86_64-apple-darwin       }
+          - { os: macos-latest , target: aarch64-apple-darwin      }
+    runs-on: ${{ matrix.platform.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -16,11 +23,12 @@ jobs:
           chmod a+x rustup.sh
           ./rustup.sh -y
 
-      - run: rustup install nightly
-      - run: rustup override set nightly
       - run: rustc --print target-list
-      - run: sudo apt-get update && sudo apt-get install libasound2-dev
+      - run: rustup target add ${{ matrix.platform.target }}
+      - run: rustc --target=${{ matrix.platform.target }} --print target-cpus
 
-      - run: cargo check --locked
-      - run: cargo test --locked
-      - run: cargo build --locked
+      - run: sudo apt-get update && sudo apt-get install libasound2-dev
+        if: ${{ matrix.platform.os == 'ubuntu-latest' }}
+
+      - run: cargo check --locked --target ${{ matrix.platform.target }}
+      - run: cargo test --locked --target ${{ matrix.platform.target }}
