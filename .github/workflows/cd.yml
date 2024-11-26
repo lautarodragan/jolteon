@@ -29,8 +29,9 @@ jobs:
       - run: ls -a
       - run: ls -a target
       - run: ls -a target/x86_64-unknown-linux-gnu
-      - run: ls -a target/x86_64-unknown-linux-gnu/release
-      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
+#      - run: ls -a target/x86_64-unknown-linux-gnu/release
+#      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/release jolteon
+      - run: tar czf jolteon.tar.gz --directory=./target/x86_64-unknown-linux-gnu/debug jolteon
       - uses: actions/upload-artifact@v4
         with:
           name: jolteon-x86_64-unknown-linux-gnu.tar.gz
