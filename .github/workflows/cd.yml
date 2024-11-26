@@ -1,0 +1,30 @@
+name: Cargo Tests
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  test_linux:
+    name: Test Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
+          chmod a+x rustup.sh
+          ./rustup.sh -y
+
+      - run: rustup install nightly
+      - run: rustup override set nightly
+      - run: rustc --print target-list
+      - run: sudo apt-get update && sudo apt-get install libasound2-dev
+
+      - run: cargo build --locked --release --target x86_64-unknown-linux-gnu
+      # - run: cargo build --locked --release --target x86_64-unknown-linux-musl # can't. cpal needs libc.
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jolteon-x86_64-unknown-linux-gnu
+          path: target/x86_64-unknown-linux-gnu/release/jolteon
