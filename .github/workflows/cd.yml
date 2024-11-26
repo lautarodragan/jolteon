@@ -16,15 +16,17 @@ jobs:
           chmod a+x rustup.sh
           ./rustup.sh -y
 
-      - run: rustup install nightly
-      - run: rustup override set nightly
+#      - run: rustup install nightly
+#      - run: rustup override set nightly
       - run: rustc --print target-list
+      - run: rustc --target=x86_64-unknown-linux-gnu --print target-cpus
+
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
 
 #      - run: cargo build --locked --target x86_64-unknown-linux-gnu
       - run: cargo build --locked --release --target x86_64-unknown-linux-gnu
       # - run: cargo build --locked --release --target x86_64-unknown-linux-musl # can't. cpal needs libc.
-      - run: tar --version
+#      - run: tar --version
       - run: pwd
       - run: tree target/x86_64-unknown-linux-gnu -L 2
 #      - run: ls -a target/x86_64-unknown-linux-gnu/release
