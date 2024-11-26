@@ -6,7 +6,7 @@ on:
     branches: [ "main" ]
 jobs:
   release:
-    name: Release ${{ matrix.platform.os }}
+    name: "Release ${{ matrix.platform.os }} ${{ matrix.platform.target }}"
     strategy:
       matrix:
         platform:
@@ -15,7 +15,7 @@ jobs:
           - { os: ubuntu-latest, target: aarch64-apple-darwin      }
           - { os: macos-latest , target: x86_64-apple-darwin       }
           - { os: macos-latest , target: aarch64-apple-darwin      }
-    runs-on: ${{ matrix.platform.os }} ${{ matrix.platform.target }}
+    runs-on: ${{ matrix.platform.os }}
     steps:
       - uses: actions/checkout@v4
 
