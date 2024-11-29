@@ -1,7 +1,7 @@
-mod component;
-mod widget;
-mod keyboard_handler;
 mod album_tree_item;
+mod component;
+mod keyboard_handler;
+mod widget;
 
-pub use component::AlbumTree;
 pub use album_tree_item::AlbumTreeItem;
+pub use component::AlbumTree;

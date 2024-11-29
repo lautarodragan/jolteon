@@ -6,7 +6,7 @@ use super::FileBrowser;
 
 impl<'a> KeyboardHandlerMut<'a> for FileBrowser<'a> {
     fn on_key(&mut self, key: KeyEvent) {
-        if !self.filter.is_some() {
+        if self.filter.is_none() {
             self.on_normal_key_event(key);
         } else {
             self.on_filter_key_event(key);
@@ -20,10 +20,10 @@ impl<'a> FileBrowser<'a> {
             KeyCode::Backspace => self.navigate_up(),
             KeyCode::Down => {
                 self.select_next();
-            },
+            }
             KeyCode::Up => {
                 self.select_previous();
-            },
+            }
             // KeyCode::PageUp => self.items.previous_by(5),
             // KeyCode::PageDown => self.items.next_by(5),
             KeyCode::End => self.select_last(),
@@ -33,7 +33,7 @@ impl<'a> FileBrowser<'a> {
             }
             KeyCode::Enter | KeyCode::Char(_) => {
                 self.enter_selection(key);
-            },
+            }
             _ => {}
         }
     }

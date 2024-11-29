@@ -1,15 +1,12 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
+    buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Modifier, Style},
     widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState, WidgetRef},
-    buffer::Buffer,
 };
 
-use crate::{
-    config::Theme,
-    ui::{KeyboardHandlerMut},
-};
+use crate::{config::Theme, ui::KeyboardHandlerMut};
 
 pub struct Help<'a> {
     theme: Theme,
@@ -76,7 +73,7 @@ impl<'a> KeyboardHandlerMut<'a> for Help<'a> {
         match key.code {
             KeyCode::Down | KeyCode::Char('j') => self.next(),
             KeyCode::Up | KeyCode::Char('k') => self.previous(),
-            _ => {},
+            _ => {}
         }
     }
 }
@@ -100,11 +97,7 @@ impl<'a> WidgetRef for Help<'a> {
             .map(|h| Cell::from(*h).style(Style::default().fg(self.theme.foreground_selected)));
 
         let header = Row::new(header)
-            .style(
-                Style::default()
-                    .bg(self.theme.background)
-                    .fg(self.theme.foreground),
-            )
+            .style(Style::default().bg(self.theme.background).fg(self.theme.foreground))
             .height(1)
             .bottom_margin(0);
 
@@ -130,26 +123,19 @@ impl<'a> WidgetRef for Help<'a> {
                     .title_alignment(Alignment::Center)
                     .border_type(BorderType::Plain),
             )
-            .style(
-                Style::default()
-                    .fg(self.theme.foreground)
-                    .bg(self.theme.background),
-            )
+            .style(Style::default().fg(self.theme.foreground).bg(self.theme.background))
             .row_highlight_style(
                 Style::default()
                     .add_modifier(Modifier::BOLD)
                     .bg(self.theme.background_selected)
                     .fg(self.theme.foreground_selected),
             )
-            .widths(&[Constraint::Percentage(50), Constraint::Length(30), Constraint::Min(10)]);
+            .widths([Constraint::Percentage(50), Constraint::Length(30), Constraint::Min(10)]);
 
         ratatui::widgets::StatefulWidgetRef::render_ref(&table, area_main, buf, &mut self.state.clone());
         // table.render_ref(layout[0], buf, &mut self.state.clone());
-
     }
 }
-
-
 
 impl Drop for Help<'_> {
     fn drop(&mut self) {

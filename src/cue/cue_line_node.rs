@@ -70,17 +70,15 @@ impl CueLineNode {
                     node.children.append(&mut tmp_children);
                     stack.push(node);
                     break;
+                } else if tmp_children.is_empty() {
+                    depth = node.line.as_ref().unwrap().indentation;
+                    tmp_children.push(node);
+                } else if node.line.as_ref().unwrap().indentation == depth {
+                    tmp_children.push(node);
                 } else {
-                    if tmp_children.is_empty() {
-                        depth = node.line.as_ref().unwrap().indentation;
-                        tmp_children.push(node);
-                    } else if node.line.as_ref().unwrap().indentation == depth {
-                        tmp_children.push(node);
-                    } else {
-                        tmp_children.reverse();
-                        node.children.append(&mut tmp_children);
-                        stack.push(node);
-                    }
+                    tmp_children.reverse();
+                    node.children.append(&mut tmp_children);
+                    stack.push(node);
                 }
             }
         }
@@ -98,7 +96,7 @@ mod tests {
     #[test]
     fn cue_line_nodes_from_lines() {
         let path = Path::new("src/cue/Tim Buckley - Happy Sad.cue");
-        let cue_lines = CueLine::from_file(&path).unwrap();
+        let cue_lines = CueLine::from_file(path).unwrap();
 
         let cue_nodes = CueLineNode::from_lines(VecDeque::from(cue_lines));
 

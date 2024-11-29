@@ -5,20 +5,11 @@ use crate::{
     toml::{read_toml_file_or_default, write_toml_file, TomlFileError},
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct State {
     pub last_visited_path: Option<String>,
     #[serde(default)]
     pub queue_items: Vec<Song>,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            last_visited_path: None,
-            queue_items: vec![],
-        }
-    }
 }
 
 impl State {

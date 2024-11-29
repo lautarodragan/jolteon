@@ -9,9 +9,7 @@ use super::queue::Queue;
 
 impl WidgetRef for Queue {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let [area] = Layout::horizontal([
-            Constraint::Percentage(100),
-        ])
+        let [area] = Layout::horizontal([Constraint::Percentage(100)])
             .horizontal_margin(2)
             .areas(area);
 
@@ -31,7 +29,7 @@ impl WidgetRef for Queue {
             queue_list,
             area,
             buf,
-            &mut ListState::default().with_selected(Some(self.selected_song_index()))
+            &mut ListState::default().with_selected(Some(self.selected_song_index())),
         );
     }
 }

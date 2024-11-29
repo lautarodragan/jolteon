@@ -24,19 +24,11 @@ impl CueSheetItem {
                 "TITLE" => Self::Title(line.value.strip_quotes().to_string()),
                 "INDEX" => Self::Index(line.value.clone()),
                 "FILE" => {
-                    let children = cue_line_node
-                        .children
-                        .iter()
-                        .map(|n| Self::from_cue_line_node(n))
-                        .collect();
+                    let children = cue_line_node.children.iter().map(Self::from_cue_line_node).collect();
                     Self::File(line.value.clone(), children)
                 }
                 "TRACK" => {
-                    let children = cue_line_node
-                        .children
-                        .iter()
-                        .map(|n| Self::from_cue_line_node(n))
-                        .collect();
+                    let children = cue_line_node.children.iter().map(Self::from_cue_line_node).collect();
                     Self::Track(line.value.clone(), children)
                 }
                 _ => Self::Unknown,
@@ -51,9 +43,9 @@ mod tests {
     use std::collections::VecDeque;
     use std::path::Path;
 
+    use super::*;
     use crate::cue::cue_line::CueLine;
     use crate::cue::cue_line_node::CueLineNode;
-    use super::*;
 
     #[test]
     fn cue_sheet_item_from_cue_line_node() {
@@ -87,10 +79,9 @@ mod tests {
     #[test]
     fn cue_sheet_items_from_file() {
         let path = Path::new("src/cue/Tim Buckley - Happy Sad.cue");
-        let cue_lines = CueLine::from_file(&path).unwrap();
+        let cue_lines = CueLine::from_file(path).unwrap();
         let cue_nodes = CueLineNode::from_lines(VecDeque::from(cue_lines));
-
-        let top_cue_items: Vec<CueSheetItem> = cue_nodes.iter().map(|n| CueSheetItem::from_cue_line_node(n)).collect();
+        let top_cue_items: Vec<CueSheetItem> = cue_nodes.iter().map(CueSheetItem::from_cue_line_node).collect();
 
         assert_eq!(top_cue_items.len(), 7);
 

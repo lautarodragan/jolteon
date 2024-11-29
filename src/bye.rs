@@ -1,4 +1,4 @@
-use std::time::{UNIX_EPOCH, Duration, SystemTime};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const BYE_N: usize = 9;
 const BYE: [&str; BYE_N] = [
@@ -15,7 +15,9 @@ const BYE: [&str; BYE_N] = [
 
 /// The important things in life
 pub fn bye() -> &'static str {
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or(Duration::from_secs(0));
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or(Duration::from_secs(0));
     let now = now.as_micros() as usize;
     let i = now % BYE_N;
     BYE[i]

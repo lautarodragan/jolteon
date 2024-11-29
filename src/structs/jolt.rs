@@ -1,11 +1,8 @@
-use std::{
-    fs::read_to_string,
-    path::PathBuf,
-};
+use std::{fs::read_to_string, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Jolt {
     #[serde(skip)]
     pub path: PathBuf,
@@ -19,10 +16,7 @@ impl Jolt {
         let jolt = read_to_string(path.as_path())?;
         let jolt: Jolt = toml::from_str(&jolt)?;
 
-        Ok(Jolt {
-            path,
-            ..jolt
-        })
+        Ok(Jolt { path, ..jolt })
     }
 }
 

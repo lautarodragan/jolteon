@@ -1,17 +1,12 @@
-use std::{
-    sync::Mutex,
-    rc::Rc,
-    cell::Cell,
-};
+use std::{cell::Cell, rc::Rc, sync::Mutex};
 
 use chrono::Local;
-use crossterm::event::{KeyEvent};
 
 use crate::{
-    structs::{Song, Playlist},
+    components::List,
     config::Theme,
     cue::CueSheet,
-    components::List,
+    structs::{Playlist, Song},
 };
 
 #[derive(Eq, PartialEq)]
@@ -33,7 +28,14 @@ impl<'a> Playlists<'a> {
     pub fn new(theme: Theme) -> Self {
         let playlists_file = crate::files::Playlists::from_file();
 
-        let song_list = Rc::new(List::new(theme, playlists_file.playlists.get(0).map(|pl| pl.songs.clone()).unwrap_or(vec![])));
+        let song_list = Rc::new(List::new(
+            theme,
+            playlists_file
+                .playlists
+                .first()
+                .map(|pl| pl.songs.clone())
+                .unwrap_or_default(),
+        ));
         let playlist_list = Rc::new(List::new(theme, playlists_file.playlists));
         let deleted_playlist_list = Rc::new(List::new(theme, playlists_file.deleted));
 
@@ -60,9 +62,10 @@ impl<'a> Playlists<'a> {
             let playlist_list = playlist_list.clone();
             let deleted_playlist_list = deleted_playlist_list.clone();
             move || {
-                let playlist = Playlist::new(
-                    format!("New playlist created at {}", Local::now().format("%A %-l:%M:%S%P")),
-                );
+                let playlist = Playlist::new(format!(
+                    "New playlist created at {}",
+                    Local::now().format("%A %-l:%M:%S%P")
+                ));
                 playlist_list.push_item(playlist);
                 save(&playlist_list, &deleted_playlist_list);
             }

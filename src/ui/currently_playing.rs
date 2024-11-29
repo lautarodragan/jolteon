@@ -4,9 +4,9 @@ use log::error;
 use ratatui::{
     layout::{Constraint, Layout},
     prelude::*,
-    style::{Style},
-    widgets::{Block, Borders, Gauge},
+    style::Style,
     text::Line,
+    widgets::{Block, Borders, Gauge},
 };
 
 use crate::{
@@ -78,7 +78,7 @@ impl Widget for CurrentlyPlaying {
         if let Some(ref current_song) = self.current_song {
             let playing_file = Block::default()
                 .style(Style::default().fg(self.theme.foreground))
-                .title(song_to_string(&current_song))
+                .title(song_to_string(current_song))
                 .borders(Borders::NONE)
                 .title_alignment(Alignment::Center)
                 .title_position(ratatui::widgets::block::Position::Bottom);
@@ -109,16 +109,12 @@ impl Widget for CurrentlyPlaying {
             (Some(playing_song_label), Some(queue_label)) => {
                 format!("{playing_song_label}  |  {queue_label}")
             }
-            (None, Some(queue_label)) => {
-                format!("{queue_label}")
-            }
-            (Some(playing_song_label), None) => {
-                format!("{playing_song_label}")
-            }
+            (None, Some(queue_label)) => queue_label.to_string(),
+            (Some(playing_song_label), None) => playing_song_label.to_string(),
             _ => "".to_string(),
         };
 
-        if playing_gauge_label.len() > 0 {
+        if !playing_gauge_label.is_empty() {
             let song_progress = match self.current_song {
                 Some(ref song) => match song.length.as_secs_f64() {
                     0.0 => {
@@ -139,7 +135,8 @@ impl Widget for CurrentlyPlaying {
             playing_gauge.render(area_bottom, buf);
         }
 
-        let [_, area_bottom_right] = Layout::horizontal([Constraint::Fill(1), Constraint::Length(6)]).areas(area_bottom);
+        let [_, area_bottom_right] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(6)]).areas(area_bottom);
 
         if self.is_paused {
             Line::from("PAUSED")

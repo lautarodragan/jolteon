@@ -1,8 +1,4 @@
-use std::{
-    path::PathBuf,
-    thread,
-    io::BufRead,
-};
+use std::{io::BufRead, path::PathBuf, thread};
 
 #[allow(dead_code)]
 fn spawn_terminal(cwd: PathBuf) {

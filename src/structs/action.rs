@@ -1,21 +1,13 @@
-use std::{
-    collections::HashMap,
-    hash::Hash,
-    fs::read_to_string,
-    sync::LazyLock,
-};
+use std::{collections::HashMap, fs::read_to_string, hash::Hash, sync::LazyLock};
 
-use crossterm::{
-    event::{KeyCode, KeyEvent, KeyModifiers}
-};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
 
-use crate::toml::{TomlFileError, get_config_file_path};
+use crate::toml::{get_config_file_path, TomlFileError};
 
 static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.kv");
-static DEFAULT_ACTIONS: LazyLock<HashMap<Shortcut, Action>> = LazyLock::new(|| {
-    Actions::from_str(DEFAULT_ACTIONS_STR).actions
-});
+static DEFAULT_ACTIONS: LazyLock<HashMap<Shortcut, Action>> =
+    LazyLock::new(|| Actions::from_str(DEFAULT_ACTIONS_STR).actions);
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize, Hash)]
 pub struct Shortcut {
@@ -31,7 +23,10 @@ impl Shortcut {
 
 impl From<KeyEvent> for Shortcut {
     fn from(key: KeyEvent) -> Self {
-        Self { code: key.code, modifiers: key.modifiers }
+        Self {
+            code: key.code,
+            modifiers: key.modifiers,
+        }
     }
 }
 
@@ -41,8 +36,8 @@ pub enum Action {
     Error,
     Quit,
     QueueNext,
-    ScreenAction(ScreenAction),
-    PlayerAction(PlayerAction),
+    Screen(ScreenAction),
+    Player(PlayerAction),
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -78,9 +73,9 @@ impl TryFrom<&str> for Action {
         };
 
         if parent == "Player" {
-            PlayerAction::try_from(child).map(|v| Action::PlayerAction(v))
+            PlayerAction::try_from(child).map(Action::Player)
         } else if parent == "Screen" {
-            ScreenAction::try_from(child).map(|v| Action::ScreenAction(v))
+            ScreenAction::try_from(child).map(Action::Screen)
         } else {
             Err(())
         }
@@ -200,15 +195,11 @@ impl Actions {
 
         log::trace!("actions '{:#?}'", actions);
 
-        Self {
-            actions,
-        }
+        Self { actions }
     }
 
     #[allow(dead_code)]
-    pub fn to_file(&self) {
-
-    }
+    pub fn to_file(&self) {}
 
     pub fn from_file() -> Result<Self, TomlFileError> {
         let path = get_config_file_path("shortcuts")?;
@@ -226,7 +217,6 @@ impl Actions {
 pub trait OnAction {
     fn on_action(&self, action: Action);
 }
-
 
 pub trait OnActionMut {
     fn on_action(&mut self, action: Action);

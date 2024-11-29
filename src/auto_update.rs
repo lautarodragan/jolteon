@@ -40,8 +40,8 @@ pub enum ReleasesError {
 impl std::fmt::Debug for ReleasesError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ReleasesError::Reqwest(e) => { e.fmt(f) }
-            ReleasesError::TomlFileError(e) => { e.fmt(f) }
+            ReleasesError::Reqwest(e) => e.fmt(f),
+            ReleasesError::TomlFileError(e) => e.fmt(f),
         }
     }
 }
@@ -73,9 +73,7 @@ pub fn get_releases() -> Result<(), ReleasesError> {
 
     log::debug!(target: "::get_releases", "Got releases = {releases:#?}");
 
-    let releases = Releases {
-       releases,
-    };
+    let releases = Releases { releases };
 
     write_toml_file("releases", &releases)?;
 
@@ -91,8 +89,7 @@ pub fn can_i_has_rls() -> Result<(), ReleasesError> {
 
     log::trace!(target: target, "we has rls file = {releases:#?}");
 
-    log::trace!(target: target, "we has rls published_at = {:?}", releases.releases.get(0).map(|r| r.published_at.as_str()));
-
+    log::trace!(target: target, "we has rls published_at = {:?}", releases.releases.first().map(|r| r.published_at.as_str()));
 
     Ok(())
 }

@@ -1,13 +1,12 @@
 use std::{
-    error::Error,
     env,
+    error::Error,
     path::PathBuf,
+    rc::Rc,
     sync::{
-        mpsc::Receiver,
-        Arc,
-        Mutex,
-        MutexGuard,
         atomic::{AtomicBool, AtomicU64, Ordering},
+        mpsc::Receiver,
+        Arc, Mutex,
     },
     thread,
     thread::JoinHandle,
@@ -24,16 +23,15 @@ use ratatui::{
 use rodio::OutputStream;
 
 use crate::{
+    components::{FileBrowser, FileBrowserSelection, Help, Library, Playlists, Queue},
     config::Theme,
-    structs::{Song, Action, Actions, OnAction},
     player::Player,
     state::State,
+    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction, Song},
     term::set_terminal,
-    ui::{KeyboardHandlerRef, KeyboardHandlerMut, TopBar, Component},
+    ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
     Command,
-    components::{FileBrowser, FileBrowserSelection, Library, Playlists, Queue, Help},
 };
-use crate::structs::{OnActionMut, ScreenAction};
 
 pub struct App<'a> {
     must_quit: bool,
@@ -76,7 +74,7 @@ impl<'a> App<'a> {
 
         let focus_trap = Arc::new(AtomicBool::new(false));
 
-        let library = Arc::new(Library::new(theme));
+        let library = Rc::new(Library::new(theme));
         library.on_enter({
             let queue = queue.clone();
 
@@ -91,21 +89,23 @@ impl<'a> App<'a> {
                 player.play_song(song);
             }
         });
-        library.on_select_songs_fn({ // selected artist/album
+        library.on_select_songs_fn({
+            // selected artist/album
             let queue = queue.clone();
             let library = library.clone();
 
             move |songs| {
                 log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
                 queue.append(&mut std::collections::VecDeque::from(songs));
-                library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE)); // hackish way to "select_next()"
+                // hackish way to "select_next()":
+                library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
             }
         });
 
-        let playlist = Arc::new(Playlists::new(theme));
+        let playlist = Rc::new(Playlists::new(theme));
         playlist.on_enter_song({
             let queue = queue.clone();
-            move |song  | {
+            move |song| {
                 queue.add_back(song);
             }
         });
@@ -133,14 +133,22 @@ impl<'a> App<'a> {
             let player = player.clone();
             let queue = queue.clone();
             let playlists = playlist.clone();
-            let media_library = Arc::clone(&library);
+            let media_library = Rc::clone(&library);
 
             move |(s, key_event)| {
-                Self::on_file_browser_select(player.as_ref(), queue.as_ref(), playlists.as_ref(), media_library.as_ref(), s, key_event);
+                Self::on_file_browser_select(
+                    player.as_ref(),
+                    queue.as_ref(),
+                    playlists.as_ref(),
+                    media_library.as_ref(),
+                    s,
+                    key_event,
+                );
             }
         });
 
-        let browser = Arc::new(Mutex::new(browser));
+        #[allow(clippy::arc_with_non_send_sync)]
+        let browser = Arc::new(Mutex::new(browser)); // arc_with_non_send_sync gives false positive for browser, but browser will be refactored to use List component anyway
         let help = Arc::new(Mutex::new(Help::new(theme)));
 
         Self {
@@ -153,8 +161,8 @@ impl<'a> App<'a> {
             _music_output: output_stream,
 
             screens: vec![
-                ("Library".to_string(), Component::RefArc(library.clone())),
-                ("Playlists".to_string(), Component::RefArc(playlist.clone())),
+                ("Library".to_string(), Component::RefRc(library.clone())),
+                ("Playlists".to_string(), Component::RefRc(playlist.clone())),
                 ("Queue".to_string(), Component::RefArc(queue.clone())),
                 ("File Browser".to_string(), Component::Mut(browser.clone())),
                 ("Help".to_string(), Component::Mut(help.clone())),
@@ -171,15 +179,17 @@ impl<'a> App<'a> {
         }
     }
 
-    fn file_browser(&self) -> MutexGuard<FileBrowser<'a>>  {
-        self.browser.lock().unwrap()
-    }
-
     fn to_state(&self) -> State {
         let queue_items = self.queue.songs().clone();
 
         State {
-            last_visited_path: self.file_browser().current_directory().to_str().map(String::from),
+            last_visited_path: self
+                .browser
+                .lock()
+                .unwrap()
+                .current_directory()
+                .to_str()
+                .map(String::from),
             queue_items: Vec::from(queue_items),
         }
     }
@@ -226,27 +236,30 @@ impl<'a> App<'a> {
         let player_command_receiver = self.player_command_receiver.clone();
         let player = self.player.clone();
 
-        let t = thread::Builder::new().name("media_key_rx".to_string()).spawn(move || {
-            loop {
-                match player_command_receiver.lock().unwrap().recv() {
-                    Ok(Command::PlayPause) => {
-                        player.toggle();
-                    }
-                    Ok(Command::Next) => {
-                        player.stop();
-                    }
-                    Ok(Command::Quit) => {
-                        log::debug!("Received Command::Quit");
-                        break;
-                    }
-                    Err(err) => {
-                        log::error!("Channel error: {}", err);
-                        break;
+        let t = thread::Builder::new()
+            .name("media_key_rx".to_string())
+            .spawn(move || {
+                loop {
+                    match player_command_receiver.lock().unwrap().recv() {
+                        Ok(Command::PlayPause) => {
+                            player.toggle();
+                        }
+                        Ok(Command::Next) => {
+                            player.stop();
+                        }
+                        Ok(Command::Quit) => {
+                            log::debug!("Received Command::Quit");
+                            break;
+                        }
+                        Err(err) => {
+                            log::error!("Channel error: {}", err);
+                            break;
+                        }
                     }
                 }
-            }
-            log::trace!("spawn_media_key_receiver_thread loop exit");
-        }).unwrap();
+                log::trace!("spawn_media_key_receiver_thread loop exit");
+            })
+            .unwrap();
 
         self.player_command_receiver_thread = Some(t);
     }
@@ -321,11 +334,11 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
             }
             if !self.focus_trap.load(Ordering::Acquire) {
                 match action {
-                    Action::ScreenAction(_) => {
+                    Action::Screen(_) => {
                         self.on_action(action);
                         return;
                     }
-                    Action::PlayerAction(_) => {
+                    Action::Player(_) => {
                         self.player.on_action(action);
                         return;
                     }
@@ -349,13 +362,13 @@ impl<'a> WidgetRef for &App<'a> {
             .style(Style::default().bg(self.theme.background))
             .render(area, buf);
 
-        let [area_top, _, area_center, area_bottom] =
-            Layout::vertical([
-                Constraint::Length(1),
-                Constraint::Length(1),
-                Constraint::Min(0),
-                Constraint::Length(3),
-            ]).areas(area);
+        let [area_top, _, area_center, area_bottom] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(0),
+            Constraint::Length(3),
+        ])
+        .areas(area);
 
         let screen_titles: Vec<&str> = self.screens.iter().map(|screen| screen.0.as_str()).collect();
 
@@ -373,9 +386,15 @@ impl<'a> WidgetRef for &App<'a> {
         };
 
         match component {
-            Component::RefArc(ref s) => { s.render_ref(area_center, buf); }
-            Component::Mut(ref s) => { s.lock().unwrap().render_ref(area_center, buf); }
-            _ => {}
+            Component::RefArc(ref s) => {
+                s.render_ref(area_center, buf);
+            }
+            Component::RefRc(ref s) => {
+                s.render_ref(area_center, buf);
+            }
+            Component::Mut(ref s) => {
+                s.lock().unwrap().render_ref(area_center, buf);
+            }
         }
 
         self.player.render(area_bottom, buf);
@@ -384,17 +403,14 @@ impl<'a> WidgetRef for &App<'a> {
 
 impl<'a> OnActionMut for App<'a> {
     fn on_action(&mut self, action: Action) {
-        match action {
-            Action::ScreenAction(action) => {
-                match action {
-                    ScreenAction::Library => { self.focused_screen = 0 }
-                    ScreenAction::Playlists => { self.focused_screen = 1 }
-                    ScreenAction::Queue => { self.focused_screen = 2 }
-                    ScreenAction::FileBrowser => { self.focused_screen = 3 }
-                    ScreenAction::Help => { self.focused_screen = 4 }
-                }
+        if let Action::Screen(action) = action {
+            match action {
+                ScreenAction::Library => self.focused_screen = 0,
+                ScreenAction::Playlists => self.focused_screen = 1,
+                ScreenAction::Queue => self.focused_screen = 2,
+                ScreenAction::FileBrowser => self.focused_screen = 3,
+                ScreenAction::Help => self.focused_screen = 4,
             }
-            _ => {}
         }
     }
 }

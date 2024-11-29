@@ -1,14 +1,13 @@
-use std::sync::{
-    Arc, Condvar, Mutex, MutexGuard,
-    atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+use std::{
+    collections::VecDeque,
+    sync::{
+        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+        Arc, Condvar, Mutex, MutexGuard,
+    },
+    time::Duration,
 };
-use std::time::Duration;
-use std::collections::VecDeque;
 
-use crate::{
-    config::Theme,
-    structs::Song,
-};
+use crate::{config::Theme, structs::Song};
 
 pub struct Queue {
     pub(super) theme: Theme,
@@ -82,7 +81,7 @@ impl Queue {
         log::trace!(target: "::queue.mut_queue", "acquiring lock on songs");
         let mut songs = self.songs();
 
-        f(&mut *songs);
+        f(&mut songs);
 
         self.queue_length.store(songs.len(), Ordering::SeqCst);
         self.set_total_time(song_list_to_duration(&songs).as_secs());
@@ -112,7 +111,7 @@ impl Queue {
 
     pub fn selected_song(&self) -> Option<Song> {
         let songs = self.songs();
-        songs.get(self.selected_song_index()).map(|s| s.clone())
+        songs.get(self.selected_song_index()).cloned()
     }
 
     pub fn select_next(&self) {
@@ -123,7 +122,8 @@ impl Queue {
         };
 
         self.selected_item_index.fetch_add(1, Ordering::SeqCst);
-        self.selected_item_index.fetch_min(length.saturating_sub(1), Ordering::SeqCst);
+        self.selected_item_index
+            .fetch_min(length.saturating_sub(1), Ordering::SeqCst);
     }
 
     pub fn select_previous(&self) {
@@ -134,7 +134,8 @@ impl Queue {
         };
 
         self.selected_item_index.fetch_sub(1, Ordering::SeqCst);
-        self.selected_item_index.fetch_min(length.saturating_sub(1), Ordering::SeqCst);
+        self.selected_item_index
+            .fetch_min(length.saturating_sub(1), Ordering::SeqCst);
     }
 
     pub fn add_front(&self, song: Song) {

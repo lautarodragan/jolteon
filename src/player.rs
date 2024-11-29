@@ -1,9 +1,8 @@
 use std::{
     sync::{
-        Arc,
-        Mutex,
         atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{channel, Receiver, RecvTimeoutError, Sender},
+        Arc, Mutex,
     },
     thread,
     thread::JoinHandle,
@@ -11,20 +10,15 @@ use std::{
 };
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    prelude::Widget,
-    widgets::WidgetRef,
-};
+use ratatui::{buffer::Buffer, layout::Rect, prelude::Widget, widgets::WidgetRef};
 use rodio::OutputStreamHandle;
 
 use crate::{
-    structs::{Action, OnAction, PlayerAction, Song},
-    source::{Source, Controls},
-    ui::{KeyboardHandlerRef, CurrentlyPlaying},
-    config::Theme,
     components::Queue,
+    config::Theme,
+    source::{Controls, Source},
+    structs::{Action, OnAction, PlayerAction, Song},
+    ui::{CurrentlyPlaying, KeyboardHandlerRef},
 };
 
 pub struct Player {
@@ -34,7 +28,7 @@ pub struct Player {
     queue_items: Arc<Queue>,
     currently_playing: Arc<Mutex<Option<Song>>>,
     currently_playing_start_time: Arc<AtomicU64>,
-    command_sender: Option<Sender<Command>>,
+    command_sender: Sender<Command>,
     command_receiver: Arc<Mutex<Option<Receiver<Command>>>>,
     is_stopped: Arc<AtomicBool>,
     volume: Arc<Mutex<f32>>,
@@ -67,7 +61,7 @@ impl Player {
             queue_items: queue,
             currently_playing: Arc::new(Mutex::new(None)),
             currently_playing_start_time: Arc::new(AtomicU64::new(0)),
-            command_sender: Some(command_sender),
+            command_sender,
             command_receiver: Arc::new(Mutex::new(Some(command_receiver))),
             is_stopped: Arc::new(AtomicBool::new(true)),
             volume: Arc::new(Mutex::new(1.0)),
@@ -81,11 +75,9 @@ impl Player {
     }
 
     fn send_command(&self, command: Command) {
-        self.command_sender.as_ref().map(|tx| {
-            if let Err(err) = tx.send(command) {
-                log::warn!("Player.send_command() failure: {:?}", err);
-            }
-        });
+        if let Err(err) = self.command_sender.send(command) {
+            log::warn!("Player.send_command() failure: {:?}", err);
+        }
     }
 
     pub fn get_pos(&self) -> Duration {
@@ -117,7 +109,7 @@ impl Player {
         let set_currently_playing = move |song: Option<Song>| {
             let start_time = song
                 .as_ref()
-                .and_then(|song| Some(song.start_time))
+                .map(|song| song.start_time)
                 .unwrap_or(Duration::ZERO)
                 .as_secs();
             song_start_time.store(start_time, Ordering::Relaxed);
@@ -132,180 +124,181 @@ impl Player {
             };
         };
 
-        let thread = thread::Builder::new().name("player".to_string()).spawn(move || {
-            while let Ok(song) = queue_items.pop() {
-                let path = song.path.clone();
-                let start_time = song.start_time.clone();
-                let length = song.length.clone();
+        let thread = thread::Builder::new()
+            .name("player".to_string())
+            .spawn(move || {
+                while let Ok(song) = queue_items.pop() {
+                    let path = song.path.clone();
+                    let start_time = song.start_time;
+                    let length = song.length;
 
-                is_stopped.store(false, Ordering::SeqCst);
+                    is_stopped.store(false, Ordering::SeqCst);
 
-                set_currently_playing(Some(song));
+                    set_currently_playing(Some(song));
 
-                let periodic_access = {
-                    let is_stopped = is_stopped.clone();
-                    let must_stop = must_stop.clone();
-                    let volume = volume.clone();
-                    let pause = pause.clone();
-                    let must_seek = must_seek.clone();
+                    let periodic_access = {
+                        let is_stopped = is_stopped.clone();
+                        let must_stop = must_stop.clone();
+                        let volume = volume.clone();
+                        let pause = pause.clone();
+                        let must_seek = must_seek.clone();
 
-                    move |controls: &mut Controls| {
-                        if must_stop.swap(false, Ordering::SeqCst) {
-                            controls.stop();
-                            controls.skip();
-                            is_stopped.store(true, Ordering::SeqCst);
-                            log::debug!("periodic access stop");
-                            return;
-                        }
+                        move |controls: &mut Controls| {
+                            if must_stop.swap(false, Ordering::SeqCst) {
+                                controls.stop();
+                                controls.skip();
+                                is_stopped.store(true, Ordering::SeqCst);
+                                log::debug!("periodic access stop");
+                                return;
+                            }
 
-                        controls.set_volume(*volume.lock().unwrap());
-                        controls.set_paused(pause.load(Ordering::SeqCst));
+                            controls.set_volume(*volume.lock().unwrap());
+                            controls.set_paused(pause.load(Ordering::SeqCst));
 
-                        if let Some(seek) = must_seek.lock().unwrap().take() {
-                            if let Err(err) = controls.seek(seek) {
-                                log::error!("periodic_access.try_seek() error. {:?}", err)
+                            if let Some(seek) = must_seek.lock().unwrap().take() {
+                                if let Err(err) = controls.seek(seek) {
+                                    log::error!("periodic_access.try_seek() error. {:?}", err)
+                                }
                             }
                         }
-                    }
-                };
-
-                let wait_until_song_ends = || {
-                    let target = "::wait_until_song_ends";
-                    log::debug!(target: target, "start");
-                    must_stop.store(true, Ordering::SeqCst);
-
-                    if let Err(err) = song_ended_rx.recv() {
-                        log::error!("ender_recv.recv {:?}", err);
-                        return;
-                    }
-
-                    log::debug!(target: target, "ender signal received");
-
-                    while song_ended_rx.try_recv().is_ok() {}
-
-                    must_stop.store(false, Ordering::SeqCst);
-                    must_seek.lock().unwrap().take();
-
-                    set_currently_playing(None);
-
-                    log::debug!(target: target, "done");
-                };
-
-
-                let mut source = Source::from_file(path, periodic_access, position.clone(), {
-                    let song_ended_tx = song_ended_tx.clone();
-                    move || {
-                        log::trace!("source.on_playback_ended");
-                        let _ = song_ended_tx.send(());
-                    }
-                });
-
-                if start_time > Duration::ZERO {
-                    log::debug!("start_time > Duration::ZERO, {:?}", start_time);
-                    if let Err(err) = source.seek(start_time) {
-                        log::error!("start_time > 0 try_seek() error. {:?}", err)
-                    }
-                }
-
-                *position.lock().unwrap() = start_time;
-
-                log::debug!("output_stream.play_raw()");
-                if let Err(err) = output_stream.play_raw(source) { // Does `mixer.add(source)`. Mixer is tied to the CPAL thread, which starts consuming the source automatically.
-                    log::error!("os.play_raw error! {:?}", err);
-                    continue;
-                }
-
-                // Start looping until the current song ends OR something wakes us up.
-                // When woken up, we check whether we need to immediately exit.
-                // If we don't, we recalculate the remaining time until the song ends,
-                // and then go back to bed.
-                loop {
-                    let sleepy_time = if pause.load(Ordering::SeqCst) {
-                        Duration::MAX
-                    } else {
-                        let abs_pos = position.lock().unwrap().saturating_sub(start_time);
-                        if abs_pos >= length {
-                            log::debug!("inner loop: pos >= length, {:?} > {:?}", abs_pos, length);
-                            break;
-                        }
-                        length - abs_pos
                     };
 
-                    // log::debug!("inner loop: sleepy_time! {:?}", sleepy_time);
+                    let wait_until_song_ends = || {
+                        let target = "::wait_until_song_ends";
+                        log::debug!(target: target, "start");
+                        must_stop.store(true, Ordering::SeqCst);
 
-                    match command_receiver.recv_timeout(sleepy_time) {
-                        Ok(command) => {
-                            log::debug!("Player.Command({:?})", command);
-                            match command {
-                                Command::Quit => {
-                                    log::trace!("Player: quitting main loop");
-                                    return;
-                                }
-                                Command::Play => {
-                                    pause.store(false, Ordering::SeqCst);
-                                }
-                                Command::Pause => {
-                                    pause.store(true, Ordering::SeqCst);
-                                }
-                                Command::Stop => {
-                                    break;
-                                }
-                                Command::Seek(seek) => {
-                                    // NOTE: "intense" seek causes `ALSA lib pcm.c:8740:(snd_pcm_recover) underrun occurred`.
-                                    // See https://github.com/RustAudio/cpal/pull/909
-
-                                    if seek == 0 {
-                                        log::error!("Command::Seek(0)");
-                                        continue;
-                                    }
-
-                                    if is_stopped.load(Ordering::SeqCst) || must_stop.load(Ordering::SeqCst) {
-                                        continue;
-                                    }
-
-                                    let seek_abs = Duration::from_secs(seek.abs() as u64);
-                                    let mut pos = position.lock().unwrap();
-
-                                    let target = if seek > 0 {
-                                        pos.saturating_add(seek_abs)
-                                    } else {
-                                        pos.saturating_sub(seek_abs).max(start_time)
-                                    };
-
-                                    // If we'd seek past song end, skip seeking and just move to next song instead.
-                                    if target > length + start_time {
-                                        log::debug!("Seeking past end");
-                                        break;
-                                    }
-
-                                    log::debug!("Seek({:?})", target);
-                                    *must_seek.lock().unwrap() = Some(target);
-                                    *pos = target; // optimistic update, otherwise sleepy_time will be off
-
-                                }
-                            }
-                        }
-                        Err(RecvTimeoutError::Timeout) => {
-                            // Playing song reached its end. We want to move on to the next song.
-                            log::trace!("Player Command Timeout");
-                            break;
-                        }
-                        Err(RecvTimeoutError::Disconnected) => {
-                            // Most of the time, not a real error. This can happen because the command_sender was dropped,
-                            // which happens when the player itself was dropped, so we just want to exit.
-                            log::warn!("RecvTimeoutError::Disconnected");
+                        if let Err(err) = song_ended_rx.recv() {
+                            log::error!("ender_recv.recv {:?}", err);
                             return;
                         }
+
+                        log::debug!(target: target, "ender signal received");
+
+                        while song_ended_rx.try_recv().is_ok() {}
+
+                        must_stop.store(false, Ordering::SeqCst);
+                        must_seek.lock().unwrap().take();
+
+                        set_currently_playing(None);
+
+                        log::debug!(target: target, "done");
+                    };
+
+                    let mut source = Source::from_file(path, periodic_access, position.clone(), {
+                        let song_ended_tx = song_ended_tx.clone();
+                        move || {
+                            log::trace!("source.on_playback_ended");
+                            let _ = song_ended_tx.send(());
+                        }
+                    });
+
+                    if start_time > Duration::ZERO {
+                        log::debug!("start_time > Duration::ZERO, {:?}", start_time);
+                        if let Err(err) = source.seek(start_time) {
+                            log::error!("start_time > 0 try_seek() error. {:?}", err)
+                        }
                     }
+
+                    *position.lock().unwrap() = start_time;
+
+                    log::debug!("output_stream.play_raw()");
+                    if let Err(err) = output_stream.play_raw(source) {
+                        // play_raw does `mixer.add(source)`. Mixer is tied to the CPAL thread, which starts consuming the source automatically.
+                        log::error!("os.play_raw error! {:?}", err);
+                        continue;
+                    }
+
+                    // Start looping until the current song ends OR something wakes us up.
+                    // When woken up, we check whether we need to immediately exit.
+                    // If we don't, we recalculate the remaining time until the song ends,
+                    // and then go back to bed.
+                    loop {
+                        let sleepy_time = if pause.load(Ordering::SeqCst) {
+                            Duration::MAX
+                        } else {
+                            let abs_pos = position.lock().unwrap().saturating_sub(start_time);
+                            if abs_pos >= length {
+                                log::debug!("inner loop: pos >= length, {:?} > {:?}", abs_pos, length);
+                                break;
+                            }
+                            length - abs_pos
+                        };
+
+                        // log::debug!("inner loop: sleepy_time! {:?}", sleepy_time);
+
+                        match command_receiver.recv_timeout(sleepy_time) {
+                            Ok(command) => {
+                                log::debug!("Player.Command({:?})", command);
+                                match command {
+                                    Command::Quit => {
+                                        log::trace!("Player: quitting main loop");
+                                        return;
+                                    }
+                                    Command::Play => {
+                                        pause.store(false, Ordering::SeqCst);
+                                    }
+                                    Command::Pause => {
+                                        pause.store(true, Ordering::SeqCst);
+                                    }
+                                    Command::Stop => {
+                                        break;
+                                    }
+                                    Command::Seek(seek) => {
+                                        // NOTE: "intense" seek causes `ALSA lib pcm.c:8740:(snd_pcm_recover) underrun occurred`.
+                                        // See https://github.com/RustAudio/cpal/pull/909
+
+                                        if seek == 0 {
+                                            log::error!("Command::Seek(0)");
+                                            continue;
+                                        }
+
+                                        if is_stopped.load(Ordering::SeqCst) || must_stop.load(Ordering::SeqCst) {
+                                            continue;
+                                        }
+
+                                        let seek_abs = Duration::from_secs(seek.unsigned_abs() as u64);
+                                        let mut pos = position.lock().unwrap();
+
+                                        let target = if seek > 0 {
+                                            pos.saturating_add(seek_abs)
+                                        } else {
+                                            pos.saturating_sub(seek_abs).max(start_time)
+                                        };
+
+                                        // If we'd seek past song end, skip seeking and just move to next song instead.
+                                        if target > length + start_time {
+                                            log::debug!("Seeking past end");
+                                            break;
+                                        }
+
+                                        log::debug!("Seek({:?})", target);
+                                        *must_seek.lock().unwrap() = Some(target);
+                                        *pos = target; // optimistic update, otherwise sleepy_time will be off
+                                    }
+                                }
+                            }
+                            Err(RecvTimeoutError::Timeout) => {
+                                // Playing song reached its end. We want to move on to the next song.
+                                log::trace!("Player Command Timeout");
+                                break;
+                            }
+                            Err(RecvTimeoutError::Disconnected) => {
+                                // Most of the time, not a real error. This can happen because the command_sender was dropped,
+                                // which happens when the player itself was dropped, so we just want to exit.
+                                log::warn!("RecvTimeoutError::Disconnected");
+                                return;
+                            }
+                        }
+                    }
+
+                    while command_receiver.try_recv().is_ok() {} // "drain" the command queue - dropping everything that might have accumulated.
+
+                    wait_until_song_ends();
                 }
-
-                while command_receiver.try_recv().is_ok() {} // "drain" the command queue - dropping everything that might have accumulated.
-
-                wait_until_song_ends();
-
-            }
-            log::trace!("Player loop exit");
-        }).unwrap();
+                log::trace!("Player loop exit");
+            })
+            .unwrap();
 
         *self.main_thread.lock().unwrap() = Some(thread);
     }
@@ -324,7 +317,8 @@ impl Player {
             self.send_command(Command::Play);
         } else {
             self.send_command(Command::Pause);
-            self.paused_animation_start_frame.store(self.frame.load(Ordering::Relaxed), Ordering::Relaxed);
+            self.paused_animation_start_frame
+                .store(self.frame.load(Ordering::Relaxed), Ordering::Relaxed);
         }
     }
 
@@ -352,13 +346,8 @@ impl Player {
     }
 
     pub fn change_volume(&self, amount: f32) {
-        let mut volume = *self.volume.lock().unwrap() + amount;
-        if volume < 0. {
-            volume = 0.;
-        } else if volume > 1. {
-            volume = 1.;
-        }
-        *self.volume.lock().unwrap() = volume;
+        let mut volume = self.volume.lock().unwrap();
+        *volume = (*volume + amount).clamp(0., 1.);
     }
 }
 
@@ -392,8 +381,9 @@ impl WidgetRef for Player {
         let frame = self.frame.fetch_add(1, Ordering::Relaxed);
 
         let is_paused = self.pause.load(Ordering::Relaxed) && {
-            let step = (frame - self.paused_animation_start_frame.load(Ordering::Relaxed)) % (6 * 16);
-            (step < 6 * 8 && step % 12 < 6) || step >= 6 * 8
+            const ANIM_LEN: u64 = 6 * 16;
+            let step = (frame - self.paused_animation_start_frame.load(Ordering::Relaxed)) % (ANIM_LEN);
+            step % 12 < 6 || step >= 6 * 8 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
         };
 
         CurrentlyPlaying::new(
@@ -403,7 +393,8 @@ impl WidgetRef for Player {
             self.queue_items.total_time(),
             self.queue_items.length(),
             is_paused,
-        ).render(area, buf);
+        )
+        .render(area, buf);
     }
 }
 
@@ -416,25 +407,34 @@ impl KeyboardHandlerRef<'_> for Player {
             KeyCode::Char('+') => self.change_volume(0.05),
             KeyCode::Char(' ') if key.modifiers == KeyModifiers::CONTROL => self.toggle(),
             KeyCode::Char('g') if key.modifiers == KeyModifiers::CONTROL => self.stop(),
-            _ => { },
+            _ => {}
         };
     }
 }
 
 impl OnAction for Player {
     fn on_action(&self, action: Action) {
-        match action {
-            Action::PlayerAction(action) => {
-                match action {
-                    PlayerAction::PlayPause => {self.toggle();},
-                    PlayerAction::Stop => {self.stop();},
-                    PlayerAction::VolumeUp => {self.change_volume(0.05);},
-                    PlayerAction::VolumeDown => {self.change_volume(-0.05);},
-                    PlayerAction::SeekForwards => {self.seek_forward();},
-                    PlayerAction::SeekBackwards => {self.seek_backward();},
+        if let Action::Player(action) = action {
+            match action {
+                PlayerAction::PlayPause => {
+                    self.toggle();
+                }
+                PlayerAction::Stop => {
+                    self.stop();
+                }
+                PlayerAction::VolumeUp => {
+                    self.change_volume(0.05);
+                }
+                PlayerAction::VolumeDown => {
+                    self.change_volume(-0.05);
+                }
+                PlayerAction::SeekForwards => {
+                    self.seek_forward();
+                }
+                PlayerAction::SeekBackwards => {
+                    self.seek_backward();
                 }
             }
-            _ => {},
         }
     }
 }

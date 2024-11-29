@@ -12,18 +12,10 @@ pub enum AlbumTreeItem {
 impl Ord for AlbumTreeItem {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
-            (AlbumTreeItem::Artist(a), AlbumTreeItem::Artist(b)) => {
-                a.cmp(b)
-            }
-            (AlbumTreeItem::Artist(_), AlbumTreeItem::Album(_, _)) => {
-                Ordering::Greater
-            }
-            (AlbumTreeItem::Album(_, _), AlbumTreeItem::Artist(_)) => {
-                Ordering::Less
-            }
-            (AlbumTreeItem::Album(_, ref a), AlbumTreeItem::Album(_, ref b)) => {
-                a.cmp(b)
-            }
+            (AlbumTreeItem::Artist(a), AlbumTreeItem::Artist(b)) => a.cmp(b),
+            (AlbumTreeItem::Artist(_), AlbumTreeItem::Album(_, _)) => Ordering::Greater,
+            (AlbumTreeItem::Album(_, _), AlbumTreeItem::Artist(_)) => Ordering::Less,
+            (AlbumTreeItem::Album(_, ref a), AlbumTreeItem::Album(_, ref b)) => a.cmp(b),
         }
     }
 }

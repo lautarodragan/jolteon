@@ -1,18 +1,18 @@
 use std::{
+    cmp::Ordering,
     fs,
     fs::DirEntry,
-    path::PathBuf,
-    cmp::Ordering,
+    path::{Path, PathBuf},
 };
 
 use crate::{
-    structs::{Song, Jolt},
     cue::CueSheet,
+    structs::{Jolt, Song},
 };
 
 const VALID_EXTENSIONS: [&str; 7] = ["mp3", "mp4", "m4a", "wav", "flac", "ogg", "aac"];
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq)]
 pub enum FileBrowserSelection {
     Song(Song),
     CueSheet(CueSheet),
@@ -25,18 +25,18 @@ impl FileBrowserSelection {
         if path.is_dir() {
             Some(FileBrowserSelection::Directory(path.clone()))
         } else if path.extension().is_some_and(|e| e == "cue") {
-            CueSheet::from_file(&path).ok().map(FileBrowserSelection::CueSheet)
+            CueSheet::from_file(path).ok().map(FileBrowserSelection::CueSheet)
         } else {
-            Song::from_file(&path).ok().map(FileBrowserSelection::Song)
+            Song::from_file(path).ok().map(FileBrowserSelection::Song)
         }
     }
 
     pub fn to_path(&self) -> PathBuf {
         match self {
-            FileBrowserSelection::Song(s) => { s.path.clone() }
-            FileBrowserSelection::CueSheet(cs) => { cs.cue_sheet_file_path() }
-            FileBrowserSelection::Directory(p) => { p.clone() }
-            FileBrowserSelection::Jolt(j) => { j.path.clone() }
+            FileBrowserSelection::Song(s) => s.path.clone(),
+            FileBrowserSelection::CueSheet(cs) => cs.cue_sheet_file_path(),
+            FileBrowserSelection::Directory(p) => p.clone(),
+            FileBrowserSelection::Jolt(j) => j.path.clone(),
         }
     }
 }
@@ -44,40 +44,37 @@ impl FileBrowserSelection {
 impl PartialEq for FileBrowserSelection {
     fn eq(&self, other: &Self) -> bool {
         match self {
-            FileBrowserSelection::Directory(path) => {
-                match other {
-                    FileBrowserSelection::Directory(other_path) => path == other_path,
-                    _ => false,
+            FileBrowserSelection::Directory(path) => match other {
+                FileBrowserSelection::Directory(other_path) => path == other_path,
+                _ => false,
+            },
+            FileBrowserSelection::CueSheet(cue_sheet) => match other {
+                FileBrowserSelection::CueSheet(other_cue_sheet) => {
+                    cue_sheet.cue_sheet_file_path() == other_cue_sheet.cue_sheet_file_path()
                 }
-            }
-            FileBrowserSelection::CueSheet(cue_sheet) => {
-                match other {
-                    FileBrowserSelection::CueSheet(other_cue_sheet) =>
-                        cue_sheet.cue_sheet_file_path() == other_cue_sheet.cue_sheet_file_path(),
-                    _ => false,
-                }
-            }
-            FileBrowserSelection::Song(song) => {
-                match other {
-                    FileBrowserSelection::Song(other_song) => song.path == other_song.path,
-                    _ => false,
-                }
-            }
-            FileBrowserSelection::Jolt(jolt) => {
-                match other {
-                    FileBrowserSelection::Jolt(j) => jolt.path == j.path,
-                    _ => false,
-                }
-            }
+                _ => false,
+            },
+            FileBrowserSelection::Song(song) => match other {
+                FileBrowserSelection::Song(other_song) => song.path == other_song.path,
+                _ => false,
+            },
+            FileBrowserSelection::Jolt(jolt) => match other {
+                FileBrowserSelection::Jolt(j) => jolt.path == j.path,
+                _ => false,
+            },
         }
     }
 }
 
-impl Eq for FileBrowserSelection {}
-
 impl PartialOrd for FileBrowserSelection {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(match self {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for FileBrowserSelection {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match self {
             FileBrowserSelection::Directory(path) => {
                 // Directories come first
                 match other {
@@ -98,8 +95,9 @@ impl PartialOrd for FileBrowserSelection {
                 match other {
                     FileBrowserSelection::Directory(_) => Ordering::Greater,
                     FileBrowserSelection::Jolt(_) => Ordering::Greater,
-                    FileBrowserSelection::CueSheet(other_cue_sheet) =>
-                        cue_sheet.cue_sheet_file_path().cmp(&other_cue_sheet.cue_sheet_file_path()),
+                    FileBrowserSelection::CueSheet(other_cue_sheet) => cue_sheet
+                        .cue_sheet_file_path()
+                        .cmp(&other_cue_sheet.cue_sheet_file_path()),
                     _ => Ordering::Less,
                 }
             }
@@ -110,30 +108,26 @@ impl PartialOrd for FileBrowserSelection {
                     _ => Ordering::Greater,
                 }
             }
-        })
+        }
     }
 }
 
-impl Ord for FileBrowserSelection {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
-    }
-}
-
-fn dir_entry_to_file_browser_selection(entry: &DirEntry) -> Option<FileBrowserSelection>{
-    if dir_entry_is_dir(&entry) {
+fn dir_entry_to_file_browser_selection(entry: &DirEntry) -> Option<FileBrowserSelection> {
+    if dir_entry_is_dir(entry) {
         Some(FileBrowserSelection::Directory(entry.path()))
-    } else if dir_entry_is_song(&entry) {
+    } else if dir_entry_is_song(entry) {
         match Song::from_file(&entry.path()).map(FileBrowserSelection::Song) {
             Ok(a) => Some(a),
             Err(err) => {
                 log::warn!("dir_entry_to_file_browser_selection {:#?} {:#?}", &entry.path(), err);
                 None
-            },
+            }
         }
-    } else if dir_entry_is_cue(&entry) {
-        Some(FileBrowserSelection::CueSheet(CueSheet::from_file(&entry.path()).unwrap()))
-    } else if dir_entry_is_jolt_file(&entry) {
+    } else if dir_entry_is_cue(entry) {
+        Some(FileBrowserSelection::CueSheet(
+            CueSheet::from_file(&entry.path()).unwrap(),
+        ))
+    } else if dir_entry_is_jolt_file(entry) {
         match Jolt::from_path(entry.path()) {
             Ok(jolt) => Some(FileBrowserSelection::Jolt(jolt)),
             Err(err) => {
@@ -146,7 +140,7 @@ fn dir_entry_to_file_browser_selection(entry: &DirEntry) -> Option<FileBrowserSe
     }
 }
 
-pub fn directory_to_songs_and_folders(path: &PathBuf) -> Vec<FileBrowserSelection> {
+pub fn directory_to_songs_and_folders(path: &Path) -> Vec<FileBrowserSelection> {
     let Ok(entries) = path.read_dir() else {
         return vec![];
     };
@@ -168,7 +162,10 @@ pub fn dir_entry_is_file(dir_entry: &DirEntry) -> bool {
 
 pub fn dir_entry_is_dir(dir_entry: &DirEntry) -> bool {
     let Ok(ft) = dir_entry.file_type() else {
-        log::error!("dir_entry_is_dir: .file_type() returned error for {:?}", dir_entry.path());
+        log::error!(
+            "dir_entry_is_dir: .file_type() returned error for {:?}",
+            dir_entry.path()
+        );
         return false;
     };
 
@@ -181,7 +178,7 @@ pub fn dir_entry_is_dir(dir_entry: &DirEntry) -> bool {
 }
 
 #[allow(dead_code)]
-pub fn path_is_not_hidden(path: &PathBuf) -> bool {
+pub fn path_is_not_hidden(path: &Path) -> bool {
     path.file_name()
         .and_then(|e| e.to_str())
         .map(|e| e.to_string())
@@ -200,17 +197,11 @@ pub fn dir_entry_is_song(dir_entry: &DirEntry) -> bool {
 }
 
 pub fn dir_entry_has_cue_extension(dir_entry: &DirEntry) -> bool {
-    dir_entry
-        .path()
-        .extension()
-        .is_some_and(|e| e == "cue")
+    dir_entry.path().extension().is_some_and(|e| e == "cue")
 }
 
 pub fn dir_entry_is_jolt_file(dir_entry: &DirEntry) -> bool {
-    dir_entry
-        .path()
-        .file_name()
-        .is_some_and(|e| e == ".jolt")
+    dir_entry.path().file_name().is_some_and(|e| e == ".jolt")
 }
 
 pub fn dir_entry_is_cue(dir_entry: &DirEntry) -> bool {

@@ -3,7 +3,9 @@ use std::sync::mpsc::Sender;
 
 use crate::Command;
 
-pub async fn create_mpris_player(player_command_sender: Sender<Command>) -> Result<mpris_server::Player, Box<dyn Error>> {
+pub async fn create_mpris_player(
+    player_command_sender: Sender<Command>,
+) -> Result<mpris_server::Player, Box<dyn Error>> {
     let player = mpris_server::Player::builder("com.taro-codes.jolteon")
         .can_play(true)
         .can_pause(true)
@@ -30,7 +32,7 @@ pub async fn create_mpris_player(player_command_sender: Sender<Command>) -> Resu
     });
 
     player.connect_quit(|_player| {
-       log::trace!("mpris quit");
+        log::trace!("mpris quit");
     });
 
     player.connect_stop({

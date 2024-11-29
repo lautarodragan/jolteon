@@ -1,21 +1,21 @@
 use std::{
-    path::PathBuf,
-    time::Duration,
     cmp::Ordering,
+    path::{Path, PathBuf},
+    time::Duration,
 };
 
 use lofty::{
+    error::LoftyError,
     file::{AudioFile, TaggedFileExt},
     probe::Probe,
     tag::Accessor,
-    error::LoftyError,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    structs::Jolt,
+    components::{directory_to_songs_and_folders, FileBrowserSelection},
     cue::CueSheet,
-    components::{FileBrowserSelection, directory_to_songs_and_folders},
+    structs::Jolt,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
@@ -61,7 +61,7 @@ impl Song {
         })
     }
 
-    pub fn from_dir(path: &PathBuf) -> Vec<Self> {
+    pub fn from_dir(path: &Path) -> Vec<Self> {
         // TODO: improve this. stop using the FileBrowser stuff.
         //   check for songs, cue
         let entries = directory_to_songs_and_folders(path);
@@ -73,24 +73,27 @@ impl Song {
 
         log::trace!(target: "::Song::from_dir", "{:#?}", jolt);
 
-        entries.iter().filter_map(|s| {
-            if let FileBrowserSelection::Song(song) = s {
-                let mut song = song.clone();
+        entries
+            .iter()
+            .filter_map(|s| {
+                if let FileBrowserSelection::Song(song) = s {
+                    let mut song = song.clone();
 
-                if let Some(jolt) = jolt {
-                    if jolt.album.is_some() {
-                        song.album = jolt.album.clone();
+                    if let Some(jolt) = jolt {
+                        if jolt.album.is_some() {
+                            song.album = jolt.album.clone();
+                        }
+                        if jolt.artist.is_some() {
+                            song.artist = jolt.artist.clone();
+                        }
                     }
-                    if jolt.artist.is_some() {
-                        song.artist = jolt.artist.clone();
-                    }
+
+                    Some(song)
+                } else {
+                    None
                 }
-
-                Some(song)
-            } else {
-                None
-            }
-        }).collect()
+            })
+            .collect()
     }
 
     pub fn from_cue_sheet(cue_sheet: CueSheet) -> Vec<Self> {
@@ -120,13 +123,17 @@ impl Song {
             .map(|t| Song {
                 path: song_path.clone(),
                 length: Duration::ZERO,
-                artist: jolt.as_ref().and_then(|j| j.artist.clone()).or(performer.clone()).or(t.performer()),
+                artist: jolt
+                    .as_ref()
+                    .and_then(|j| j.artist.clone())
+                    .or(performer.clone())
+                    .or(t.performer()),
                 title: t.title(),
                 start_time: t.start_time(),
                 album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
-                track: t.index().split_whitespace().nth(0).map(|i| i.parse().ok()).flatten(),
+                track: t.index().split_whitespace().nth(0).and_then(|i| i.parse().ok()),
                 year: song.year, // TODO: cue sheet year as a fallback? (it's usually stored as a comment in it...)
-                disc_number: jolt.as_ref().and_then(|j| j.disc_number.clone()), // There seems to be no standard disc number field for Cue Sheets...
+                disc_number: jolt.as_ref().and_then(|j| j.disc_number), // There seems to be no standard disc number field for Cue Sheets...
             })
             .collect();
 
@@ -164,36 +171,30 @@ impl Song {
 impl Ord for Song {
     fn cmp(&self, other: &Self) -> Ordering {
         match (&self.album, &other.album) {
-            (Some(album_a), Some(album_b)) if album_a == album_b => {
-                match self.disc_number.cmp(&other.disc_number) {
-                    Ordering::Equal => {
-                        match (&self.track, &other.track) {
-                            (Some(a), Some(b)) => a.cmp(b),
-                            (Some(_), None) => Ordering::Greater,
-                            (None, Some(_)) => Ordering::Less,
-                            _ => self.title.cmp(&other.title),
-                        }
-                    }
-                    o => o
-                }
-            },
-            (Some(album_a), Some(album_b)) if album_a != album_b => {
-                match (self.year, other.year) {
-                    (Some(ref year_a), Some(ref year_b)) => {
-                        if year_a != year_b {
-                            year_a.cmp(year_b)
-                        } else {
-                            album_a.cmp(album_b)
-                        }
-                    },
+            (Some(album_a), Some(album_b)) if album_a == album_b => match self.disc_number.cmp(&other.disc_number) {
+                Ordering::Equal => match (&self.track, &other.track) {
+                    (Some(a), Some(b)) => a.cmp(b),
                     (Some(_), None) => Ordering::Greater,
                     (None, Some(_)) => Ordering::Less,
-                    _ => album_a.cmp(album_b)
+                    _ => self.title.cmp(&other.title),
+                },
+                o => o,
+            },
+            (Some(album_a), Some(album_b)) if album_a != album_b => match (self.year, other.year) {
+                (Some(ref year_a), Some(ref year_b)) => {
+                    if year_a != year_b {
+                        year_a.cmp(year_b)
+                    } else {
+                        album_a.cmp(album_b)
+                    }
                 }
+                (Some(_), None) => Ordering::Greater,
+                (None, Some(_)) => Ordering::Less,
+                _ => album_a.cmp(album_b),
             },
             (Some(_), None) => Ordering::Greater,
             (None, Some(_)) => Ordering::Less,
-            _ => self.title.cmp(&other.title)
+            _ => self.title.cmp(&other.title),
         }
     }
 }

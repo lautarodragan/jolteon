@@ -8,7 +8,7 @@ use crate::cue::cue_line_node::CueLineNode;
 use crate::cue::cue_sheet_item::CueSheetItem;
 
 #[allow(dead_code)]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
 pub struct CueSheet {
     cue_sheet_file_path: PathBuf,
     unknown: Vec<String>,
@@ -66,9 +66,9 @@ impl Track {
 
         while let Some(t) = track_properties.pop() {
             match t {
-                CueSheetItem::Title(s) => { track.title = s }
-                CueSheetItem::Performer(s) => { track.performer = Some(s) }
-                CueSheetItem::Index(s) => { track.start_time = s }
+                CueSheetItem::Title(s) => track.title = s,
+                CueSheetItem::Performer(s) => track.performer = Some(s),
+                CueSheetItem::Index(s) => track.start_time = s,
                 _ => {}
             }
         }
@@ -108,27 +108,24 @@ impl Track {
             multiplier *= 60;
         }
 
-        let duration = Duration::from_secs(seconds);
-
-        duration
+        Duration::from_secs(seconds)
     }
 }
 
 impl CueSheet {
     pub fn from_file(path: &Path) -> io::Result<CueSheet> {
-        let cue_lines = CueLine::from_file(&path)?;
+        let cue_lines = CueLine::from_file(path)?;
         let cue_nodes = CueLineNode::from_lines(VecDeque::from(cue_lines));
-        let mut top_cue_items: Vec<CueSheetItem> =
-            cue_nodes.iter().map(|n| CueSheetItem::from_cue_line_node(n)).collect();
+        let mut top_cue_items: Vec<CueSheetItem> = cue_nodes.iter().map(CueSheetItem::from_cue_line_node).collect();
 
         let mut sheet = CueSheet::default();
         sheet.cue_sheet_file_path = path.to_path_buf();
 
         while let Some(e) = top_cue_items.pop() {
             match e {
-                CueSheetItem::Comment(s) => { sheet.comments.push(s) }
-                CueSheetItem::Title(s) => { sheet.title = Some(s) }
-                CueSheetItem::Performer(s) => { sheet.performer = Some(s) }
+                CueSheetItem::Comment(s) => sheet.comments.push(s),
+                CueSheetItem::Title(s) => sheet.title = Some(s),
+                CueSheetItem::Performer(s) => sheet.performer = Some(s),
                 CueSheetItem::File(s, c) => {
                     sheet.file = Some(CueFile::new(s, c));
                 }
@@ -165,7 +162,7 @@ mod tests {
     #[test]
     fn cue_sheet_from_file() {
         let path = Path::new("./src/cue/Tim Buckley - Happy Sad.cue");
-        let cue = CueSheet::from_file(&path).unwrap();
+        let cue = CueSheet::from_file(path).unwrap();
 
         assert_eq!(cue.unknown.len(), 0);
         assert_eq!(cue.comments.len(), 4);

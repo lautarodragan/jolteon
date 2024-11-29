@@ -1,13 +1,9 @@
-use std::{
-    sync::{
-        atomic::{AtomicUsize, Ordering as AtomicOrdering},
-        Mutex,
-    },
+use std::sync::{
+    atomic::{AtomicUsize, Ordering as AtomicOrdering},
+    Mutex,
 };
 
-use crate::{
-    config::Theme,
-};
+use crate::config::Theme;
 
 use super::AlbumTreeItem;
 
@@ -71,9 +67,7 @@ impl<'a> AlbumTree<'a> {
     pub fn selected_item(&self) -> Option<AlbumTreeItem> {
         let i = self.selected_artist.load(AtomicOrdering::SeqCst);
         let artist_list = self.artist_list.lock().unwrap();
-        let Some(artist) = artist_list.get(i) else {
-            return None;
-        };
+        let artist = artist_list.get(i)?;
 
         if !artist.is_open {
             Some(AlbumTreeItem::Artist(artist.artist.clone()))
@@ -81,12 +75,15 @@ impl<'a> AlbumTree<'a> {
             let selected_album = self.selected_album.load(AtomicOrdering::SeqCst);
 
             let Some(album) = artist.albums.get(selected_album) else {
-                log::error!("artist {} selected_album {selected_album} >= len {}", artist.artist, artist.albums.len());
+                log::error!(
+                    "artist {} selected_album {selected_album} >= len {}",
+                    artist.artist,
+                    artist.albums.len()
+                );
                 panic!("no album at selected index!");
             };
 
             Some(AlbumTreeItem::Album(artist.artist.clone(), album.clone()))
-
         }
     }
 
@@ -100,12 +97,15 @@ impl<'a> AlbumTree<'a> {
                 }
             }
             Err(i) => {
-                artists.insert(i, AlbumTreeEntryArtist {
-                    artist: artist.clone(),
-                    albums: vec![],
-                    is_open: false,
-                    is_match: false,
-                });
+                artists.insert(
+                    i,
+                    AlbumTreeEntryArtist {
+                        artist: artist.clone(),
+                        albums: vec![],
+                        is_open: false,
+                        is_match: false,
+                    },
+                );
             }
         }
     }

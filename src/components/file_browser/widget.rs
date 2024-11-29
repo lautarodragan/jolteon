@@ -6,16 +6,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect},
     prelude::{Line, Modifier, Span, Style},
     text::Text,
-    widgets::{
-        block::Position,
-        Block,
-        Borders,
-        List,
-        WidgetRef,
-        StatefulWidget,
-        ListState,
-        ListItem,
-    },
+    widgets::{block::Position, Block, Borders, List, ListItem, ListState, StatefulWidget, WidgetRef},
 };
 
 use crate::config::Theme;
@@ -51,11 +42,14 @@ impl<'a> WidgetRef for FileBrowser<'a> {
             fl,
             area_main_left,
             buf,
-            &mut ListState::default().with_offset(self.offset).with_selected(Some(self.selected_index)),
+            &mut ListState::default()
+                .with_offset(self.offset)
+                .with_selected(Some(self.selected_index)),
         );
 
-        let [_separator_left, _, _separator_right] = Layout::horizontal([Constraint::Min(1), Constraint::Length(1), Constraint::Min(1)])
-            .areas(area_main_separator);
+        let [_separator_left, _, _separator_right] =
+            Layout::horizontal([Constraint::Min(1), Constraint::Length(1), Constraint::Min(1)])
+                .areas(area_main_separator);
     }
 }
 
@@ -64,13 +58,12 @@ fn create_areas(area: Rect) -> (Rect, Rect, Rect, Rect) {
         .horizontal_margin(2)
         .areas(area);
 
-    let [area_main_left, area_main_separator, area_main_right] =
-        Layout::horizontal([
-            Constraint::Percentage(50),
-            Constraint::Length(5),
-            Constraint::Percentage(50),
-        ])
-        .areas(area_main);
+    let [area_main_left, area_main_separator, area_main_right] = Layout::horizontal([
+        Constraint::Percentage(50),
+        Constraint::Length(5),
+        Constraint::Percentage(50),
+    ])
+    .areas(area_main);
 
     (area_top, area_main_left, area_main_separator, area_main_right)
 }
@@ -78,8 +71,7 @@ fn create_areas(area: Rect) -> (Rect, Rect, Rect, Rect) {
 fn top_bar(theme: &Theme, current_directory: &Path, filter: &Option<String>) -> Block<'static> {
     let folder_name = current_directory
         .file_name()
-        .map(|s| s.to_str())
-        .flatten()
+        .and_then(|s| s.to_str())
         .map(String::from)
         .unwrap_or("".to_string());
 
@@ -101,7 +93,7 @@ fn top_bar(theme: &Theme, current_directory: &Path, filter: &Option<String>) -> 
     top_bar
 }
 
-fn file_list(theme: &Theme, items: &Vec<FileBrowserSelection>, filter: &Option<String>) -> List<'static> {
+fn file_list(theme: &Theme, items: &[FileBrowserSelection], filter: &Option<String>) -> List<'static> {
     let browser_items: Vec<ListItem> = items
         .iter()
         // .map(|i| i.to_path().to_string_lossy().to_string())

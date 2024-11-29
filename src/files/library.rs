@@ -7,17 +7,9 @@ use crate::{
     toml::{read_toml_file_or_default, write_toml_file, TomlFileError},
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Library {
     pub songs_by_artist: HashMap<String, Vec<Song>>,
-}
-
-impl Default for Library {
-    fn default() -> Self {
-        Self {
-            songs_by_artist: HashMap::new(),
-        }
-    }
 }
 
 impl Library {
@@ -42,7 +34,7 @@ impl Library {
                 continue;
             };
 
-            let artist_songs = self.songs_by_artist.entry(artist.clone()).or_insert(vec![]);
+            let artist_songs = self.songs_by_artist.entry(artist.clone()).or_default();
             if let Err(i) = artist_songs.binary_search(&song) {
                 artist_songs.insert(i, song);
             }
@@ -64,5 +56,4 @@ impl Library {
         artist_songs.retain(|s| s.album.as_ref().is_some_and(|a| *a != album));
         self.save();
     }
-
 }

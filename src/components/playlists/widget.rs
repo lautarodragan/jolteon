@@ -1,24 +1,27 @@
-use std::{
-    fmt::{Display, Formatter},
-};
+use std::fmt::{Display, Formatter};
 
 use ratatui::{
-    prelude::Alignment,
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    widgets::WidgetRef,
+    prelude::Alignment,
     style::Style,
+    widgets::WidgetRef,
 };
 
 use super::Playlists;
 
 impl Display for crate::structs::Song {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} - {} - {} - {}",
-                self.year.as_ref().map(|y| y.to_string()).unwrap_or("(no year)".to_string()),
-                self.album.clone().unwrap_or("(no album)".to_string()),
-                self.track.unwrap_or(0),
-                self.title.clone()
+        write!(
+            f,
+            "{} - {} - {} - {}",
+            self.year
+                .as_ref()
+                .map(|y| y.to_string())
+                .unwrap_or("(no year)".to_string()),
+            self.album.clone().unwrap_or("(no album)".to_string()),
+            self.track.unwrap_or(0),
+            self.title.clone()
         )
     }
 }
@@ -36,8 +39,8 @@ impl<'a> WidgetRef for Playlists<'a> {
             Constraint::Length(5),
             Constraint::Percentage(50),
         ])
-            .horizontal_margin(2)
-            .areas(area);
+        .horizontal_margin(2)
+        .areas(area);
 
         let show_deleted_playlists = self.show_deleted_playlists.get();
 
@@ -49,7 +52,7 @@ impl<'a> WidgetRef for Playlists<'a> {
                 Constraint::Length(1),
                 Constraint::Percentage(50),
             ])
-                .areas(area_left);
+            .areas(area_left);
 
             self.playlist_list.render_ref(left_top, buf);
 

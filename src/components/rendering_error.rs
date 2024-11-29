@@ -16,15 +16,18 @@ impl WidgetRef for RenderingError {
             .style(Style::new().bg(Color::Rgb(255, 0, 0)))
             .borders(ratatui::widgets::Borders::ALL)
             .border_style(Style::new().fg(Color::Rgb(255, 255, 255)))
-            .render_ref(area.clone(), buf);
+            .render_ref(area, buf);
 
         let [_, area_center, _] = Layout::vertical([
             Constraint::Percentage(50),
             Constraint::Length(1),
             Constraint::Percentage(50),
         ])
-            .areas(area);
+        .areas(area);
 
-        ratatui::text::Line::from("RENDERING ERROR").style(Style::new().fg(Color::Rgb(255, 255, 255))).centered().render_ref(area_center, buf);
+        ratatui::text::Line::from("RENDERING ERROR")
+            .style(Style::new().fg(Color::Rgb(255, 255, 255)))
+            .centered()
+            .render_ref(area_center, buf);
     }
 }

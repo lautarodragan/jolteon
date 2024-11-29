@@ -1,12 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::{
-    ui::{KeyboardHandlerRef},
-};
-use super::library::{Library};
+use super::library::Library;
+use crate::ui::KeyboardHandlerRef;
 
 impl<'a> KeyboardHandlerRef<'a> for Library<'a> {
-
     fn on_key(&self, key: KeyEvent) {
         log::trace!(target: "::library.on_key", "{:?}", key);
 

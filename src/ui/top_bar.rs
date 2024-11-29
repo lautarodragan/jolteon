@@ -2,7 +2,7 @@ use chrono::prelude::*;
 use ratatui::{
     prelude::*,
     style::{Modifier, Style},
-    text::{Span, Line},
+    text::{Line, Span},
     widgets::{Block, Tabs},
 };
 
@@ -43,7 +43,8 @@ impl<'a> TopBar<'a> {
 
 impl<'a> Widget for TopBar<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let tab_titles: Vec<Line> = self.tab_titles
+        let tab_titles: Vec<Line> = self
+            .tab_titles
             .iter()
             .map(|t| {
                 Line::from(Span::styled(

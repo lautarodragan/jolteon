@@ -5,9 +5,10 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use rodio::{
-    Decoder,
-    Source as RodioSource,
-    source::{Amplify, Pausable, PeriodicAccess, SamplesConverter, Skippable, Speed, Stoppable, TrackPosition, SeekError},
+    source::{
+        Amplify, Pausable, PeriodicAccess, SamplesConverter, SeekError, Skippable, Speed, Stoppable, TrackPosition,
+    },
+    Decoder, Source as RodioSource,
 };
 
 type FullRodioSource = Stoppable<Skippable<Amplify<Pausable<TrackPosition<Speed<Decoder<BufReader<File>>>>>>>>;
@@ -19,7 +20,6 @@ pub struct Controls<'a> {
 }
 
 impl Controls<'_> {
-
     #[inline]
     pub fn stop(&mut self) {
         self.src.stop();
@@ -73,11 +73,13 @@ impl Source<()> {
         mut periodic_access: impl FnMut(&mut Controls) + Send,
         shared_pos: Arc<Mutex<Duration>>,
         on_playback_end: impl FnOnce() + Send + 'static,
-    ) -> Source<Box<impl FnMut(&mut FullRodioSource) + Send>>
-    {
+    ) -> Source<Box<impl FnMut(&mut FullRodioSource) + Send>> {
         let periodic_access_inner = {
             Box::new(move |src: &mut FullRodioSource| {
-                let mut controls = Controls { src, shared_pos: &shared_pos };
+                let mut controls = Controls {
+                    src,
+                    shared_pos: &shared_pos,
+                };
                 controls.refresh_pos();
                 periodic_access(&mut controls);
             })
@@ -106,7 +108,6 @@ impl<F: FnMut(&mut FullRodioSource) + Send> Source<F>
 where
     F: FnMut(&mut FullRodioSource) + Send,
 {
-
     #[inline]
     pub fn _inner_mut(&mut self) -> &mut PeriodicRodioSource<F> {
         &mut self.input
@@ -117,7 +118,7 @@ where
         i.try_seek(pos)
     }
 
-    pub fn _skip(&mut self) -> () {
+    pub fn _skip(&mut self) {
         let i = self.input.inner_mut().inner_mut().inner_mut();
         i.skip()
     }

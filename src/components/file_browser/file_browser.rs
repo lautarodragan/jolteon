@@ -1,5 +1,5 @@
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Mutex,
 };
 
@@ -7,10 +7,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::config::Theme;
 
-use super::file_browser_selection::{
-    FileBrowserSelection,
-    directory_to_songs_and_folders,
-};
+use super::file_browser_selection::{directory_to_songs_and_folders, FileBrowserSelection};
 
 pub struct FileBrowser<'a> {
     on_select_fn: Box<dyn FnMut((FileBrowserSelection, KeyEvent)) + 'a>,
@@ -100,7 +97,9 @@ impl<'a> FileBrowser<'a> {
     }
 
     pub fn navigate_up(&mut self) {
-        let Some(parent) = self.current_directory.as_path().parent().map(|p| p.to_path_buf()) else { return };
+        let Some(parent) = self.current_directory.as_path().parent().map(|p| p.to_path_buf()) else {
+            return;
+        };
         self.items = directory_to_songs_and_folders(&parent);
         self.select_current_directory();
         self.current_directory = parent;
@@ -152,7 +151,7 @@ impl<'a> FileBrowser<'a> {
         }
     }
 
-    pub fn find_by_path(&self, s: &PathBuf) -> usize {
+    pub fn find_by_path(&self, s: &Path) -> usize {
         let mut i = 0;
 
         for n in 0..self.items.len() {
@@ -183,7 +182,12 @@ impl<'a> FileBrowser<'a> {
                 return None;
             }
 
-            if self.items[i].to_path().to_string_lossy().to_lowercase().contains(&s.to_lowercase()) {
+            if self.items[i]
+                .to_path()
+                .to_string_lossy()
+                .to_lowercase()
+                .contains(&s.to_lowercase())
+            {
                 return Some(i);
             }
         }
@@ -231,12 +235,10 @@ impl<'a> FileBrowser<'a> {
 
     pub fn filter_delete(&mut self) {
         self.filter = match &self.filter {
-            Some(s) if s.len() > 0 => Some(s[..s.len() - 1].to_string()), // TODO: s[..s.len()-1] can panic! use .substring crate
+            Some(s) if !s.is_empty() => Some(s[..s.len() - 1].to_string()), // TODO: s[..s.len()-1] can panic! use .substring crate
             _ => None,
         };
     }
-
-
 
     fn padding_top(&self) -> usize {
         6
@@ -248,12 +250,12 @@ impl<'a> FileBrowser<'a> {
 
     pub fn set_offset(&mut self, i: usize, padding: usize) {
         self.offset = if i > padding {
-            i.saturating_sub(padding).min(self.items.len().saturating_sub(*self.height.lock().unwrap()))
+            i.saturating_sub(padding)
+                .min(self.items.len().saturating_sub(*self.height.lock().unwrap()))
         } else {
             0
         };
     }
-
 }
 
 impl Drop for FileBrowser<'_> {

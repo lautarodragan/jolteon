@@ -1,15 +1,11 @@
-use std::{
-    sync::{
-        atomic::{AtomicUsize, AtomicU8, Ordering},
-        Mutex,
-    },
+use std::sync::{
+    atomic::{AtomicU8, AtomicUsize, Ordering},
+    Mutex,
 };
 
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::{
-    config::Theme,
-};
+use crate::config::Theme;
 
 #[derive(Eq, PartialEq)]
 pub enum Direction {
@@ -35,7 +31,8 @@ pub struct ListItem<T> {
 }
 
 pub struct List<'a, T: 'a>
-where T: std::fmt::Display
+where
+    T: std::fmt::Display,
 {
     pub(super) theme: Theme,
 
@@ -63,13 +60,17 @@ where T: std::fmt::Display
 }
 
 impl<'a, T> List<'a, T>
-where T: std::fmt::Display
+where
+    T: std::fmt::Display,
 {
     pub fn new(theme: Theme, items: Vec<T>) -> Self {
-        let items = items.into_iter().map(|item| ListItem {
-            inner: item,
-            is_match: false,
-        }).collect();
+        let items = items
+            .into_iter()
+            .map(|item| ListItem {
+                inner: item,
+                is_match: false,
+            })
+            .collect();
 
         Self {
             theme,
@@ -159,10 +160,13 @@ where T: std::fmt::Display
     pub fn set_items(&self, items: Vec<T>) {
         self.selected_item_index.store(0, Ordering::SeqCst);
         self.offset.store(0, Ordering::SeqCst);
-        *self.items.lock().unwrap() = items.into_iter().map(|item| ListItem {
-            inner: item,
-            is_match: false,
-        }).collect();
+        *self.items.lock().unwrap() = items
+            .into_iter()
+            .map(|item| ListItem {
+                inner: item,
+                is_match: false,
+            })
+            .collect();
     }
 
     pub fn push_item(&self, item: T) {
@@ -176,7 +180,7 @@ where T: std::fmt::Display
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
         let mut filter = self.filter.lock().unwrap();
 
-        cb(&mut *filter);
+        cb(&mut filter);
 
         let mut items = self.items.lock().unwrap();
 
@@ -188,7 +192,11 @@ where T: std::fmt::Display
             if filter.is_empty() {
                 item.is_match = false;
             } else {
-                item.is_match = item.inner.to_string().to_lowercase().contains(filter.to_lowercase().as_str());
+                item.is_match = item
+                    .inner
+                    .to_string()
+                    .to_lowercase()
+                    .contains(filter.to_lowercase().as_str());
             }
         }
 
@@ -202,7 +210,6 @@ where T: std::fmt::Display
             }
         }
     }
-
 }
 
 impl<T: std::fmt::Display> Drop for List<'_, T> {

@@ -5,19 +5,10 @@ use crate::{
     toml::{read_toml_file_or_default, write_toml_file, TomlFileError},
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Playlists {
     pub playlists: Vec<Playlist>,
     pub deleted: Vec<Playlist>,
-}
-
-impl Default for Playlists {
-    fn default() -> Self {
-        Self {
-            playlists: vec![],
-            deleted: vec![],
-        }
-    }
 }
 
 impl Playlists {

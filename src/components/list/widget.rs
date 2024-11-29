@@ -8,7 +8,7 @@ use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::Style,
-    widgets::{WidgetRef, Widget},
+    widgets::{Widget, WidgetRef},
 };
 
 use super::component::List;
@@ -28,9 +28,13 @@ impl<'a> Widget for ListLine<'a> {
             Style::default().fg(self.theme.background).bg(self.theme.search)
         } else if self.is_selected {
             if self.list_has_focus {
-                Style::default().fg(self.theme.foreground_selected).bg(self.theme.background_selected)
+                Style::default()
+                    .fg(self.theme.foreground_selected)
+                    .bg(self.theme.background_selected)
             } else {
-                Style::default().fg(self.theme.foreground_selected).bg(self.theme.background_selected_blur)
+                Style::default()
+                    .fg(self.theme.foreground_selected)
+                    .bg(self.theme.background_selected_blur)
             }
         } else {
             let fg = if self.is_match {
@@ -43,14 +47,10 @@ impl<'a> Widget for ListLine<'a> {
 
         let line: Cow<'a, str> = if self.is_renaming {
             let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-            let caret = if now % 500 < 250 {
-                '⎸'
-            } else {
-                ' '
-            };
+            let caret = if now % 500 < 250 { '⎸' } else { ' ' };
             format!("{}{}", self.text, caret).into()
         } else {
-            self.text.into()
+            self.text
         };
 
         let line = ratatui::text::Line::from(line).style(style);
@@ -59,7 +59,8 @@ impl<'a> Widget for ListLine<'a> {
 }
 
 impl<'a, T> WidgetRef for List<'a, T>
-where T: std::fmt::Display,
+where
+    T: std::fmt::Display,
 {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.height.store(area.height as usize, Ordering::Relaxed);
@@ -108,7 +109,6 @@ where T: std::fmt::Display,
             };
 
             line.render(area, buf);
-
         }
     }
 }

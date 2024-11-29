@@ -1,8 +1,8 @@
 use ratatui::{
-    prelude::Widget,
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    widgets::{WidgetRef},
+    prelude::Widget,
+    widgets::WidgetRef,
 };
 
 use super::Library;
@@ -20,8 +20,8 @@ impl<'a> WidgetRef for Library<'a> {
             Constraint::Length(5),
             Constraint::Percentage(50),
         ])
-            .horizontal_margin(2)
-            .areas(area);
+        .horizontal_margin(2)
+        .areas(area);
 
         self.album_tree.render_ref(area_left, buf);
         self.song_list.render_ref(area_right, buf);

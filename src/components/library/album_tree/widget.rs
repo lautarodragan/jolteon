@@ -1,23 +1,21 @@
 use std::sync::atomic::Ordering;
 
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::Style,
-    widgets::WidgetRef,
-    text::Line,
-};
+use ratatui::{buffer::Buffer, layout::Rect, style::Style, text::Line, widgets::WidgetRef};
 
 use crate::config::Theme;
 
-use super::component::{AlbumTree};
+use super::component::AlbumTree;
 
 fn line_style(theme: &Theme, list_has_focus: bool, is_selected: bool, is_search_match: bool) -> Style {
     if is_selected {
         if list_has_focus {
-            Style::default().fg(theme.foreground_selected).bg(theme.background_selected)
+            Style::default()
+                .fg(theme.foreground_selected)
+                .bg(theme.background_selected)
         } else {
-            Style::default().fg(theme.foreground_selected).bg(theme.background_selected_blur)
+            Style::default()
+                .fg(theme.foreground_selected)
+                .bg(theme.background_selected_blur)
         }
     } else {
         let c = if is_search_match {
@@ -63,16 +61,13 @@ impl<'a> WidgetRef for AlbumTree<'a> {
             return;
         }
 
+        #[allow(clippy::needless_range_loop)]
         for i in offset..list.len().min(offset + area.height as usize) {
             let (text, is_album, is_selected, is_match) = list[i];
 
             let style = line_style(&self.theme, true, is_selected, is_match);
             let rect = Rect {
-                x: if is_album{
-                    area.x + 2
-                } else {
-                    area.x
-                },
+                x: if is_album { area.x + 2 } else { area.x },
                 y: area.y + i as u16 - offset as u16,
                 width: area.width,
                 height: 1,

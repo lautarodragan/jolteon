@@ -1,7 +1,7 @@
 pub mod file_browser;
-pub mod widget;
-pub mod keyboard_handler;
 mod file_browser_selection;
+pub mod keyboard_handler;
+pub mod widget;
 
 pub use file_browser::*;
-pub use file_browser_selection::{FileBrowserSelection, directory_to_songs_and_folders};
+pub use file_browser_selection::{directory_to_songs_and_folders, FileBrowserSelection};

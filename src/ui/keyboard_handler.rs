@@ -26,7 +26,7 @@ pub enum Component<'a> {
 }
 
 impl<'a> KeyboardHandlerRef<'a> for Component<'a> {
-    fn on_key(&self, key: KeyEvent) -> () {
+    fn on_key(&self, key: KeyEvent) {
         match self {
             Component::RefRc(ref target) => {
                 target.on_key(key);

@@ -1,21 +1,23 @@
+#![allow(clippy::field_reassign_with_default)]
+
 mod app;
+mod auto_update;
+mod bye;
+mod components;
 mod config;
 mod constants;
 mod cue;
 mod extensions;
+mod files;
 mod mpris;
 mod player;
+mod source;
+mod spawn_terminal;
 mod state;
 mod structs;
 mod term;
 mod toml;
 mod ui;
-mod source;
-mod components;
-mod bye;
-mod files;
-mod auto_update;
-mod spawn_terminal;
 
 use std::error::Error;
 use std::io::stdout;
@@ -24,7 +26,7 @@ use std::thread;
 
 use async_std::task;
 use colored::{Color, Colorize};
-use flexi_logger::{DeferredNow, FileSpec, Logger, WriteMode, style};
+use flexi_logger::{style, DeferredNow, FileSpec, Logger, WriteMode};
 use futures::{
     future::FutureExt, // for `.fuse()`
     pin_mut,
@@ -32,13 +34,7 @@ use futures::{
 };
 use log::{debug, error, info, Record};
 
-use crate::{
-    app::App,
-    mpris::create_mpris_player,
-    term::reset_terminal,
-    bye::bye,
-    auto_update::auto_update,
-};
+use crate::{app::App, auto_update::auto_update, bye::bye, mpris::create_mpris_player, term::reset_terminal};
 
 pub enum Command {
     PlayPause,
@@ -47,7 +43,7 @@ pub enum Command {
 }
 
 pub fn log_format(w: &mut dyn std::io::Write, now: &mut DeferredNow, record: &Record) -> Result<(), std::io::Error> {
-    write!(w, "{}   ", now.format("%-l:%M:%S%P").to_string())?;
+    write!(w, "{}   ", now.format("%-l:%M:%S%P"))?;
 
     let level = format!("{: <8}", record.level());
     write!(w, "{}", style(record.level()).paint(level))?;
@@ -113,11 +109,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     select! {
         _ = task_player => {
             log::trace!("player task finish");
-            ()
         },
         _ = task_mpris => {
             log::trace!("mpris task finish");
-            ()
         },
     }
 
@@ -136,7 +130,7 @@ fn set_panic_hook() {
 
     std::panic::set_hook(Box::new(move |panic_info| {
         // intentionally ignore errors here since we're already in a panic
-        let _ = reset_terminal(&mut stdout());
+        reset_terminal(&mut stdout());
         original_hook(panic_info);
     }));
 }

@@ -1,18 +1,15 @@
-use std::sync::{
-    atomic::Ordering,
-    MutexGuard,
-};
+use std::sync::{atomic::Ordering, MutexGuard};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::{ui::KeyboardHandlerRef};
+use crate::ui::KeyboardHandlerRef;
 
 use super::component::{Direction, List};
 
 impl<'a, T> KeyboardHandlerRef<'a> for List<'a, T>
-where T: 'a + Clone + std::fmt::Display
+where
+    T: 'a + Clone + std::fmt::Display,
 {
-
     fn on_key(&self, key: KeyEvent) {
         let target = "::List.on_key";
         log::trace!(target: target, "{:?}", key);
@@ -25,9 +22,9 @@ where T: 'a + Clone + std::fmt::Display
         }
 
         match key.code {
-            KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End | KeyCode::PageUp  | KeyCode::PageDown => {
+            KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End | KeyCode::PageUp | KeyCode::PageDown => {
                 self.on_directional_key(key);
-            },
+            }
             KeyCode::Enter => {
                 self.filter_mut(|filter| {
                     filter.clear();
@@ -52,8 +49,7 @@ where T: 'a + Clone + std::fmt::Display
                         self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
                     }
                 }
-
-            },
+            }
             KeyCode::Insert => {
                 let f = self.on_insert_fn.lock().unwrap();
                 let Some(f) = &*f else {
@@ -76,13 +72,14 @@ where T: 'a + Clone + std::fmt::Display
                 let removed_item = items.remove(i);
 
                 if i >= items.len() {
-                    self.selected_item_index.store(items.len().saturating_sub(1), Ordering::Release);
+                    self.selected_item_index
+                        .store(items.len().saturating_sub(1), Ordering::Release);
                 }
 
                 drop(items);
 
                 on_delete(removed_item.inner, i);
-            },
+            }
             KeyCode::Char('r') if key.modifiers == KeyModifiers::CONTROL => {
                 if self.on_rename_fn.lock().unwrap().is_none() {
                     return;
@@ -90,18 +87,18 @@ where T: 'a + Clone + std::fmt::Display
                 *rename = self.with_selected_item(|item| Some(item.to_string()));
                 drop(rename);
                 self.on_request_focus_trap_fn.lock().unwrap()(true);
-            },
+            }
             KeyCode::Char(char) => {
                 self.filter_mut(|filter| {
                     filter.push(char);
                 });
-            },
+            }
             KeyCode::Esc => {
                 self.filter_mut(|filter| {
                     filter.clear();
                 });
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
@@ -115,7 +112,8 @@ fn is_key_dir_downwards(key_code: KeyCode) -> bool {
 }
 
 impl<'a, T> List<'a, T>
-where T: std::fmt::Display + Clone
+where
+    T: std::fmt::Display + Clone,
 {
     fn on_directional_key(&self, key: KeyEvent) {
         let is_filtering = !self.filter.lock().unwrap().is_empty();
@@ -153,14 +151,12 @@ where T: std::fmt::Display + Clone
                         } else {
                             i -= 1;
                         }
-                    } else {
-                        if is_filtering {
-                            if let Some(n) = items.iter().skip(i as usize + 1).position(|item| item.is_match) {
-                                i += n as i32 + 1;
-                            }
-                        } else {
-                            i += 1;
+                    } else if is_filtering {
+                        if let Some(n) = items.iter().skip(i as usize + 1).position(|item| item.is_match) {
+                            i += n as i32 + 1;
                         }
+                    } else {
+                        i += 1;
                     }
                 } else if key.modifiers == KeyModifiers::ALT {
                     if let Some(next_item_special) = &*self.find_next_item_by_fn.lock().unwrap() {
@@ -185,11 +181,10 @@ where T: std::fmt::Display + Clone
                         swapped = Some((i as usize, nexti as usize));
                         i = nexti;
                     }
-
                 } else {
                     return;
                 }
-            },
+            }
             KeyCode::PageUp if !is_filtering => {
                 i -= page_size;
             }
@@ -204,7 +199,7 @@ where T: std::fmt::Display + Clone
                 } else {
                     i = 0;
                 }
-            },
+            }
             KeyCode::End => {
                 if is_filtering {
                     if let Some(n) = items.iter().rposition(|item| item.is_match) {
@@ -213,8 +208,8 @@ where T: std::fmt::Display + Clone
                 } else {
                     i = length - 1;
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
 
         if i == initial_i {
@@ -225,7 +220,9 @@ where T: std::fmt::Display + Clone
         self.selected_item_index.store(i as usize, Ordering::SeqCst);
 
         let offset = self.offset.load(Ordering::Acquire) as i32;
-        if (is_key_dir_upwards(key.code) && i < offset + padding) || (is_key_dir_downwards(key.code) && i > offset + padding) {
+        if (is_key_dir_upwards(key.code) && i < offset + padding)
+            || (is_key_dir_downwards(key.code) && i > offset + padding)
+        {
             let offset = if i > padding {
                 (i - padding).min(length - height).max(0)
             } else {
@@ -256,18 +253,18 @@ where T: std::fmt::Display + Clone
         match key.code {
             KeyCode::Char(char) => {
                 rename.push(char);
-            },
+            }
             KeyCode::Backspace => {
                 if key.modifiers == KeyModifiers::ALT {
                     rename.clear();
-                } else if rename.len() > 0 {
+                } else if !rename.is_empty() {
                     rename.remove(rename.len().saturating_sub(1));
                 }
-            },
+            }
             KeyCode::Esc => {
                 *rename_opt = None;
                 self.on_request_focus_trap_fn.lock().unwrap()(false);
-            },
+            }
             KeyCode::Enter => {
                 if rename.is_empty() {
                     return;
@@ -287,5 +284,4 @@ where T: std::fmt::Display + Clone
             _ => {}
         }
     }
-
 }
