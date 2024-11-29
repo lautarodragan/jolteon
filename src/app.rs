@@ -104,14 +104,15 @@ impl<'a> App<'a> {
 
         let playlist = Arc::new(Playlists::new(theme));
         playlist.on_enter_song({
-            let player = player.clone();
             let queue = queue.clone();
-            move |song, key| {
-                if key.code == KeyCode::Enter {
-                    player.play_song(song);
-                } else if key.code == KeyCode::Char('a') {
-                    queue.add_back(song);
-                }
+            move |song  | {
+                queue.add_back(song);
+            }
+        });
+        playlist.on_enter_song_alt({
+            let player = player.clone();
+            move |song| {
+                player.play_song(song);
             }
         });
         playlist.on_enter_playlist({

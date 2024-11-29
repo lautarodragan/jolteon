@@ -117,8 +117,12 @@ impl<'a> Playlists<'a> {
         }
     }
 
-    pub fn on_enter_song(&self, cb: impl Fn(Song, KeyEvent) + 'a) {
-        self.song_list.on_select(cb);
+    pub fn on_enter_song(&self, cb: impl Fn(Song) + 'a) {
+        self.song_list.on_enter(cb);
+    }
+
+    pub fn on_enter_song_alt(&self, cb: impl Fn(Song) + 'a) {
+        self.song_list.on_enter_alt(cb);
     }
 
     pub fn on_enter_playlist(&self, cb: impl Fn(Playlist) + 'a) {
