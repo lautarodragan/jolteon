@@ -23,11 +23,11 @@ use ratatui::{
 use rodio::OutputStream;
 
 use crate::{
-    components::{FileBrowser, FileBrowserSelection, Help, Library, Playlists, Queue},
+    components::{FileBrowser, Help, Library, Playlists, Queue},
     config::Theme,
     player::Player,
     state::State,
-    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction, Song},
+    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction},
     term::set_terminal,
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
     Command,
@@ -48,7 +48,7 @@ pub struct App<'a> {
 
     player: Arc<Player>,
     queue: Arc<Queue>,
-    browser: Arc<Mutex<FileBrowser<'a>>>,
+    browser: Rc<FileBrowser<'a>>,
 
     player_command_receiver: Arc<Mutex<Receiver<Command>>>,
     player_command_receiver_thread: Option<JoinHandle<()>>,
@@ -128,27 +128,22 @@ impl<'a> App<'a> {
             }
         });
 
-        let mut browser = FileBrowser::new(theme, current_directory);
-        browser.on_select({
-            let player = player.clone();
+        let browser = Rc::new(FileBrowser::new(theme, current_directory));
+        browser.on_enqueue({
             let queue = queue.clone();
-            let playlists = playlist.clone();
-            let media_library = Rc::clone(&library);
 
-            move |(s, key_event)| {
-                Self::on_file_browser_select(
-                    player.as_ref(),
-                    queue.as_ref(),
-                    playlists.as_ref(),
-                    media_library.as_ref(),
-                    s,
-                    key_event,
-                );
+            move |songs| {
+                queue.append(&mut std::collections::VecDeque::from(songs));
+            }
+        });
+        browser.on_add_to_lib_fn({
+            let library = library.clone();
+
+            move |songs| {
+                library.add_songs(songs);
             }
         });
 
-        #[allow(clippy::arc_with_non_send_sync)]
-        let browser = Arc::new(Mutex::new(browser)); // arc_with_non_send_sync gives false positive for browser, but browser will be refactored to use List component anyway
         let help = Arc::new(Mutex::new(Help::new(theme)));
 
         Self {
@@ -164,7 +159,7 @@ impl<'a> App<'a> {
                 ("Library".to_string(), Component::RefRc(library.clone())),
                 ("Playlists".to_string(), Component::RefRc(playlist.clone())),
                 ("Queue".to_string(), Component::RefArc(queue.clone())),
-                ("File Browser".to_string(), Component::Mut(browser.clone())),
+                ("File Browser".to_string(), Component::RefRc(browser.clone())),
                 ("Help".to_string(), Component::Mut(help.clone())),
             ],
             focused_screen: 0,
@@ -183,13 +178,7 @@ impl<'a> App<'a> {
         let queue_items = self.queue.songs().clone();
 
         State {
-            last_visited_path: self
-                .browser
-                .lock()
-                .unwrap()
-                .current_directory()
-                .to_str()
-                .map(String::from),
+            last_visited_path: self.browser.current_directory().to_str().map(String::from),
             queue_items: Vec::from(queue_items),
         }
     }
@@ -262,59 +251,6 @@ impl<'a> App<'a> {
             .unwrap();
 
         self.player_command_receiver_thread = Some(t);
-    }
-
-    fn on_file_browser_select(
-        player: &Player,
-        queue: &Queue,
-        playlists: &Playlists,
-        media_library: &Library,
-        file_browser_selection: FileBrowserSelection,
-        key_event: KeyEvent,
-    ) {
-        match (file_browser_selection, key_event.code) {
-            (FileBrowserSelection::Song(song), KeyCode::Enter) => {
-                player.play_song(song);
-            }
-            (FileBrowserSelection::CueSheet(cue_sheet), KeyCode::Enter) => {
-                let songs = Song::from_cue_sheet(cue_sheet);
-                queue.append(&mut std::collections::VecDeque::from(songs));
-            }
-
-            (FileBrowserSelection::Song(song), KeyCode::Char('j')) => {
-                media_library.add_song(song.clone());
-            }
-            (FileBrowserSelection::CueSheet(cue_sheet), KeyCode::Char('j')) => {
-                media_library.add_cue(cue_sheet);
-            }
-            (FileBrowserSelection::Directory(path), KeyCode::Char('j')) => {
-                media_library.add_directory(&path);
-            }
-
-            (FileBrowserSelection::Song(song), KeyCode::Char('a')) => {
-                queue.add_back(song);
-            }
-            (FileBrowserSelection::CueSheet(cue_sheet), KeyCode::Char('a')) => {
-                let songs = Song::from_cue_sheet(cue_sheet);
-                queue.append(&mut std::collections::VecDeque::from(songs));
-            }
-            (FileBrowserSelection::Directory(path), KeyCode::Char('a')) => {
-                log::debug!("TODO: file_browser().on_select(Directory({}), a)", path.display());
-                // directory_to_songs_and_folders
-            }
-
-            (FileBrowserSelection::Song(song), KeyCode::Char('y')) => {
-                playlists.add_song(song);
-            }
-            (FileBrowserSelection::CueSheet(cue_sheet), KeyCode::Char('y')) => {
-                playlists.add_cue(cue_sheet);
-            }
-            (FileBrowserSelection::Directory(path), KeyCode::Char('y')) => {
-                let mut songs = Song::from_dir(&path);
-                playlists.add_songs(&mut songs);
-            }
-            _ => {}
-        }
     }
 }
 

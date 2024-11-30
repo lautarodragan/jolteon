@@ -1,15 +1,12 @@
 use std::fmt::{Display, Formatter};
-use std::path::Path;
 
 use ratatui::{
     buffer::Buffer,
-    layout::{Alignment, Constraint, Layout, Rect},
-    prelude::{Line, Modifier, Span, Style},
+    layout::{Constraint, Layout, Rect},
+    prelude::{Line, Style},
     text::Text,
-    widgets::{block::Position, Block, Borders, List, ListItem, ListState, StatefulWidget, WidgetRef},
+    widgets::WidgetRef,
 };
-
-use crate::config::Theme;
 
 use super::{FileBrowser, FileBrowserSelection};
 
@@ -30,92 +27,33 @@ impl From<&FileBrowserSelection> for Text<'_> {
 
 impl<'a> WidgetRef for FileBrowser<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let (area_top, area_main_left, area_main_separator, _) = create_areas(area);
+        let [area_top, area_main] = Layout::vertical([Constraint::Length(2), Constraint::Min(1)])
+            .horizontal_margin(2)
+            .areas(area);
 
-        *self.height.lock().unwrap() = area_main_left.height as usize;
+        let [area_main_left, area_main_separator, _area_main_right] = Layout::horizontal([
+            Constraint::Percentage(50),
+            Constraint::Length(5),
+            Constraint::Percentage(50),
+        ])
+        .areas(area_main);
 
-        let tb = top_bar(&self.theme, self.current_directory(), &self.filter);
-        tb.render_ref(area_top, buf);
+        let current_directory = self.current_directory.borrow();
 
-        let fl = file_list(&self.theme, &self.items, self.filter());
-        StatefulWidget::render(
-            fl,
-            area_main_left,
-            buf,
-            &mut ListState::default()
-                .with_offset(self.offset)
-                .with_selected(Some(self.selected_index)),
-        );
+        let folder_name = current_directory
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or_default();
+
+        let browser_title =
+            Line::from(folder_name).style(Style::new().bg(self.theme.background).fg(self.theme.foreground));
+        browser_title.render_ref(area_top, buf);
+
+        self.parents_list.render_ref(area_main_left, buf);
+        self.children_list.render_ref(_area_main_right, buf);
 
         let [_separator_left, _, _separator_right] =
             Layout::horizontal([Constraint::Min(1), Constraint::Length(1), Constraint::Min(1)])
                 .areas(area_main_separator);
     }
-}
-
-fn create_areas(area: Rect) -> (Rect, Rect, Rect, Rect) {
-    let [area_top, area_main] = Layout::vertical([Constraint::Length(2), Constraint::Min(1)])
-        .horizontal_margin(2)
-        .areas(area);
-
-    let [area_main_left, area_main_separator, area_main_right] = Layout::horizontal([
-        Constraint::Percentage(50),
-        Constraint::Length(5),
-        Constraint::Percentage(50),
-    ])
-    .areas(area_main);
-
-    (area_top, area_main_left, area_main_separator, area_main_right)
-}
-
-fn top_bar(theme: &Theme, current_directory: &Path, filter: &Option<String>) -> Block<'static> {
-    let folder_name = current_directory
-        .file_name()
-        .and_then(|s| s.to_str())
-        .map(String::from)
-        .unwrap_or("".to_string());
-
-    let browser_title = match filter {
-        Some(filter) => Line::from(vec![
-            Span::styled("Search: ", Style::default()),
-            Span::styled(filter.clone(), Style::default().fg(theme.search)),
-        ]),
-        _ => Line::from(folder_name),
-    };
-
-    let top_bar = Block::default()
-        .borders(Borders::NONE)
-        .title(browser_title)
-        .title_alignment(Alignment::Left)
-        .title_position(Position::Top)
-        .title_style(Style::new().bg(theme.background).fg(theme.foreground));
-
-    top_bar
-}
-
-fn file_list(theme: &Theme, items: &[FileBrowserSelection], filter: &Option<String>) -> List<'static> {
-    let browser_items: Vec<ListItem> = items
-        .iter()
-        // .map(|i| i.to_path().to_string_lossy().to_string())
-        .map(|i| {
-            let fg = match filter.as_ref() {
-                Some(s) if i.to_path().to_string_lossy().to_lowercase().contains(&s.to_lowercase()) => theme.search,
-                _ => theme.foreground_secondary,
-            };
-            ListItem::new(Text::from(i)).style(Style::default().fg(fg))
-        })
-        .collect();
-
-    let browser_list = List::new(browser_items)
-        .style(Style::default().fg(theme.foreground))
-        .highlight_style(
-            Style::default()
-                .bg(theme.background_selected)
-                .fg(theme.foreground_selected)
-                .add_modifier(Modifier::BOLD),
-        )
-        .scroll_padding(0)
-        .highlight_symbol("");
-
-    browser_list
 }

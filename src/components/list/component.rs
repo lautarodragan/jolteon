@@ -1,5 +1,5 @@
 use std::sync::{
-    atomic::{AtomicU8, AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
     Mutex,
 };
 
@@ -49,6 +49,8 @@ where
     pub(super) on_request_focus_trap_fn: Mutex<Box<dyn Fn(bool) + 'a>>,
     pub(super) find_next_item_by_fn: Mutex<Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>>,
 
+    pub(super) auto_select_next: AtomicBool,
+
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
 
@@ -88,6 +90,8 @@ where
             items: Mutex::new(items),
             selected_item_index: AtomicUsize::new(0),
 
+            auto_select_next: AtomicBool::new(true),
+
             offset: AtomicUsize::new(0),
             height: AtomicUsize::new(0),
 
@@ -97,6 +101,10 @@ where
             padding: AtomicU8::new(5),
             page_size: AtomicU8::new(5),
         }
+    }
+
+    pub fn set_auto_select_next(&self, v: bool) {
+        self.auto_select_next.store(v, Ordering::Release);
     }
 
     pub fn with_items<R>(&self, cb: impl FnOnce(Vec<&T>) -> R) -> R {
@@ -158,8 +166,13 @@ where
     }
 
     pub fn set_items(&self, items: Vec<T>) {
-        self.selected_item_index.store(0, Ordering::SeqCst);
-        self.offset.store(0, Ordering::SeqCst);
+        self.set_items_s(items, 0, 0);
+    }
+
+    pub fn set_items_s(&self, items: Vec<T>, i: usize, o: usize) {
+        self.selected_item_index.store(i, Ordering::Release);
+        self.offset.store(o, Ordering::Release);
+
         *self.items.lock().unwrap() = items
             .into_iter()
             .map(|item| ListItem {
@@ -209,6 +222,14 @@ where
                 self.selected_item_index.store(i, Ordering::Release);
             }
         }
+    }
+
+    pub fn selected_index(&self) -> usize {
+        self.selected_item_index.load(Ordering::Acquire)
+    }
+
+    pub fn scroll_position(&self) -> usize {
+        self.offset.load(Ordering::Acquire)
     }
 }
 

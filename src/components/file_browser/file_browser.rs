@@ -1,49 +1,138 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Mutex,
-};
+use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc};
 
-use crossterm::event::{KeyCode, KeyEvent};
-
-use crate::config::Theme;
+use crate::{components::List, config::Theme, structs::Song};
 
 use super::file_browser_selection::{directory_to_songs_and_folders, FileBrowserSelection};
 
 pub struct FileBrowser<'a> {
-    on_select_fn: Box<dyn FnMut((FileBrowserSelection, KeyEvent)) + 'a>,
-
-    current_directory: PathBuf,
-    pub(super) items: Vec<FileBrowserSelection>,
-    pub(super) selected_index: usize,
-    pub(super) filter: Option<String>,
-
     pub(super) theme: Theme,
-    padding: usize,
-    pub(super) height: Mutex<usize>,
-    pub(super) offset: usize,
+    pub(super) parents_list: Rc<List<'a, FileBrowserSelection>>,
+    pub(super) children_list: Rc<List<'a, FileBrowserSelection>>,
+    pub(super) current_directory: Rc<RefCell<PathBuf>>,
+    pub(super) on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
+    pub(super) on_enter_alt_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
+    pub(super) history: Rc<RefCell<HashMap<PathBuf, (usize, usize)>>>,
 }
 
 impl<'a> FileBrowser<'a> {
     pub fn new(theme: Theme, current_directory: PathBuf) -> Self {
         let items = directory_to_songs_and_folders(&current_directory);
+        let parents_list = Rc::new(List::new(theme, items));
+        let children_list = Rc::new(List::new(theme, vec![]));
+        let current_directory = Rc::new(RefCell::new(current_directory));
+        let history = Rc::new(RefCell::new(HashMap::new()));
+        let on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
+        let on_enter_alt_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
+
+        parents_list.set_auto_select_next(false);
+
+        parents_list.on_select({
+            let children_list = children_list.clone();
+            move |item, k| {
+                if let FileBrowserSelection::Directory(path) = item {
+                    let files = directory_to_songs_and_folders(path.as_path());
+                    children_list.set_items(files);
+                } else {
+                    children_list.set_items(vec![]);
+                }
+            }
+        });
+        parents_list.on_enter({
+            let on_enqueue_fn = Rc::clone(&on_enqueue_fn);
+            let current_directory = Rc::clone(&current_directory);
+            let parents_list = Rc::clone(&parents_list);
+            let children_list = children_list.clone();
+            let history = Rc::clone(&history);
+
+            move |item| match item {
+                FileBrowserSelection::Directory(path) => {
+                    let mut current_directory = current_directory.borrow_mut();
+                    let files = directory_to_songs_and_folders(path.as_path());
+
+                    if !files.iter().any(|f| matches!(f, FileBrowserSelection::Directory(_))) {
+                        // UX:
+                        //   Do not navigate into a directory if it has no directories inside.
+                        //   Use the right-side list to operate on its children instead.
+                        return;
+                    }
+
+                    let mut history = history.borrow_mut();
+
+                    // UX:
+                    //   Save the current selected index and scroll position, associated with each directory.
+                    history.insert(
+                        (*current_directory).clone(),
+                        (parents_list.selected_index(), parents_list.scroll_position()),
+                    );
+
+                    // UX:
+                    //   Automatically select the child of `path` that was last selected when `path` was last displayed.
+                    let (selected_child, scroll_position) = history.get(&path).cloned().unwrap_or_default();
+
+                    let children = if let Some(FileBrowserSelection::Directory(path)) = files.get(selected_child) {
+                        directory_to_songs_and_folders(path.as_path())
+                    } else {
+                        vec![]
+                    };
+                    children_list.set_items(children);
+
+                    parents_list.set_items_s(files, selected_child, scroll_position);
+
+                    *current_directory = path;
+                }
+                FileBrowserSelection::Song(song) => {
+                    let on_enqueue_fn = on_enqueue_fn.borrow();
+                    if let Some(on_enqueue_fn) = &*on_enqueue_fn {
+                        on_enqueue_fn(vec![song]);
+                    }
+                }
+                FileBrowserSelection::CueSheet(cue_sheet) => {
+                    let on_enqueue_fn = on_enqueue_fn.borrow();
+                    if let Some(on_enqueue_fn) = &*on_enqueue_fn {
+                        let songs = Song::from_cue_sheet(cue_sheet);
+                        on_enqueue_fn(songs);
+                    }
+                }
+                _ => {}
+            }
+        });
+        parents_list.on_enter_alt({
+            let on_enter_alt_fn = Rc::clone(&on_enter_alt_fn);
+
+            move |item| match item {
+                FileBrowserSelection::Directory(path) => {
+                    let on_enter_alt_fn = on_enter_alt_fn.borrow();
+                    if let Some(on_enter_alt_fn) = &*on_enter_alt_fn {
+                        let songs = Song::from_dir(path.as_path());
+                        on_enter_alt_fn(songs);
+                    }
+                }
+                FileBrowserSelection::Song(song) => {
+                    let on_enter_alt_fn = on_enter_alt_fn.borrow();
+                    if let Some(on_enter_alt_fn) = &*on_enter_alt_fn {
+                        on_enter_alt_fn(vec![song]);
+                    }
+                }
+                FileBrowserSelection::CueSheet(cue_sheet) => {
+                    let on_enter_alt_fn = on_enter_alt_fn.borrow();
+                    if let Some(on_enter_alt_fn) = &*on_enter_alt_fn {
+                        let songs = Song::from_cue_sheet(cue_sheet);
+                        on_enter_alt_fn(songs);
+                    }
+                }
+                _ => {}
+            }
+        });
 
         Self {
-            on_select_fn: Box::new(|_| {}) as _,
-
-            current_directory,
-            items,
-            selected_index: 0,
-            filter: None,
-
             theme,
-            padding: 6,
-            height: Mutex::new(0),
-            offset: 0,
+            parents_list,
+            children_list,
+            current_directory,
+            on_enqueue_fn,
+            on_enter_alt_fn,
+            history,
         }
-    }
-
-    pub fn filter(&self) -> &Option<String> {
-        &self.filter
     }
 
     #[allow(dead_code)]
@@ -56,205 +145,56 @@ impl<'a> FileBrowser<'a> {
         unimplemented!();
     }
 
-    pub fn current_directory(&self) -> &PathBuf {
-        &self.current_directory
+    pub fn on_enqueue(&self, cb: impl Fn(Vec<Song>) + 'a) {
+        let mut on_enqueue_fn = self.on_enqueue_fn.borrow_mut();
+        *on_enqueue_fn = Some(Box::new(cb));
     }
 
-    pub fn selected_item(&self) -> FileBrowserSelection {
-        if self.items.is_empty() {
-            log::error!("self.selected_index -> self.items.is_empty()");
-            FileBrowserSelection::from_path(&self.current_directory).unwrap()
-        } else if self.selected_index >= self.items.len() {
-            log::error!("self.selected_index >= self.items.len()");
-            FileBrowserSelection::from_path(&self.current_directory).unwrap()
-        } else {
-            self.items[self.selected_index].clone()
-            // self.current_directory.join(&self.items[self.selected_index])
-        }
+    pub fn on_add_to_lib_fn(&self, cb: impl Fn(Vec<Song>) + 'a) {
+        let mut on_add_to_lib_fn = self.on_enter_alt_fn.borrow_mut();
+        *on_add_to_lib_fn = Some(Box::new(cb));
     }
 
-    pub fn on_select(&mut self, cb: impl FnMut((FileBrowserSelection, KeyEvent)) + 'a) {
-        self.on_select_fn = Box::new(cb);
-    }
+    pub fn navigate_up(&self) {
+        let mut current_directory = self.current_directory.borrow_mut();
 
-    pub(super) fn enter_selection(&mut self, key_event: KeyEvent) {
-        let fbs = self.selected_item();
-
-        match fbs {
-            FileBrowserSelection::Directory(path) if key_event.code == KeyCode::Enter => {
-                self.navigate_into(path);
-            }
-            _ => {
-                (self.on_select_fn)((fbs, key_event));
-            }
-        }
-    }
-
-    pub fn navigate_into(&mut self, path: PathBuf) {
-        self.current_directory = path.clone();
-        self.items = directory_to_songs_and_folders(&path);
-        self.selected_index = 0;
-    }
-
-    pub fn navigate_up(&mut self) {
-        let Some(parent) = self.current_directory.as_path().parent().map(|p| p.to_path_buf()) else {
+        let Some(parent) = current_directory.parent() else {
             return;
         };
-        self.items = directory_to_songs_and_folders(&parent);
-        self.select_current_directory();
-        self.current_directory = parent;
+
+        self.parents_list.with_items(|parents| {
+            self.children_list.set_items(parents.into_iter().cloned().collect());
+        });
+
+        let mut history = self.history.borrow_mut();
+        history.insert(
+            (*current_directory).clone(),
+            (self.parents_list.selected_index(), self.parents_list.scroll_position()),
+        );
+        let history_entry = history.get(parent).cloned();
+
+        let parents = directory_to_songs_and_folders(parent);
+
+        let (selected_parent_index, selected_parent_scroll) = history_entry.unwrap_or({
+            let selected_parent_index = parents.iter().position(|item| {
+                let FileBrowserSelection::Directory(path) = item else {
+                    return false;
+                };
+                current_directory
+                    .to_string_lossy()
+                    .contains(path.to_string_lossy().to_string().as_str())
+            });
+            (selected_parent_index.unwrap_or(0), 0)
+        });
+
+        self.parents_list
+            .set_items_s(parents, selected_parent_index, selected_parent_scroll);
+
+        *current_directory = parent.to_path_buf();
     }
 
-    pub fn select_next(&mut self) {
-        if self.selected_index < self.items.len().saturating_sub(1) {
-            self.selected_index = self.selected_index.saturating_add(1);
-
-            if self.selected_index > self.offset + self.padding_bottom() {
-                self.set_offset(self.selected_index, self.padding_bottom());
-            }
-        }
-    }
-
-    pub fn select_previous(&mut self) {
-        if self.selected_index > 0 {
-            self.selected_index = self.selected_index.saturating_sub(1);
-
-            if self.selected_index < self.offset + self.padding_top() {
-                self.set_offset(self.selected_index, self.padding_top());
-            }
-        }
-    }
-
-    pub fn select_first(&mut self) {
-        self.selected_index = 0;
-        self.set_offset(self.selected_index, self.padding_bottom());
-    }
-
-    pub fn select_last(&mut self) {
-        self.selected_index = self.items.len().saturating_sub(1).max(0);
-        self.set_offset(self.selected_index, self.padding_top());
-    }
-
-    pub fn next_index_wrapped(&self, i: usize) -> usize {
-        if i >= self.items.len() - 1 {
-            0
-        } else {
-            i + 1
-        }
-    }
-
-    pub fn previous_index_wrapped(&self, i: usize) -> usize {
-        if i == 0 {
-            self.items.len() - 1
-        } else {
-            i - 1
-        }
-    }
-
-    pub fn find_by_path(&self, s: &Path) -> usize {
-        let mut i = 0;
-
-        for n in 0..self.items.len() {
-            if s.ends_with(self.items[n].to_path().as_path()) {
-                i = n;
-                break;
-            }
-        }
-
-        i
-    }
-
-    pub fn select_current_directory(&mut self) {
-        self.selected_index = self.find_by_path(&self.current_directory);
-    }
-
-    pub fn find_next_by_match(&self, s: &str, direction_forward: bool) -> Option<usize> {
-        let mut i: usize = self.selected_index;
-
-        loop {
-            i = if direction_forward {
-                self.next_index_wrapped(i)
-            } else {
-                self.previous_index_wrapped(i)
-            };
-
-            if i == self.selected_index {
-                return None;
-            }
-
-            if self.items[i]
-                .to_path()
-                .to_string_lossy()
-                .to_lowercase()
-                .contains(&s.to_lowercase())
-            {
-                return Some(i);
-            }
-        }
-    }
-
-    pub fn select_next_match(&mut self) {
-        if let Some(ref s) = self.filter {
-            if let Some(i) = self.find_next_by_match(s, true) {
-                self.selected_index = i;
-            }
-        }
-    }
-
-    pub fn select_previous_match(&mut self) {
-        if let Some(ref s) = self.filter {
-            if let Some(i) = self.find_next_by_match(s, false) {
-                self.selected_index = i;
-            }
-        }
-    }
-
-    pub fn select_next_by_match(&mut self, s: &str) {
-        if let Some(i) = self.find_next_by_match(s, true) {
-            self.selected_index = i;
-        }
-    }
-
-    pub fn filter_append(&mut self, char: char) {
-        if let Some(filter) = self.filter.as_mut() {
-            filter.push(char);
-        } else {
-            self.filter = Some(char.to_string());
-        }
-
-        if !self
-            .selected_item()
-            .to_path()
-            .to_string_lossy()
-            .to_lowercase()
-            .contains(&self.filter.clone().unwrap().to_lowercase())
-        {
-            self.select_next_by_match(&self.filter.clone().unwrap());
-        }
-    }
-
-    pub fn filter_delete(&mut self) {
-        self.filter = match &self.filter {
-            Some(s) if !s.is_empty() => Some(s[..s.len() - 1].to_string()), // TODO: s[..s.len()-1] can panic! use .substring crate
-            _ => None,
-        };
-    }
-
-    fn padding_top(&self) -> usize {
-        6
-    }
-
-    fn padding_bottom(&self) -> usize {
-        self.height.lock().unwrap().saturating_sub(self.padding)
-    }
-
-    pub fn set_offset(&mut self, i: usize, padding: usize) {
-        self.offset = if i > padding {
-            i.saturating_sub(padding)
-                .min(self.items.len().saturating_sub(*self.height.lock().unwrap()))
-        } else {
-            0
-        };
+    pub fn current_directory(&self) -> PathBuf {
+        self.current_directory.borrow().clone()
     }
 }
 

@@ -1,15 +1,12 @@
 use std::{
     cell::Cell,
-    path::Path,
     rc::Rc,
     sync::{Mutex, MutexGuard},
 };
 
 use crossterm::event::KeyEvent;
 
-use crate::{
-    components::list::Direction, components::List, config::Theme, cue::CueSheet, structs::Song, ui::Component,
-};
+use crate::{components::list::Direction, components::List, config::Theme, structs::Song, ui::Component};
 
 use super::album_tree::{AlbumTree, AlbumTreeItem};
 
@@ -246,20 +243,6 @@ impl<'a> Library<'a> {
             songs.clone()
         };
         self.song_list.set_items(songs);
-    }
-
-    pub fn add_song(&self, song: Song) {
-        self.add_songs(vec![song]);
-    }
-
-    pub fn add_cue(&self, cue_sheet: CueSheet) {
-        let songs = Song::from_cue_sheet(cue_sheet);
-        self.add_songs(songs);
-    }
-
-    pub fn add_directory(&self, path: &Path) {
-        let songs = Song::from_dir(path);
-        self.add_songs(songs);
     }
 }
 

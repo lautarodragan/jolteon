@@ -42,7 +42,9 @@ where
 
                 if key.modifiers == KeyModifiers::NONE {
                     self.on_enter_fn.lock().unwrap()(item);
-                    self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+                    if self.auto_select_next.load(Ordering::Acquire) {
+                        self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+                    }
                 } else if key.modifiers == KeyModifiers::ALT {
                     if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.lock().unwrap() {
                         on_enter_alt_fn(item);
