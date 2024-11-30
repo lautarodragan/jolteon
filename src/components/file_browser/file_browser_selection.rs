@@ -18,6 +18,7 @@ pub enum FileBrowserSelection {
     CueSheet(CueSheet),
     Directory(PathBuf),
     Jolt(Jolt),
+    Other(PathBuf),
 }
 
 impl FileBrowserSelection {
@@ -37,6 +38,7 @@ impl FileBrowserSelection {
             FileBrowserSelection::CueSheet(cs) => cs.cue_sheet_file_path(),
             FileBrowserSelection::Directory(p) => p.clone(),
             FileBrowserSelection::Jolt(j) => j.path.clone(),
+            FileBrowserSelection::Other(p) => p.clone(),
         }
     }
 }
@@ -46,6 +48,10 @@ impl PartialEq for FileBrowserSelection {
         match self {
             FileBrowserSelection::Directory(path) => match other {
                 FileBrowserSelection::Directory(other_path) => path == other_path,
+                _ => false,
+            },
+            FileBrowserSelection::Other(path) => match other {
+                FileBrowserSelection::Other(other_path) => path == other_path,
                 _ => false,
             },
             FileBrowserSelection::CueSheet(cue_sheet) => match other {
@@ -102,9 +108,17 @@ impl Ord for FileBrowserSelection {
                 }
             }
             FileBrowserSelection::Song(song) => {
-                // last, but not least, songs
+                // then songs
                 match other {
                     FileBrowserSelection::Song(other_song) => song.path.cmp(&other_song.path),
+                    FileBrowserSelection::Other(_) => Ordering::Less,
+                    _ => Ordering::Greater,
+                }
+            }
+            FileBrowserSelection::Other(path) => {
+                // last, files we can't work with, but may want to show
+                match other {
+                    FileBrowserSelection::Other(other_path) => path.cmp(other_path),
                     _ => Ordering::Greater,
                 }
             }
@@ -136,7 +150,7 @@ fn dir_entry_to_file_browser_selection(entry: &DirEntry) -> Option<FileBrowserSe
             }
         }
     } else {
-        None
+        Some(FileBrowserSelection::Other(entry.path()))
     }
 }
 
