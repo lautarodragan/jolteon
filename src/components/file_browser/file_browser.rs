@@ -2,13 +2,16 @@ use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc};
 
 use crate::{components::List, config::Theme, structs::Song};
 
-use super::file_browser_selection::{directory_to_songs_and_folders, FileBrowserSelection};
+use super::{
+    current_directory::CurrentDirectory,
+    file_browser_selection::{directory_to_songs_and_folders, FileBrowserSelection},
+};
 
 pub struct FileBrowser<'a> {
     pub(super) theme: Theme,
     pub(super) parents_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) children_list: Rc<List<'a, FileBrowserSelection>>,
-    pub(super) current_directory: Rc<RefCell<PathBuf>>,
+    pub(super) current_directory: Rc<CurrentDirectory>,
     pub(super) on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) on_enter_alt_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) history: Rc<RefCell<HashMap<PathBuf, (usize, usize)>>>,
@@ -19,7 +22,7 @@ impl<'a> FileBrowser<'a> {
         let items = directory_to_songs_and_folders(&current_directory);
         let parents_list = Rc::new(List::new(theme, items));
         let children_list = Rc::new(List::new(theme, vec![]));
-        let current_directory = Rc::new(RefCell::new(current_directory));
+        let current_directory = Rc::new(CurrentDirectory::new(theme, current_directory));
         let history = Rc::new(RefCell::new(HashMap::new()));
         let on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
         let on_enter_alt_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
@@ -46,7 +49,6 @@ impl<'a> FileBrowser<'a> {
 
             move |item| match item {
                 FileBrowserSelection::Directory(path) => {
-                    let mut current_directory = current_directory.borrow_mut();
                     let files = directory_to_songs_and_folders(path.as_path());
 
                     if !files.iter().any(|f| matches!(f, FileBrowserSelection::Directory(_))) {
@@ -61,7 +63,7 @@ impl<'a> FileBrowser<'a> {
                     // UX:
                     //   Save the current selected index and scroll position, associated with each directory.
                     history.insert(
-                        (*current_directory).clone(),
+                        current_directory.path(),
                         (parents_list.selected_index(), parents_list.scroll_position()),
                     );
 
@@ -78,7 +80,7 @@ impl<'a> FileBrowser<'a> {
 
                     parents_list.set_items_s(files, selected_child, scroll_position);
 
-                    *current_directory = path;
+                    current_directory.set_path(path);
                 }
                 FileBrowserSelection::Song(song) => {
                     let on_enqueue_fn = on_enqueue_fn.borrow();
@@ -156,7 +158,7 @@ impl<'a> FileBrowser<'a> {
     }
 
     pub fn navigate_up(&self) {
-        let mut current_directory = self.current_directory.borrow_mut();
+        let current_directory = self.current_directory.path();
 
         let Some(parent) = current_directory.parent() else {
             return;
@@ -168,7 +170,7 @@ impl<'a> FileBrowser<'a> {
 
         let mut history = self.history.borrow_mut();
         history.insert(
-            (*current_directory).clone(),
+            current_directory.clone(),
             (self.parents_list.selected_index(), self.parents_list.scroll_position()),
         );
         let history_entry = history.get(parent).cloned();
@@ -190,11 +192,11 @@ impl<'a> FileBrowser<'a> {
         self.parents_list
             .set_items_s(parents, selected_parent_index, selected_parent_scroll);
 
-        *current_directory = parent.to_path_buf();
+        self.current_directory.set_path(parent.to_path_buf());
     }
 
     pub fn current_directory(&self) -> PathBuf {
-        self.current_directory.borrow().clone()
+        self.current_directory.path()
     }
 }
 

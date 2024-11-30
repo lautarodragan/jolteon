@@ -3,7 +3,6 @@ use std::fmt::{Display, Formatter};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    prelude::{Line, Style},
     text::Text,
     widgets::WidgetRef,
 };
@@ -38,17 +37,7 @@ impl<'a> WidgetRef for FileBrowser<'a> {
         ])
         .areas(area_main);
 
-        let current_directory = self.current_directory.borrow();
-
-        let folder_name = current_directory
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or_default();
-
-        let browser_title =
-            Line::from(folder_name).style(Style::new().bg(self.theme.background).fg(self.theme.foreground));
-        browser_title.render_ref(area_top, buf);
-
+        self.current_directory.render_ref(area_top, buf);
         self.parents_list.render_ref(area_main_left, buf);
         self.children_list.render_ref(_area_main_right, buf);
 

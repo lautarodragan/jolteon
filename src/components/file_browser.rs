@@ -1,3 +1,4 @@
+mod current_directory;
 pub mod file_browser;
 mod file_browser_selection;
 pub mod keyboard_handler;
