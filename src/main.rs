@@ -7,6 +7,7 @@ mod components;
 mod config;
 mod constants;
 mod cue;
+mod duration;
 mod extensions;
 mod files;
 mod mpris;

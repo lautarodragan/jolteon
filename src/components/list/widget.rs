@@ -112,7 +112,7 @@ where
             let line = ListLine {
                 theme: &self.theme,
                 text,
-                list_has_focus: true,
+                list_has_focus: self.is_focused.load(Ordering::Acquire),
                 is_selected,
                 is_match: item.is_match,
                 is_renaming,

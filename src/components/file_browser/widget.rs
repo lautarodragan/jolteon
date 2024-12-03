@@ -30,16 +30,24 @@ impl<'a> WidgetRef for FileBrowser<'a> {
             .horizontal_margin(2)
             .areas(area);
 
-        let [area_main_left, area_main_separator, _area_main_right] = Layout::horizontal([
+        let [area_main_left, area_main_separator, area_main_right] = Layout::horizontal([
             Constraint::Percentage(50),
             Constraint::Length(5),
             Constraint::Percentage(50),
         ])
         .areas(area_main);
 
+        let [area_right_top, _, area_right_bottom] = Layout::vertical([
+            Constraint::Percentage(50),
+            Constraint::Length(1),
+            Constraint::Percentage(50),
+        ])
+        .areas(area_main_right);
+
         self.current_directory.render_ref(area_top, buf);
         self.parents_list.render_ref(area_main_left, buf);
-        self.children_list.render_ref(_area_main_right, buf);
+        self.children_list.render_ref(area_right_top, buf);
+        self.file_meta.render_ref(area_right_bottom, buf);
 
         let [_separator_left, _, _separator_right] =
             Layout::horizontal([Constraint::Min(1), Constraint::Length(1), Constraint::Min(1)])

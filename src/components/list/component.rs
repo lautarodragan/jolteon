@@ -54,6 +54,7 @@ where
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
     pub(super) line_style: Mutex<Option<Box<dyn Fn(&T) -> Option<ratatui::style::Style> + 'a>>>,
+    pub(super) is_focused: AtomicBool,
 
     pub(super) filter: Mutex<String>,
     pub(super) rename: Mutex<Option<String>>,
@@ -96,6 +97,7 @@ where
             offset: AtomicUsize::new(0),
             height: AtomicUsize::new(0),
             line_style: Mutex::new(None),
+            is_focused: AtomicBool::default(),
 
             filter: Mutex::new("".to_string()),
             rename: Mutex::new(None),
@@ -103,6 +105,14 @@ where
             padding: AtomicU8::new(5),
             page_size: AtomicU8::new(5),
         }
+    }
+
+    pub fn focus(&self) {
+        self.is_focused.store(true, Ordering::Release);
+    }
+
+    pub fn blur(&self) {
+        self.is_focused.store(false, Ordering::Release);
     }
 
     pub fn set_auto_select_next(&self, v: bool) {

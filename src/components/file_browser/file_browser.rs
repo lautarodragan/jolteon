@@ -1,6 +1,10 @@
-use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc, sync::atomic::AtomicUsize};
 
-use crate::{components::List, config::Theme, structs::Song};
+use crate::{
+    components::{file_browser::file_meta::FileMeta, List},
+    config::Theme,
+    structs::Song,
+};
 
 use super::{
     current_directory::CurrentDirectory,
@@ -11,10 +15,12 @@ pub struct FileBrowser<'a> {
     pub(super) theme: Theme,
     pub(super) parents_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) children_list: Rc<List<'a, FileBrowserSelection>>,
+    pub(super) file_meta: Rc<FileMeta<'a>>,
     pub(super) current_directory: Rc<CurrentDirectory>,
     pub(super) on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) on_enter_alt_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) history: Rc<RefCell<HashMap<PathBuf, (usize, usize)>>>,
+    pub(super) focus: AtomicUsize,
 }
 
 impl<'a> FileBrowser<'a> {
@@ -22,6 +28,7 @@ impl<'a> FileBrowser<'a> {
         let items = directory_to_songs_and_folders(&current_directory);
         let parents_list = Rc::new(List::new(theme, items));
         let children_list = Rc::new(List::new(theme, vec![]));
+        let file_meta = Rc::new(FileMeta::new(theme));
         let current_directory = Rc::new(CurrentDirectory::new(theme, current_directory));
         let history = Rc::new(RefCell::new(HashMap::new()));
         let on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
@@ -31,14 +38,29 @@ impl<'a> FileBrowser<'a> {
             FileBrowserSelection::Song(_) | FileBrowserSelection::CueSheet(_) => None,
             _ => Some(ratatui::style::Style::new().add_modifier(ratatui::style::Modifier::DIM)),
         });
+        children_list.on_select({
+            let file_meta = file_meta.clone();
+            move |s| {
+                file_meta.set_file(s);
+            }
+        });
 
+        parents_list.focus();
         parents_list.set_auto_select_next(false);
 
         parents_list.on_select({
             let children_list = children_list.clone();
+            let file_meta = file_meta.clone();
             move |item| {
                 if let FileBrowserSelection::Directory(path) = item {
                     let files = directory_to_songs_and_folders(path.as_path());
+
+                    if let Some(f) = files.first() {
+                        file_meta.set_file(f.clone());
+                    } else {
+                        file_meta.clear();
+                    }
+
                     children_list.set_items(files);
                 } else {
                     children_list.set_items(vec![]);
@@ -135,10 +157,12 @@ impl<'a> FileBrowser<'a> {
             theme,
             parents_list,
             children_list,
+            file_meta,
             current_directory,
             on_enqueue_fn,
             on_enter_alt_fn,
             history,
+            focus: AtomicUsize::new(0),
         }
     }
 
@@ -170,7 +194,15 @@ impl<'a> FileBrowser<'a> {
         };
 
         self.parents_list.with_items(|parents| {
-            self.children_list.set_items(parents.into_iter().cloned().collect());
+            let parents: Vec<_> = parents.into_iter().cloned().collect();
+
+            if let Some(f) = parents.first() {
+                self.file_meta.set_file(f.clone());
+            } else {
+                self.file_meta.clear();
+            }
+
+            self.children_list.set_items(parents);
         });
 
         let mut history = self.history.borrow_mut();

@@ -153,6 +153,14 @@ impl CueSheet {
     pub fn performer(&self) -> Option<String> {
         self.performer.clone()
     }
+
+    pub fn comments(&self) -> Vec<String> {
+        self.comments.clone()
+    }
+
+    pub fn unknowns(&self) -> Vec<String> {
+        self.unknown.clone()
+    }
 }
 
 #[cfg(test)]
