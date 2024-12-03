@@ -53,6 +53,7 @@ where
 
     pub(super) offset: AtomicUsize,
     pub(super) height: AtomicUsize,
+    pub(super) line_style: Mutex<Option<Box<dyn Fn(&T) -> Option<ratatui::style::Style> + 'a>>>,
 
     pub(super) filter: Mutex<String>,
     pub(super) rename: Mutex<Option<String>>,
@@ -94,6 +95,7 @@ where
 
             offset: AtomicUsize::new(0),
             height: AtomicUsize::new(0),
+            line_style: Mutex::new(None),
 
             filter: Mutex::new("".to_string()),
             rename: Mutex::new(None),
@@ -105,6 +107,11 @@ where
 
     pub fn set_auto_select_next(&self, v: bool) {
         self.auto_select_next.store(v, Ordering::Release);
+    }
+
+    pub fn line_style(&self, cb: impl Fn(&T) -> Option<ratatui::style::Style> + 'a) {
+        let mut line_style = self.line_style.lock().unwrap();
+        *line_style = Some(Box::new(cb));
     }
 
     pub fn with_items<R>(&self, cb: impl FnOnce(Vec<&T>) -> R) -> R {

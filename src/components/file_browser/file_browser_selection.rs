@@ -10,7 +10,7 @@ use crate::{
     structs::{Jolt, Song},
 };
 
-const VALID_EXTENSIONS: [&str; 7] = ["mp3", "mp4", "m4a", "wav", "flac", "ogg", "aac"];
+pub const VALID_EXTENSIONS: [&str; 7] = ["mp3", "mp4", "m4a", "wav", "flac", "ogg", "aac"];
 
 #[derive(Debug, Clone, Eq)]
 pub enum FileBrowserSelection {

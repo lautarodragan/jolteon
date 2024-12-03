@@ -27,6 +27,11 @@ impl<'a> FileBrowser<'a> {
         let on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
         let on_enter_alt_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
 
+        children_list.line_style(|i| match i {
+            FileBrowserSelection::Song(_) | FileBrowserSelection::CueSheet(_) => None,
+            _ => Some(ratatui::style::Style::new().add_modifier(ratatui::style::Modifier::DIM)),
+        });
+
         parents_list.set_auto_select_next(false);
 
         parents_list.on_select({

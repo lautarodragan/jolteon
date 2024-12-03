@@ -20,11 +20,12 @@ pub struct ListLine<'a> {
     is_selected: bool,
     is_match: bool,
     is_renaming: bool,
+    overrides: Option<Style>,
 }
 
 impl<'a> Widget for ListLine<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let style = if self.is_renaming {
+        let mut style = if self.is_renaming {
             Style::default().fg(self.theme.background).bg(self.theme.search)
         } else if self.is_selected {
             if self.list_has_focus {
@@ -44,6 +45,10 @@ impl<'a> Widget for ListLine<'a> {
             };
             Style::default().fg(fg).bg(self.theme.background)
         };
+
+        if let Some(overrides) = self.overrides {
+            style = style.patch(overrides);
+        }
 
         let line: Cow<'a, str> = if self.is_renaming {
             let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
@@ -99,6 +104,11 @@ where
                 _ => item.inner.to_string().into(),
             };
 
+            let style_overrides = {
+                let line_style = self.line_style.lock().unwrap();
+                line_style.as_ref().and_then(|ls| ls(&item.inner))
+            };
+
             let line = ListLine {
                 theme: &self.theme,
                 text,
@@ -106,6 +116,7 @@ where
                 is_selected,
                 is_match: item.is_match,
                 is_renaming,
+                overrides: style_overrides,
             };
 
             line.render(area, buf);
