@@ -243,7 +243,7 @@ where
             }
         } else {
             drop(on_reorder);
-            self.on_select_fn.lock().unwrap()(newly_selected_item, key);
+            self.on_select_fn.lock().unwrap()(newly_selected_item);
         }
     }
 

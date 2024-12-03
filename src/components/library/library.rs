@@ -4,8 +4,6 @@ use std::{
     sync::{Mutex, MutexGuard},
 };
 
-use crossterm::event::KeyEvent;
-
 use crate::{components::list::Direction, components::List, config::Theme, structs::Song, ui::Component};
 
 use super::album_tree::{AlbumTree, AlbumTreeItem};
@@ -26,8 +24,6 @@ pub struct Library<'a> {
 
 impl<'a> Library<'a> {
     pub fn new(theme: Theme) -> Self {
-        let on_select_fn: Rc<Mutex<Box<dyn FnMut(Song, KeyEvent) + 'a>>> =
-            Rc::new(Mutex::new(Box::new(|_, _| {}) as _));
         let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
         let songs_by_artist = Rc::new(Mutex::new(crate::files::Library::from_file()));
@@ -118,18 +114,6 @@ impl<'a> Library<'a> {
                         songs_by_artist.remove_album(artist, album);
                     }
                 };
-            }
-        });
-
-        song_list.on_select({
-            let on_select_fn = on_select_fn.clone();
-            move |song, key| {
-                log::trace!(target: "::library.song_list.on_select", "song selected {:#?}", song);
-
-                // song.debug_tags();
-
-                let mut on_select_fn = on_select_fn.lock().unwrap();
-                on_select_fn(song, key);
             }
         });
 

@@ -41,7 +41,7 @@ impl<'a> Playlists<'a> {
 
         playlist_list.on_select({
             let song_list = song_list.clone();
-            move |pl, _| {
+            move |pl| {
                 song_list.set_items(pl.songs.clone());
             }
         });

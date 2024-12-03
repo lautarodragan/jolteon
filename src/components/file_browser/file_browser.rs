@@ -36,7 +36,7 @@ impl<'a> FileBrowser<'a> {
 
         parents_list.on_select({
             let children_list = children_list.clone();
-            move |item, k| {
+            move |item| {
                 if let FileBrowserSelection::Directory(path) = item {
                     let files = directory_to_songs_and_folders(path.as_path());
                     children_list.set_items(files);

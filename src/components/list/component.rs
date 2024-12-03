@@ -3,7 +3,7 @@ use std::sync::{
     Mutex,
 };
 
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::KeyCode;
 
 use crate::config::Theme;
 
@@ -39,7 +39,7 @@ where
     pub(super) items: Mutex<Vec<ListItem<T>>>,
     pub(super) selected_item_index: AtomicUsize,
 
-    pub(super) on_select_fn: Mutex<Box<dyn Fn(T, KeyEvent) + 'a>>,
+    pub(super) on_select_fn: Mutex<Box<dyn Fn(T) + 'a>>,
     pub(super) on_enter_fn: Mutex<Box<dyn Fn(T) + 'a>>,
     pub(super) on_enter_alt_fn: Mutex<Option<Box<dyn Fn(T) + 'a>>>,
     pub(super) on_reorder_fn: Mutex<Option<Box<dyn Fn(usize, usize) + 'a>>>,
@@ -78,7 +78,7 @@ where
         Self {
             theme,
 
-            on_select_fn: Mutex::new(Box::new(|_, _| {}) as _),
+            on_select_fn: Mutex::new(Box::new(|_| {}) as _),
             on_enter_fn: Mutex::new(Box::new(|_| {}) as _),
             on_enter_alt_fn: Mutex::new(None),
             on_reorder_fn: Mutex::new(None),
@@ -133,7 +133,7 @@ where
     }
 
     /// Triggered by moving the selection around, with the Up and Down arrow keys by default.
-    pub fn on_select(&self, cb: impl Fn(T, KeyEvent) + 'a) {
+    pub fn on_select(&self, cb: impl Fn(T) + 'a) {
         *self.on_select_fn.lock().unwrap() = Box::new(cb);
     }
 
