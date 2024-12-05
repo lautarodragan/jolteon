@@ -36,8 +36,40 @@ impl FileMeta<'_> {
             FileBrowserSelection::Jolt(ref jolt) => {
                 self.set_jolt(jolt);
             }
-            _ => {
-                self.list.set_items(vec![]);
+            FileBrowserSelection::Other(ref path) => {
+                self.list
+                    .set_items(vec!["File:".to_string(), format!("  {}", path.to_string_lossy())]);
+                if let Ok(meta) = path.metadata() {
+                    let mut s = "bytes";
+                    let mut b = meta.len();
+
+                    if b > 1024 {
+                        b = b.saturating_div(1024);
+                        s = "KiB";
+                    }
+
+                    if b > 1024 {
+                        b = b.saturating_div(1024);
+                        s = "MiB";
+                    }
+
+                    self.list.push_item(format!("  Size: {b} {s}"))
+                }
+            }
+            FileBrowserSelection::Directory(ref path) => {
+                self.list
+                    .set_items(vec!["Folder:".to_string(), format!("  {}", path.to_string_lossy())]);
+                if let Ok(children) = path.read_dir() {
+                    let (files, folders) = children
+                        .filter_map(|c| c.ok())
+                        .filter_map(|c| c.file_type().ok())
+                        .fold((0, 0), |(files, folders), ft| {
+                            (files + ft.is_file() as usize, folders + ft.is_dir() as usize)
+                        });
+
+                    self.list.push_item(format!("  Files: {files}"));
+                    self.list.push_item(format!("  Folders: {folders}"));
+                }
             }
         }
 
