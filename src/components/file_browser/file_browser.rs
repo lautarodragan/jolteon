@@ -44,6 +44,18 @@ impl<'a> FileBrowser<'a> {
                 file_meta.set_file(s);
             }
         });
+        children_list.on_enter({
+            let on_enqueue_fn = Rc::clone(&on_enqueue_fn);
+
+            move |item| {
+                if let FileBrowserSelection::Song(song) = item {
+                    let on_enqueue_fn = on_enqueue_fn.borrow();
+                    if let Some(on_enqueue_fn) = &*on_enqueue_fn {
+                        on_enqueue_fn(vec![song]);
+                    }
+                }
+            }
+        });
 
         parents_list.focus();
         parents_list.set_auto_select_next(false);
