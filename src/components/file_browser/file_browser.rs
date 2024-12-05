@@ -48,11 +48,41 @@ impl<'a> FileBrowser<'a> {
             let on_enqueue_fn = Rc::clone(&on_enqueue_fn);
 
             move |item| {
-                if let FileBrowserSelection::Song(song) = item {
-                    let on_enqueue_fn = on_enqueue_fn.borrow();
-                    if let Some(on_enqueue_fn) = &*on_enqueue_fn {
+                let on_enqueue_fn = on_enqueue_fn.borrow();
+                let Some(on_enqueue_fn) = &*on_enqueue_fn else {
+                    return;
+                };
+
+                match item {
+                    FileBrowserSelection::Song(song) => {
                         on_enqueue_fn(vec![song]);
                     }
+                    FileBrowserSelection::CueSheet(cue) => {
+                        let songs = Song::from_cue_sheet(cue);
+                        on_enqueue_fn(songs);
+                    }
+                    _ => {}
+                }
+            }
+        });
+        children_list.on_enter_alt({
+            let on_enter_alt_fn = Rc::clone(&on_enter_alt_fn);
+
+            move |item| {
+                let on_enter_alt_fn = on_enter_alt_fn.borrow();
+                let Some(on_enter_alt_fn) = &*on_enter_alt_fn else {
+                    return;
+                };
+
+                match item {
+                    FileBrowserSelection::Song(song) => {
+                        on_enter_alt_fn(vec![song]);
+                    }
+                    FileBrowserSelection::CueSheet(cue_sheet) => {
+                        let songs = Song::from_cue_sheet(cue_sheet);
+                        on_enter_alt_fn(songs);
+                    }
+                    _ => {}
                 }
             }
         });
@@ -140,28 +170,26 @@ impl<'a> FileBrowser<'a> {
         parents_list.on_enter_alt({
             let on_enter_alt_fn = Rc::clone(&on_enter_alt_fn);
 
-            move |item| match item {
-                FileBrowserSelection::Directory(path) => {
-                    let on_enter_alt_fn = on_enter_alt_fn.borrow();
-                    if let Some(on_enter_alt_fn) = &*on_enter_alt_fn {
+            move |item| {
+                let on_enter_alt_fn = on_enter_alt_fn.borrow();
+                let Some(on_enter_alt_fn) = &*on_enter_alt_fn else {
+                    return;
+                };
+
+                match item {
+                    FileBrowserSelection::Directory(path) => {
                         let songs = Song::from_dir(path.as_path());
                         on_enter_alt_fn(songs);
                     }
-                }
-                FileBrowserSelection::Song(song) => {
-                    let on_enter_alt_fn = on_enter_alt_fn.borrow();
-                    if let Some(on_enter_alt_fn) = &*on_enter_alt_fn {
+                    FileBrowserSelection::Song(song) => {
                         on_enter_alt_fn(vec![song]);
                     }
-                }
-                FileBrowserSelection::CueSheet(cue_sheet) => {
-                    let on_enter_alt_fn = on_enter_alt_fn.borrow();
-                    if let Some(on_enter_alt_fn) = &*on_enter_alt_fn {
+                    FileBrowserSelection::CueSheet(cue_sheet) => {
                         let songs = Song::from_cue_sheet(cue_sheet);
                         on_enter_alt_fn(songs);
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         });
 
