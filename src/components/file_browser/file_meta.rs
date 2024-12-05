@@ -40,20 +40,20 @@ impl FileMeta<'_> {
                 self.list
                     .set_items(vec!["File:".to_string(), format!("  {}", path.to_string_lossy())]);
                 if let Ok(meta) = path.metadata() {
-                    let mut s = "bytes";
-                    let mut b = meta.len();
+                    let mut unit = "bytes";
+                    let mut size = meta.len() as f64;
 
-                    if b > 1024 {
-                        b = b.saturating_div(1024);
-                        s = "KiB";
+                    if size > 1024.0 {
+                        size /= 1024.0;
+                        unit = "KiB";
                     }
 
-                    if b > 1024 {
-                        b = b.saturating_div(1024);
-                        s = "MiB";
+                    if size > 1024.0 {
+                        size /= 1024.0;
+                        unit = "MiB";
                     }
 
-                    self.list.push_item(format!("  Size: {b} {s}"))
+                    self.list.push_item(format!("  Size: {size:.2} {unit}"))
                 }
             }
             FileBrowserSelection::Directory(ref path) => {
