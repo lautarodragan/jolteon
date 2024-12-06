@@ -16,8 +16,16 @@ pub struct Shortcut {
 }
 
 impl Shortcut {
-    fn new(code: KeyCode, modifiers: KeyModifiers) -> Self {
+    pub fn new(code: KeyCode, modifiers: KeyModifiers) -> Self {
         Self { code, modifiers }
+    }
+
+    pub fn code(&self) -> KeyCode {
+        self.code
+    }
+
+    pub fn modifiers(&self) -> KeyModifiers {
+        self.modifiers
     }
 }
 
@@ -38,6 +46,14 @@ pub enum Action {
     QueueNext,
     Screen(ScreenAction),
     Player(PlayerAction),
+    ListAction(ListAction),
+    FileBrowser(FileBrowserAction),
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+pub enum ListAction {
+    Primary,
+    Secondary,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -59,6 +75,14 @@ pub enum PlayerAction {
     SeekBackwards,
 }
 
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+pub enum FileBrowserAction {
+    AddToQueue,
+    AddToLibrary,
+    AddToPlaylist,
+    ToggleMode,
+}
+
 impl TryFrom<&str> for Action {
     type Error = ();
 
@@ -76,6 +100,8 @@ impl TryFrom<&str> for Action {
             PlayerAction::try_from(child).map(Action::Player)
         } else if parent == "Screen" {
             ScreenAction::try_from(child).map(Action::Screen)
+        } else if parent == "List" {
+            ListAction::try_from(child).map(Action::ListAction)
         } else {
             Err(())
         }
@@ -113,24 +139,39 @@ impl TryFrom<&str> for PlayerAction {
     }
 }
 
-#[derive(Debug)]
+impl TryFrom<&str> for ListAction {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, ()> {
+        match value {
+            "Primary" => Ok(Self::Primary),
+            "Secondary" => Ok(Self::Secondary),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct Actions {
     actions: HashMap<Shortcut, Action>,
 }
 
 impl Actions {
-    pub fn from_str(s: &str) -> Self {
-        log::debug!("from str {s}");
+    fn from_str(s: &str) -> Self {
+        log::trace!("from str {s}");
 
         let mut actions: HashMap<Shortcut, Action> = HashMap::new();
 
         for l in s.lines() {
-            if s.len() < 3 {
+            if l.len() < 3 {
+                continue;
+            }
+            if l.trim().starts_with('#') {
                 continue;
             }
             let splits: Vec<&str> = l.split('=').collect();
             let [mut key, value] = splits[..] else {
-                log::error!("invalid line {l}");
+                log::debug!("ignoring invalid line, too few/many splits: {l}");
                 continue;
             };
 
@@ -169,6 +210,8 @@ impl Actions {
                 } else {
                     code = KeyCode::Char(char);
                 }
+            } else if key == "Enter" {
+                code = KeyCode::Enter;
             } else if key == "Space" {
                 code = KeyCode::Char(' ');
             } else if key == "Right" {
@@ -180,13 +223,13 @@ impl Actions {
             } else if key == "Down" {
                 code = KeyCode::Down;
             } else {
-                log::error!("invalid line {l}");
+                log::debug!("ignoring invalid line with key={key}");
                 continue;
             }
 
             let shortcut = Shortcut::new(code, modifiers);
             let Ok(action) = Action::try_from(value) else {
-                log::error!("invalid line {l}");
+                log::debug!("ignoring invalid line, unknown shortcut {value} for key {shortcut}");
                 continue;
             };
 
@@ -198,9 +241,6 @@ impl Actions {
         Self { actions }
     }
 
-    #[allow(dead_code)]
-    pub fn to_file(&self) {}
-
     pub fn from_file() -> Result<Self, TomlFileError> {
         let path = get_config_file_path("shortcuts")?;
         let string = read_to_string(path)?;
@@ -208,9 +248,46 @@ impl Actions {
         Ok(Self::from_str(string.as_str()))
     }
 
-    pub fn by_key(&self, key: KeyEvent) -> Option<Action> {
+    pub fn from_file_or_default() -> Self {
+        Self::from_file().unwrap_or_default()
+    }
+
+    #[allow(dead_code)]
+    pub fn to_file(&self) {}
+
+    pub fn action_by_key(&self, key: KeyEvent) -> Option<Action> {
         let sc = Shortcut::from(key);
         self.actions.get(&sc).or(DEFAULT_ACTIONS.get(&sc)).cloned()
+    }
+
+    pub fn key_by_action(&self, action: Action) -> Option<Shortcut> {
+        for (k, v) in &self.actions {
+            if *v == action {
+                return Some(*k);
+            }
+        }
+        for (k, v) in &*DEFAULT_ACTIONS {
+            if *v == action {
+                return Some(*k);
+            }
+        }
+        None
+    }
+
+    pub fn contains(&self, action: Action) -> bool {
+        self.actions.values().find(|a| {
+            **a == action
+        }).is_some() || DEFAULT_ACTIONS.values().find(|a| {
+            **a == action
+        }).is_some()
+    }
+
+    pub fn list_primary(&self) -> Shortcut {
+        self.key_by_action(Action::ListAction(ListAction::Primary)).unwrap()
+    }
+
+    pub fn list_secondary(&self) -> Shortcut {
+        self.key_by_action(Action::ListAction(ListAction::Secondary)).unwrap()
     }
 }
 

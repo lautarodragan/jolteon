@@ -4,7 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::ui::KeyboardHandlerRef;
 
-use super::FileBrowser;
+use super::{AddMode, FileBrowser};
 
 impl<'a> KeyboardHandlerRef<'a> for FileBrowser<'a> {
     fn on_key(&self, key: KeyEvent) {
@@ -45,7 +45,15 @@ impl<'a> KeyboardHandlerRef<'a> for FileBrowser<'a> {
                     self.file_meta.focus();
                 }
             }
+            KeyCode::Char('g') if key.modifiers == KeyModifiers::CONTROL => {
+                self.add_mode.set(match self.add_mode.get() {
+                    AddMode::AddToLibrary => AddMode::AddToPlaylist,
+                    AddMode::AddToPlaylist => AddMode::AddToLibrary,
+                });
+                self.help.set_add_mode(self.add_mode.get());
+            }
             _ => {
+                log::debug!("keyboard handler for file browser: {:?}", key);
                 let focus = self.focus.load(Ordering::Acquire);
                 if focus == 0 {
                     self.parents_list.on_key(key)

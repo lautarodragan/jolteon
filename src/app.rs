@@ -56,10 +56,11 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
     pub fn new(player_command_receiver: Receiver<Command>) -> Self {
-        let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
-
         let state = State::from_file();
-        let actions = Actions::from_file().unwrap();
+        let actions = Actions::from_file_or_default();
+        assert!(actions.contains(Action::Quit), "No key binding for Action::Quit! Would not be able to close gracefully. This is 100% a bug.");
+
+        let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
 
         let theme = include_str!("../assets/theme.toml");
         let theme: Theme = toml::from_str(theme).unwrap();
@@ -141,6 +142,13 @@ impl<'a> App<'a> {
 
             move |songs| {
                 library.add_songs(songs);
+            }
+        });
+        browser.on_add_to_playlist({
+            let playlist = playlist.clone();
+
+            move |mut songs| {
+                playlist.add_songs(&mut songs);
             }
         });
 
@@ -259,7 +267,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
         // let Some(action) = self.actions.by_key(key) else {
         //     return;
         // };
-        let action = self.actions.by_key(key);
+        let action = self.actions.action_by_key(key);
 
         log::debug!("app.on_key action=('{:?}')", action);
 

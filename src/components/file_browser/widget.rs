@@ -7,7 +7,8 @@ use ratatui::{
     widgets::WidgetRef,
 };
 
-use super::{FileBrowser, FileBrowserSelection};
+use super::{AddMode, FileBrowser, FileBrowserSelection};
+use crate::components::file_browser::help::FileBrowserHelp;
 
 impl Display for FileBrowserSelection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -24,13 +25,27 @@ impl From<&FileBrowserSelection> for Text<'_> {
     }
 }
 
+impl Display for AddMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            AddMode::AddToLibrary => "add to Library",
+            AddMode::AddToPlaylist => "add to Playlist",
+        })
+    }
+}
+
 impl<'a> WidgetRef for FileBrowser<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let [area_top, area_main] = Layout::vertical([Constraint::Length(2), Constraint::Min(1)])
-            .horizontal_margin(2)
-            .areas(area);
+        let [area_top, area_main, _, area_help] = Layout::vertical([
+            Constraint::Length(2),
+            Constraint::Min(10),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .horizontal_margin(2)
+        .areas(area);
 
-        let [area_main_left, area_main_separator, area_main_right] = Layout::horizontal([
+        let [area_main_left, _, area_main_right] = Layout::horizontal([
             Constraint::Percentage(50),
             Constraint::Length(5),
             Constraint::Percentage(50),
@@ -48,9 +63,6 @@ impl<'a> WidgetRef for FileBrowser<'a> {
         self.parents_list.render_ref(area_main_left, buf);
         self.children_list.render_ref(area_right_top, buf);
         self.file_meta.render_ref(area_right_bottom, buf);
-
-        let [_separator_left, _, _separator_right] =
-            Layout::horizontal([Constraint::Min(1), Constraint::Length(1), Constraint::Min(1)])
-                .areas(area_main_separator);
+        self.help.render_ref(area_help, buf);
     }
 }
