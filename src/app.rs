@@ -136,7 +136,7 @@ impl<'a> App<'a> {
                 queue.append(&mut std::collections::VecDeque::from(songs));
             }
         });
-        browser.on_add_to_lib_fn({
+        browser.on_add_to_lib({
             let library = library.clone();
 
             move |songs| {

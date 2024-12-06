@@ -221,7 +221,7 @@ impl<'a> FileBrowser<'a> {
         *on_enqueue_fn = Some(Box::new(cb));
     }
 
-    pub fn on_add_to_lib_fn(&self, cb: impl Fn(Vec<Song>) + 'a) {
+    pub fn on_add_to_lib(&self, cb: impl Fn(Vec<Song>) + 'a) {
         let mut on_add_to_lib_fn = self.on_enter_alt_fn.borrow_mut();
         *on_add_to_lib_fn = Some(Box::new(cb));
     }
