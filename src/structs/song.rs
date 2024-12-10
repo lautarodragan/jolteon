@@ -81,10 +81,10 @@ impl Song {
 
                     if let Some(jolt) = jolt {
                         if jolt.album.is_some() {
-                            song.album = jolt.album.clone();
+                            song.album.clone_from(&jolt.album);
                         }
                         if jolt.artist.is_some() {
-                            song.artist = jolt.artist.clone();
+                            song.artist.clone_from(&jolt.artist);
                         }
                     }
 

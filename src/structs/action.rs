@@ -275,11 +275,11 @@ impl Actions {
     }
 
     pub fn contains(&self, action: Action) -> bool {
-        self.actions.values().find(|a| {
-            **a == action
-        }).is_some() || DEFAULT_ACTIONS.values().find(|a| {
-            **a == action
-        }).is_some()
+        self.actions.values().any(|a| {
+            *a == action
+        }) || DEFAULT_ACTIONS.values().any(|a| {
+            *a == action
+        })
     }
 
     pub fn list_primary(&self) -> Shortcut {

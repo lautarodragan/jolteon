@@ -27,6 +27,7 @@ pub enum AddMode {
 }
 
 pub struct FileBrowser<'a> {
+    #[allow(unused)]
     pub(super) theme: Theme,
     pub(super) parents_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) children_list: Rc<List<'a, FileBrowserSelection>>,

@@ -92,7 +92,7 @@ impl FileMeta<'_> {
             .collect();
 
         let max_key_len: usize = tags.iter().fold(0, |acc, e| acc.max(e.0.len()));
-        let tags = tags.iter().map(|(k, v)| format!("{:<max_key_len$} {v}", k)).collect();
+        let tags = tags.iter().map(|(k, v)| format!("{k:<max_key_len$} {v}")).collect();
         self.list.set_items(tags);
     }
 

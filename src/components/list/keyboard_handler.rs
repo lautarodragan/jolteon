@@ -278,7 +278,7 @@ where
                     return;
                 };
 
-                on_rename_fn(rename.to_string());
+                on_rename_fn((*rename).to_string());
 
                 *rename_opt = None;
                 self.on_request_focus_trap_fn.lock().unwrap()(false);

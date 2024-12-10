@@ -14,6 +14,6 @@ pub fn duration_to_string(total_time: std::time::Duration) -> String {
     time_parts.push(minutes);
     time_parts.push(seconds);
 
-    let strings: Vec<String> = time_parts.iter().map(|s| format!("{:0>2}", s)).collect();
+    let strings: Vec<String> = time_parts.iter().map(|s| format!("{s:0>2}")).collect();
     strings.join(":")
 }

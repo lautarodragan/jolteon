@@ -8,7 +8,6 @@ use ratatui::{
 };
 
 use super::{AddMode, FileBrowser, FileBrowserSelection};
-use crate::components::file_browser::help::FileBrowserHelp;
 
 impl Display for FileBrowserSelection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

@@ -16,7 +16,7 @@ pub enum TomlFileError {
 
 impl std::fmt::Display for TomlFileError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#?}", self)
+        write!(f, "{self:#?}")
     }
 }
 

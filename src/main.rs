@@ -1,4 +1,14 @@
 #![allow(clippy::field_reassign_with_default)]
+#![warn(clippy::uninlined_format_args)]
+#![warn(clippy::uninlined_format_args)]
+#![warn(clippy::string_add_assign)]
+#![warn(clippy::string_add_assign)]
+#![warn(clippy::ref_option_ref)]
+#![warn(clippy::option_as_ref_cloned)]
+#![warn(clippy::option_as_ref_cloned)]
+#![warn(clippy::assigning_clones)]
+#![warn(clippy::inefficient_to_string)]
+#![allow(clippy::enum_variant_names)]
 
 mod app;
 mod auto_update;

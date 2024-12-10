@@ -5,7 +5,6 @@ use chrono::Local;
 use crate::{
     components::List,
     config::Theme,
-    cue::CueSheet,
     structs::{Playlist, Song},
 };
 
@@ -141,23 +140,9 @@ impl<'a> Playlists<'a> {
         save(&self.playlist_list, &self.deleted_playlist_list);
     }
 
-    pub fn add_song(&self, song: Song) {
-        self.song_list.push_item(song.clone());
-
-        self.selected_playlist_mut(move |pl| {
-            pl.songs.push(song);
-        });
-    }
     pub fn add_songs(&self, songs: &mut Vec<Song>) {
         self.selected_playlist_mut(move |pl| {
             pl.songs.append(songs);
-        });
-    }
-
-    pub fn add_cue(&self, cue_sheet: CueSheet) {
-        self.selected_playlist_mut(move |pl| {
-            let mut songs = Song::from_cue_sheet(cue_sheet);
-            pl.songs.append(&mut songs);
         });
     }
 }

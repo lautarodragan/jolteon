@@ -32,6 +32,6 @@ impl Display for AlbumTreeItem {
             AlbumTreeItem::Artist(s) => s,
             AlbumTreeItem::Album(_, s) => s,
         };
-        write!(f, "{}", x)
+        write!(f, "{x}")
     }
 }
