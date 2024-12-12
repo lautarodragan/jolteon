@@ -80,7 +80,7 @@ impl FileMeta<'_> {
     pub fn set_song(&self, song: &Song) {
         let tags = song.get_tags();
 
-        let tags: Vec<(String, String)> = tags
+        let mut tags: Vec<(String, String)> = tags
             .iter()
             .flat_map(|tag| {
                 tag.items().map(|item| {
@@ -90,6 +90,8 @@ impl FileMeta<'_> {
                 })
             })
             .collect();
+
+        tags.sort_by(|a, b| a.0.cmp(&b.0));
 
         let max_key_len: usize = tags.iter().fold(0, |acc, e| acc.max(e.0.len()));
         let tags = tags.iter().map(|(k, v)| format!("{k:<max_key_len$} {v}")).collect();
