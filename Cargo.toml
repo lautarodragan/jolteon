@@ -1,7 +1,13 @@
 [package]
 name = "jolteon"
+description = "The best music player."
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
+authors = ["Taro"]
+categories = ["multimedia::audio"]
+keywords = ["music", "player", "terminal", "tui"]
+repository = "https://github.com/lautarodragan/jolteon"
 
 [profile.dev]
 panic = 'abort'
