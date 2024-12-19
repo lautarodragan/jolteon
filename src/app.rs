@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
     rc::Rc,
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, Ordering},
         mpsc::Receiver,
         Arc, Mutex,
     },
@@ -38,13 +38,13 @@ pub struct App<'a> {
 
     theme: Theme,
     actions: Actions,
-    frame: Arc<AtomicU64>,
+    frame: u64,
 
     _music_output: OutputStream,
 
     screens: Vec<(String, Component<'a>)>,
     focused_screen: usize,
-    focus_trap: Arc<AtomicBool>,
+    focus_trap: Arc<AtomicBool>, // Could be Rc<Cell>
 
     player: Arc<Player>,
     queue: Arc<Queue>,
@@ -159,7 +159,7 @@ impl<'a> App<'a> {
 
             theme,
             actions,
-            frame: Arc::new(AtomicU64::new(0)),
+            frame: 0,
 
             _music_output: output_stream,
 
@@ -216,7 +216,7 @@ impl<'a> App<'a> {
 
             if last_tick.elapsed() >= tick_rate {
                 last_tick = std::time::Instant::now();
-                self.frame.fetch_add(1, Ordering::Relaxed);
+                self.frame += 1;
             }
         }
 
@@ -320,7 +320,7 @@ impl<'a> WidgetRef for &App<'a> {
             self.theme,
             &screen_titles,
             self.focused_screen,
-            self.frame.load(Ordering::Relaxed),
+            self.frame,
         );
         top_bar.render(area_top, buf);
 
