@@ -222,6 +222,8 @@ impl Actions {
                 code = KeyCode::Up;
             } else if key == "Down" {
                 code = KeyCode::Down;
+            } else if key == "End" {
+                code = KeyCode::End;
             } else {
                 log::debug!("ignoring invalid line with key={key}");
                 continue;
