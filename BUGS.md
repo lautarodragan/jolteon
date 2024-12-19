@@ -11,3 +11,39 @@ Having said that, the rate at which I find bugs has lowered considerably over ti
 Some known issues:
 - I still use `unwrap` in some places I'd prefer not to. This will panic if something unexpected happens.
 - Deadlocks. There may be some out there that I haven't caught.
+
+## Metadata: Track Number
+
+Jolteon tries to parse the track number as a number (which is a string), and discards non-number inputs.
+Some track contain things like `A1`, `A2` and then `B1` in the track number, as a way to distinguish disc numbers.
+There is no standard Disc Number media tag, either.
+
+## File Browser: Performance
+
+Jolteon currently reads an entire directory and parses most files in it! It loads CUE sheets, Jolt files and music metadata.
+This would be excellent UX if HDs had infinite speed and life, but is generally a bad idea in the real world. 
+
+It's specially problematic when mixing mechanical drives (which is where you'll usually want to store high-quality media files) 
+and large directories (which is what music lovers usually have).
+
+Even worse, in rare cases, some files cause the media tag reading code to take a long time.
+
+All of this freezes the UI completely while processing.
+
+The best UX may be:
+- Simply show the list of directory entries — just the file names
+- Parse them in a separate thread
+- Replace list elements, one by one, with their parsed counterparts, as they come in from the thread
+- Store the file metadata somewhere (a second media library, basically!), as a cache, including file.date_modified 
+- Next time, if dir_entry.date_modified != cache_entry.date_modified { read from disc } otherwise just cache'd data
+
+It'd be nice to reuse most of the existing library code for the cache. It's practically the same thing.
+
+## List Component: Search Scroll Bug
+
+When using search, the view isn't scrolled to show the selected element after modifying the filter (meaning: pressing letter or number keys).
+It is correctly scrolled when navigating the search matches with the arrow keys.
+
+This happens in the Artist/Album Tree in the Library, too, but this component hasn't been replaced by the generic List component yet,
+and it lacks some features it has, so there's no sense in fixing it there. It just needs to be replaced by the generic list component,
+but the list component needs to be enhanced before that can happen, to support a "tree" view.
