@@ -9,6 +9,7 @@
 #![warn(clippy::assigning_clones)]
 #![warn(clippy::inefficient_to_string)]
 #![allow(clippy::enum_variant_names)]
+extern crate alloc;
 
 mod app;
 mod auto_update;
@@ -32,20 +33,14 @@ mod ui;
 
 use std::error::Error;
 use std::io::stdout;
-use std::sync::mpsc::channel;
 use std::thread;
 
 use async_std::task;
 use colored::{Color, Colorize};
 use flexi_logger::{style, DeferredNow, FileSpec, Logger, WriteMode};
-use futures::{
-    future::FutureExt, // for `.fuse()`
-    pin_mut,
-    select,
-};
-use log::{debug, error, info, Record};
+use log::{debug, info, Record};
 
-use crate::{app::App, auto_update::auto_update, bye::bye, mpris::create_mpris_player, term::reset_terminal, structs::Action};
+use crate::{app::App, auto_update::auto_update, bye::bye, mpris::Mpris, term::reset_terminal};
 
 pub fn log_format(w: &mut dyn std::io::Write, now: &mut DeferredNow, record: &Record) -> Result<(), std::io::Error> {
     write!(w, "{}   ", now.format("%-l:%M:%S%P"))?;
@@ -86,40 +81,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let _auto_update = auto_update().await;
 
-    let (player_command_sender, player_command_receiver) = channel();
-
     debug!("Starting mpris and player");
 
-    let task_player = task::spawn_blocking({
-        let player_command_sender = player_command_sender.clone();
-        move || {
-            let mut app = App::new(player_command_receiver);
-            app.start()
-                .unwrap_or_else(|err| error!("app.start error :( \n{:#?}", err));
-            log::trace!("Player.start() finished");
+    let mpris = Mpris::new().await?;
 
-            if let Err(err) = player_command_sender.send(Action::Quit) {
-                log::warn!("player_command_sender.send(Stop) failed {:?}", err);
-            }
-        }
-    })
-    .fuse();
+    let task_player = task::spawn_blocking(move || {
+        let mut app = App::new(mpris);
+        app.start().unwrap_or_else(|err| log::error!("app.start error :( \n{:#?}", err));
+        log::trace!("Player.start() finished");
+    });
 
-    let mpris_player = create_mpris_player(player_command_sender.clone()).await?;
-    let task_mpris = mpris_player.run().fuse();
-
-    pin_mut!(task_player, task_mpris);
-
-    debug!("Awaiting mpris and player tasks");
-    select! {
-        _ = task_player => {
-            log::trace!("player task finish");
-        },
-        _ = task_mpris => {
-            log::trace!("mpris task finish");
-        },
-    }
-
+    debug!("Awaiting player task");
+    task_player.await;
     debug!("Quitting Jolteon");
 
     debug!("Resetting terminal");

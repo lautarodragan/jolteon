@@ -5,10 +5,8 @@ use std::{
     rc::Rc,
     sync::{
         atomic::{AtomicBool, Ordering},
-        mpsc::Receiver,
         Arc, Mutex,
     },
-    thread,
     thread::JoinHandle,
     time::Duration,
 };
@@ -27,10 +25,11 @@ use crate::{
     config::Theme,
     player::Player,
     state::State,
-    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction, PlayerAction},
+    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction},
     term::set_terminal,
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
+use crate::mpris::Mpris;
 
 pub struct App<'a> {
     must_quit: bool,
@@ -49,12 +48,13 @@ pub struct App<'a> {
     queue: Arc<Queue>,
     browser: Rc<FileBrowser<'a>>,
 
-    player_command_receiver: Arc<Mutex<Receiver<Action>>>,
+    // player_command_receiver: Arc<Mutex<Receiver<Action>>>,
     player_command_receiver_thread: Option<JoinHandle<()>>,
+    mpris: Arc<Mpris>,
 }
 
 impl<'a> App<'a> {
-    pub fn new(player_command_receiver: Receiver<Action>) -> Self {
+    pub fn new(mpris: Mpris) -> Self {
         let state = State::from_file();
         let actions = Actions::from_file_or_default();
         assert!(actions.contains(Action::Quit), "No key binding for Action::Quit! Would not be able to close gracefully. This is 100% a bug.");
@@ -64,9 +64,6 @@ impl<'a> App<'a> {
         let theme = include_str!("../assets/theme.toml");
         let theme: Theme = toml::from_str(theme).unwrap();
 
-        let queue = Arc::new(Queue::new(state.queue_items, theme));
-        let player = Arc::new(Player::new(queue.clone(), output_stream_handle, theme));
-
         let current_directory = match &state.last_visited_path {
             Some(s) => PathBuf::from(s),
             None => env::current_dir().unwrap(),
@@ -74,7 +71,27 @@ impl<'a> App<'a> {
 
         let focus_trap = Arc::new(AtomicBool::new(false));
 
+        let mpris = Arc::new(mpris);
+        let queue = Arc::new(Queue::new(state.queue_items, theme));
+        let player = Arc::new(Player::new(queue.clone(), output_stream_handle, theme, mpris.clone()));
         let library = Rc::new(Library::new(theme));
+        let playlist = Rc::new(Playlists::new(theme));
+        let browser = Rc::new(FileBrowser::new(theme, current_directory));
+
+        mpris.on_play_pause({
+            let player = player.clone();
+            move || {
+                player.toggle();
+            }
+        });
+
+        mpris.on_stop({
+            let player = player.clone();
+            move || {
+                player.stop();
+            }
+        });
+
         library.on_enter({
             let queue = queue.clone();
 
@@ -84,9 +101,8 @@ impl<'a> App<'a> {
         });
         library.on_enter_alt({
             let player = player.clone();
-
             move |song| {
-                player.play_song(song);
+                player.play_song(song.clone());
             }
         });
         library.on_select_songs_fn({
@@ -102,7 +118,6 @@ impl<'a> App<'a> {
             }
         });
 
-        let playlist = Rc::new(Playlists::new(theme));
         playlist.on_enter_song({
             let queue = queue.clone();
             move |song| {
@@ -112,7 +127,7 @@ impl<'a> App<'a> {
         playlist.on_enter_song_alt({
             let player = player.clone();
             move |song| {
-                player.play_song(song);
+                player.play_song(song.clone());
             }
         });
         playlist.on_enter_playlist({
@@ -128,7 +143,6 @@ impl<'a> App<'a> {
             }
         });
 
-        let browser = Rc::new(FileBrowser::new(theme, current_directory));
         browser.on_enqueue({
             let queue = queue.clone();
 
@@ -176,8 +190,8 @@ impl<'a> App<'a> {
             queue,
             browser,
 
-            player_command_receiver: Arc::new(Mutex::new(player_command_receiver)),
             player_command_receiver_thread: None,
+            mpris,
         }
     }
 
@@ -197,7 +211,6 @@ impl<'a> App<'a> {
         let tick_rate = Duration::from_millis(100);
         let mut last_tick = std::time::Instant::now();
 
-        self.spawn_media_key_receiver_thread();
         self.player.spawn();
 
         while !self.must_quit {
@@ -226,39 +239,6 @@ impl<'a> App<'a> {
         // self.actions.to_file();
 
         Ok(())
-    }
-
-    fn spawn_media_key_receiver_thread(&mut self) {
-        let player_command_receiver = self.player_command_receiver.clone();
-        let player = self.player.clone();
-
-        let t = thread::Builder::new()
-            .name("media_key_rx".to_string())
-            .spawn(move || {
-                loop {
-                    match player_command_receiver.lock().unwrap().recv() {
-                        Ok(Action::Player(PlayerAction::PlayPause)) => {
-                            player.toggle();
-                        }
-                        Ok(Action::Player(PlayerAction::Stop)) => {
-                            player.stop();
-                        }
-                        Ok(Action::Quit) => {
-                            log::debug!("Received Command::Quit");
-                            break;
-                        }
-                        Ok(_) => {}
-                        Err(err) => {
-                            log::error!("Channel error: {}", err);
-                            break;
-                        }
-                    }
-                }
-                log::trace!("spawn_media_key_receiver_thread loop exit");
-            })
-            .unwrap();
-
-        self.player_command_receiver_thread = Some(t);
     }
 }
 

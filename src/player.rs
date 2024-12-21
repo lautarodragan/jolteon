@@ -19,6 +19,7 @@ use crate::{
     source::{Controls, Source},
     structs::{Action, OnAction, PlayerAction, Song},
     ui::{CurrentlyPlaying, KeyboardHandlerRef},
+    mpris::Mpris,
 };
 
 pub struct Player {
@@ -38,6 +39,8 @@ pub struct Player {
     theme: Theme,
     frame: AtomicU64,
     paused_animation_start_frame: AtomicU64,
+
+    mpris: Arc<Mpris>,
 }
 
 #[derive(Debug)]
@@ -51,7 +54,7 @@ enum Command {
 }
 
 impl Player {
-    pub fn new(queue: Arc<Queue>, output_stream: OutputStreamHandle, theme: Theme) -> Self {
+    pub fn new(queue: Arc<Queue>, output_stream: OutputStreamHandle, theme: Theme, mpris: Arc<Mpris>) -> Self {
         let (command_sender, command_receiver) = channel();
 
         Self {
@@ -63,6 +66,7 @@ impl Player {
             currently_playing_start_time: Arc::new(AtomicU64::new(0)),
             command_sender,
             command_receiver: Arc::new(Mutex::new(Some(command_receiver))),
+
             is_stopped: Arc::new(AtomicBool::new(true)),
             volume: Arc::new(Mutex::new(1.0)),
             pause: Arc::new(AtomicBool::new(false)),
@@ -71,6 +75,8 @@ impl Player {
             theme,
             frame: AtomicU64::new(0),
             paused_animation_start_frame: AtomicU64::new(0),
+
+            mpris,
         }
     }
 
@@ -96,6 +102,7 @@ impl Player {
         let queue_items = self.queue_items.clone();
         let currently_playing = self.currently_playing.clone();
         let song_start_time = self.currently_playing_start_time.clone();
+        let mpris = self.mpris.clone();
 
         let position = self.position.clone();
         let volume = self.volume.clone();
@@ -113,6 +120,8 @@ impl Player {
                 .unwrap_or(Duration::ZERO)
                 .as_secs();
             song_start_time.store(start_time, Ordering::Relaxed);
+
+            mpris.play(song.clone());
 
             match currently_playing.lock() {
                 Ok(mut s) => {
