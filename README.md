@@ -54,17 +54,13 @@ See [Developing](#developing) down below.
     hitting enter to play the selected song seems to "fix" it temporarily.
   - 🚧 Currently, files can _only_ be added to playlists from the file browser. Support to do so from the Library is coming soon.
 - File Browser
-  - Search/Filter in File Browser (Ctrl+F)
-  - Press `j` to add the selected file or folder to the Library
-  - Press `y` to add the selected file or folder to the Queue
-  - Press `Enter` to play the selected file
-  - To add a Cue sheet, rather than selecting the entire folder or a media file, select the cue sheet file and hit `j` or `y` on it instead.
-  - 🚧 UX and keyboard shortcuts in the File Browser are inconsistent with the rest of the application. This will soon be fixed, and it'll
-    use the same UX and keyboard shortcuts the Library and Playlists screen use.
+  - Explore files and folders on the left, files in the selected folder on the top-right, and details of the selected file on the 
+    bottom-right.
+  - Play (add to queue) music files right there in the browser, or add them to the selected playlist or library.
+  - Key Bindings are shown on the screen.
   - 🚧 Soon, adding a folder to the library or queue will prioritize .cue files inside the folder. Right now, cue sheet files are ignored
     when adding an entire folder, so you'll have to open the folder and work on the individual .cue file instead.
-  - 🚧 Currently, the file browser renders on the left half of the screen, and nothing renders on the right half.
-    This will soon be addressed, displaying folders on the left half, and files on the right half.
+  - 🚧 Upcoming: Bookmarks
 - Playing Queue
 - `.cue` sheet file support
   - Metadata missing for the `.cue` file will be grabbed from the media file itself 
