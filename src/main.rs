@@ -45,13 +45,7 @@ use futures::{
 };
 use log::{debug, error, info, Record};
 
-use crate::{app::App, auto_update::auto_update, bye::bye, mpris::create_mpris_player, term::reset_terminal};
-
-pub enum Command {
-    PlayPause,
-    Next,
-    Quit,
-}
+use crate::{app::App, auto_update::auto_update, bye::bye, mpris::create_mpris_player, term::reset_terminal, structs::Action};
 
 pub fn log_format(w: &mut dyn std::io::Write, now: &mut DeferredNow, record: &Record) -> Result<(), std::io::Error> {
     write!(w, "{}   ", now.format("%-l:%M:%S%P"))?;
@@ -104,7 +98,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .unwrap_or_else(|err| error!("app.start error :( \n{:#?}", err));
             log::trace!("Player.start() finished");
 
-            if let Err(err) = player_command_sender.send(Command::Quit) {
+            if let Err(err) = player_command_sender.send(Action::Quit) {
                 log::warn!("player_command_sender.send(Stop) failed {:?}", err);
             }
         }

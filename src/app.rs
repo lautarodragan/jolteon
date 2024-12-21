@@ -27,10 +27,9 @@ use crate::{
     config::Theme,
     player::Player,
     state::State,
-    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction},
+    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction, PlayerAction},
     term::set_terminal,
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
-    Command,
 };
 
 pub struct App<'a> {
@@ -50,12 +49,12 @@ pub struct App<'a> {
     queue: Arc<Queue>,
     browser: Rc<FileBrowser<'a>>,
 
-    player_command_receiver: Arc<Mutex<Receiver<Command>>>,
+    player_command_receiver: Arc<Mutex<Receiver<Action>>>,
     player_command_receiver_thread: Option<JoinHandle<()>>,
 }
 
 impl<'a> App<'a> {
-    pub fn new(player_command_receiver: Receiver<Command>) -> Self {
+    pub fn new(player_command_receiver: Receiver<Action>) -> Self {
         let state = State::from_file();
         let actions = Actions::from_file_or_default();
         assert!(actions.contains(Action::Quit), "No key binding for Action::Quit! Would not be able to close gracefully. This is 100% a bug.");
@@ -238,16 +237,17 @@ impl<'a> App<'a> {
             .spawn(move || {
                 loop {
                     match player_command_receiver.lock().unwrap().recv() {
-                        Ok(Command::PlayPause) => {
+                        Ok(Action::Player(PlayerAction::PlayPause)) => {
                             player.toggle();
                         }
-                        Ok(Command::Next) => {
+                        Ok(Action::Player(PlayerAction::Stop)) => {
                             player.stop();
                         }
-                        Ok(Command::Quit) => {
+                        Ok(Action::Quit) => {
                             log::debug!("Received Command::Quit");
                             break;
                         }
+                        Ok(_) => {}
                         Err(err) => {
                             log::error!("Channel error: {}", err);
                             break;
