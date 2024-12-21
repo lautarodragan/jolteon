@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::sync::mpsc::Sender;
+use mpris_server::Metadata;
 
 use crate::Command;
 
@@ -12,6 +13,14 @@ pub async fn create_mpris_player(
         .can_go_next(true)
         .build()
         .await?;
+
+    player.set_identity("Jolteon").await?;
+
+    // let mut meta = Metadata::new();
+    // meta.set_album(Some("album"));
+    // meta.set_artist(Some(["artist"]));
+    // meta.set_title(Some("song title"));
+    // player.set_metadata(meta).await?;
 
     player.connect_play_pause({
         let player_command_sender = player_command_sender.clone();
