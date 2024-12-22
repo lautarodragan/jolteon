@@ -1,12 +1,10 @@
 use std::{
+    cell::Cell,
     env,
     error::Error,
     path::PathBuf,
     rc::Rc,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
+    sync::{Arc, Mutex},
     time::Duration,
 };
 
@@ -44,7 +42,7 @@ pub struct App<'a> {
 
     screens: Vec<(String, Component<'a>)>,
     focused_screen: usize,
-    focus_trap: Arc<AtomicBool>, // Could be Rc<Cell>
+    focus_trap: Rc<Cell<bool>>,
 
     player: Arc<Player>,
     queue: Arc<Queue>,
@@ -70,7 +68,7 @@ impl App<'_> {
             None => env::current_dir().unwrap(),
         };
 
-        let focus_trap = Arc::new(AtomicBool::new(false));
+        let focus_trap = Rc::new(Cell::new(false));
 
         let mpris = Arc::new(mpris);
         let queue = Arc::new(Queue::new(state.queue_items, theme));
@@ -140,7 +138,7 @@ impl App<'_> {
         playlist.on_request_focus_trap_fn({
             let focus_trap = focus_trap.clone();
             move |v| {
-                focus_trap.store(v, Ordering::Release);
+                focus_trap.set(v);
             }
         });
 
@@ -252,7 +250,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                 self.must_quit = true;
                 return;
             }
-            if !self.focus_trap.load(Ordering::Acquire) {
+            if !self.focus_trap.get() {
                 match action {
                     Action::Screen(_) => {
                         self.on_action(action);
