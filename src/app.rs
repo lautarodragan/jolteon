@@ -42,7 +42,7 @@ pub struct App<'a> {
 
     screens: Vec<(String, Component<'a>)>,
     focused_screen: usize,
-    focus_trap: Rc<Cell<bool>>,
+    is_focus_trapped: Rc<Cell<bool>>,
 
     player: Arc<Player>,
     queue: Arc<Queue>,
@@ -68,7 +68,7 @@ impl App<'_> {
             None => env::current_dir().unwrap(),
         };
 
-        let focus_trap = Rc::new(Cell::new(false));
+        let is_focus_trapped = Rc::new(Cell::new(false));
 
         let mpris = Arc::new(mpris);
         let queue = Arc::new(Queue::new(state.queue_items, theme));
@@ -136,9 +136,9 @@ impl App<'_> {
             }
         });
         playlist.on_request_focus_trap_fn({
-            let focus_trap = focus_trap.clone();
+            let is_focus_trapped = is_focus_trapped.clone();
             move |v| {
-                focus_trap.set(v);
+                is_focus_trapped.set(v);
             }
         });
 
@@ -184,7 +184,7 @@ impl App<'_> {
                 ("Help".to_string(), Component::Mut(help.clone())),
             ],
             focused_screen: 0,
-            focus_trap,
+            is_focus_trapped,
 
             player,
             queue,
@@ -250,7 +250,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                 self.must_quit = true;
                 return;
             }
-            if !self.focus_trap.get() {
+            if !self.is_focus_trapped.get() {
                 match action {
                     Action::Screen(_) => {
                         self.on_action(action);
