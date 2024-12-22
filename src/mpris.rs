@@ -1,6 +1,6 @@
-use std::error::Error;
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{error::Error, thread};
+
+use async_std::sync::{Arc, Mutex};
 
 use mpris_server::{
     zbus, LoopStatus, Metadata, PlaybackRate, PlaybackStatus, PlayerInterface, Property, RootInterface, Server, Time,
@@ -11,16 +11,16 @@ use crate::structs::Song;
 
 #[derive(Default)]
 pub struct MprisState {
-    on_play_pause: Arc<Mutex<Option<Box<dyn Fn() + Send + 'static>>>>,
-    on_stop: Arc<Mutex<Option<Box<dyn Fn() + Send + 'static>>>>,
+    on_play_pause: Arc<Mutex<Option<Box<dyn Fn() + Send + Sync + 'static>>>>,
+    on_stop: Arc<Mutex<Option<Box<dyn Fn() + Send + Sync + 'static>>>>,
 }
 
 impl MprisState {
-    pub fn on_play_pause(&self, f: impl Fn() + Send + 'static) {
-        *self.on_play_pause.lock().unwrap() = Some(Box::new(f));
+    pub fn on_play_pause(&self, f: impl Fn() + Send + Sync + 'static) {
+        *self.on_play_pause.lock_blocking() = Some(Box::new(f));
     }
-    pub fn on_stop(&self, f: impl Fn() + Send + 'static) {
-        *self.on_stop.lock().unwrap() = Some(Box::new(f));
+    pub fn on_stop(&self, f: impl Fn() + Send + Sync + 'static) {
+        *self.on_stop.lock_blocking() = Some(Box::new(f));
     }
 }
 
@@ -87,7 +87,7 @@ impl RootInterface for MprisState {
 #[allow(unused)]
 impl PlayerInterface for MprisState {
     async fn next(&self) -> zbus::fdo::Result<()> {
-        let on_stop = self.on_stop.lock().unwrap();
+        let on_stop = self.on_stop.lock().await;
         let Some(on_stop) = &*on_stop else {
             return Ok(());
         };
@@ -100,7 +100,7 @@ impl PlayerInterface for MprisState {
     }
 
     async fn pause(&self) -> zbus::fdo::Result<()> {
-        let on_play_pause = self.on_play_pause.lock().unwrap();
+        let on_play_pause = self.on_play_pause.lock().await;
         let Some(on_play_pause) = &*on_play_pause else {
             return Ok(());
         };
@@ -109,7 +109,7 @@ impl PlayerInterface for MprisState {
     }
 
     async fn play_pause(&self) -> zbus::fdo::Result<()> {
-        let on_play_pause = self.on_play_pause.lock().unwrap();
+        let on_play_pause = self.on_play_pause.lock().await;
         let Some(on_play_pause) = &*on_play_pause else {
             return Ok(());
         };
@@ -118,7 +118,7 @@ impl PlayerInterface for MprisState {
     }
 
     async fn stop(&self) -> zbus::fdo::Result<()> {
-        let on_stop = self.on_stop.lock().unwrap();
+        let on_stop = self.on_stop.lock().await;
         let Some(on_stop) = &*on_stop else {
             return Ok(());
         };
@@ -127,7 +127,7 @@ impl PlayerInterface for MprisState {
     }
 
     async fn play(&self) -> zbus::fdo::Result<()> {
-        let on_play_pause = self.on_play_pause.lock().unwrap();
+        let on_play_pause = self.on_play_pause.lock().await;
         let Some(on_play_pause) = &*on_play_pause else {
             return Ok(());
         };
@@ -176,8 +176,7 @@ impl PlayerInterface for MprisState {
     }
 
     async fn metadata(&self) -> zbus::fdo::Result<Metadata> {
-        let mut metadata = Metadata::new();
-        Ok(metadata)
+        Ok(Metadata::new())
     }
 
     async fn volume(&self) -> zbus::fdo::Result<Volume> {
@@ -231,55 +230,63 @@ pub struct Mpris {
 
 impl Mpris {
     pub async fn new() -> Result<Self, Box<dyn Error>> {
-        let state = MprisState::default();
-        let server = Server::new("jolteon", state).await?;
+        let server = Server::new("jolteon", MprisState::default()).await?;
 
         Ok(Self {
             server: Arc::new(Mutex::new(server)),
         })
     }
 
-    pub fn on_play_pause(&self, f: impl Fn() + Send + 'static) {
-        let s = self.server.lock().unwrap();
+    pub fn on_play_pause(&self, f: impl Fn() + Send + Sync + 'static) {
+        let s = self.server.lock_blocking();
         s.imp().on_play_pause(f);
     }
 
-    pub fn on_stop(&self, f: impl Fn() + Send + 'static) {
-        let s = self.server.lock().unwrap();
+    pub fn on_stop(&self, f: impl Fn() + Send + Sync + 'static) {
+        let s = self.server.lock_blocking();
         s.imp().on_stop(f);
     }
 
-    pub fn play(&self, song: Option<Song>) {
-        // TODO: Forgive me father, for I have sinned
+    fn emit_properties_changed(&self, properties: impl IntoIterator<Item = Property> + Send + Sync + 'static) {
         let server = self.server.clone();
         thread::spawn(move || {
             futures::executor::block_on(async move {
-                let server = server.lock().unwrap();
-                let task = match song {
-                    Some(song) => {
-                        let mut metadata = Metadata::new();
-                        metadata.set_title(Some(song.title));
-                        metadata.set_artist(song.artist.map(|a| vec![a]));
-                        metadata.set_album(song.album);
-                        metadata.set_length(Some(Time::from_secs(song.length.as_secs() as i64)));
-                        server.properties_changed(vec![
-                            Property::Metadata(metadata),
-                            Property::PlaybackStatus(PlaybackStatus::Playing),
-                            Property::CanPlay(true),
-                            Property::CanGoNext(true),
-                            Property::CanSeek(true),
-                        ])
-                    }
-                    None => server.properties_changed(vec![
-                        Property::Metadata(Metadata::new()),
-                        Property::PlaybackStatus(PlaybackStatus::Stopped),
-                        Property::CanPlay(false),
-                        Property::CanGoNext(false),
-                        Property::CanSeek(false),
-                    ]),
-                };
-                task.await.unwrap(); // lock across await!
+                let server = server.lock().await;
+                server.properties_changed(properties).await.unwrap();
             });
         });
+    }
+
+    pub fn set_song(&self, song: Song) {
+        let mut metadata = Metadata::new();
+        metadata.set_title(Some(song.title));
+        metadata.set_artist(song.artist.map(|a| vec![a]));
+        metadata.set_album(song.album);
+        metadata.set_length(Some(Time::from_secs(song.length.as_secs() as i64)));
+
+        self.emit_properties_changed(vec![
+            Property::Metadata(metadata),
+            Property::CanPlay(true),
+            Property::CanGoNext(true),
+            Property::CanSeek(true),
+        ]);
+    }
+
+    pub fn clear_song(&self) {
+        self.emit_properties_changed(vec![
+            Property::Metadata(Metadata::new()),
+            Property::PlaybackStatus(PlaybackStatus::Stopped),
+            Property::CanPlay(false),
+            Property::CanGoNext(false),
+            Property::CanSeek(false),
+        ]);
+    }
+
+    pub fn play(&self) {
+        self.emit_properties_changed(vec![Property::PlaybackStatus(PlaybackStatus::Playing)]);
+    }
+
+    pub fn pause(&self) {
+        self.emit_properties_changed(vec![Property::PlaybackStatus(PlaybackStatus::Paused)])
     }
 }

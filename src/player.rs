@@ -113,24 +113,33 @@ impl Player {
         let must_stop = Arc::new(AtomicBool::new(false));
         let must_seek = Arc::new(Mutex::new(None));
 
-        let set_currently_playing = move |song: Option<Song>| {
-            let start_time = song
-                .as_ref()
-                .map(|song| song.start_time)
-                .unwrap_or(Duration::ZERO)
-                .as_secs();
-            song_start_time.store(start_time, Ordering::Relaxed);
+        let set_currently_playing = {
+            let mpris = mpris.clone();
+            move |song: Option<Song>| {
+                let start_time = song
+                    .as_ref()
+                    .map(|song| song.start_time)
+                    .unwrap_or(Duration::ZERO)
+                    .as_secs();
+                song_start_time.store(start_time, Ordering::Relaxed);
 
-            mpris.play(song.clone());
+                match song {
+                    Some(ref song) => {
+                        mpris.set_song(song.clone());
+                        mpris.play();
+                    }
+                    None => mpris.clear_song(),
+                }
 
-            match currently_playing.lock() {
-                Ok(mut s) => {
-                    *s = song;
-                }
-                Err(err) => {
-                    log::error!("currently_playing.lock() returned an error! {:?}", err);
-                }
-            };
+                match currently_playing.lock() {
+                    Ok(mut s) => {
+                        *s = song;
+                    }
+                    Err(err) => {
+                        log::error!("currently_playing.lock() returned an error! {:?}", err);
+                    }
+                };
+            }
         };
 
         let thread = thread::Builder::new()
@@ -246,9 +255,11 @@ impl Player {
                                     }
                                     Command::Play => {
                                         pause.store(false, Ordering::SeqCst);
+                                        mpris.play();
                                     }
                                     Command::Pause => {
                                         pause.store(true, Ordering::SeqCst);
+                                        mpris.pause();
                                     }
                                     Command::Stop => {
                                         break;

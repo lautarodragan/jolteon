@@ -50,6 +50,7 @@ pub struct App<'a> {
 
     // player_command_receiver: Arc<Mutex<Receiver<Action>>>,
     player_command_receiver_thread: Option<JoinHandle<()>>,
+    #[allow(unused)]
     mpris: Arc<Mpris>,
 }
 
