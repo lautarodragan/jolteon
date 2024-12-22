@@ -16,10 +16,10 @@ use rodio::OutputStreamHandle;
 use crate::{
     components::Queue,
     config::Theme,
+    mpris::Mpris,
     source::{Controls, Source},
     structs::{Action, OnAction, PlayerAction, Song},
     ui::{CurrentlyPlaying, KeyboardHandlerRef},
-    mpris::Mpris,
 };
 
 pub struct Player {

@@ -263,19 +263,17 @@ impl Actions {
     }
 
     pub fn key_by_action(&self, action: Action) -> Option<Shortcut> {
-        self.actions.iter().chain(DEFAULT_ACTIONS.iter()).find_map(|(k, v)| {
-            if *v == action {
-                Some(*k)
-            } else {
-                None
-            }
-        })
+        self.actions
+            .iter()
+            .chain(DEFAULT_ACTIONS.iter())
+            .find_map(|(k, v)| if *v == action { Some(*k) } else { None })
     }
 
     pub fn contains(&self, action: Action) -> bool {
-        self.actions.values().chain(DEFAULT_ACTIONS.values()).any(|a| {
-            *a == action
-        })
+        self.actions
+            .values()
+            .chain(DEFAULT_ACTIONS.values())
+            .any(|a| *a == action)
     }
 
     pub fn list_primary(&self) -> Shortcut {

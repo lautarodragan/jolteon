@@ -23,13 +23,13 @@ use rodio::OutputStream;
 use crate::{
     components::{FileBrowser, Help, Library, Playlists, Queue},
     config::Theme,
+    mpris::Mpris,
     player::Player,
     state::State,
     structs::{Action, Actions, OnAction, OnActionMut, ScreenAction},
     term::set_terminal,
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
-use crate::mpris::Mpris;
 
 pub struct App<'a> {
     must_quit: bool,
@@ -57,7 +57,10 @@ impl App<'_> {
     pub fn new(mpris: Mpris) -> Self {
         let state = State::from_file();
         let actions = Actions::from_file_or_default();
-        assert!(actions.contains(Action::Quit), "No key binding for Action::Quit! Would not be able to close gracefully. This is 100% a bug.");
+        assert!(
+            actions.contains(Action::Quit),
+            "No key binding for Action::Quit! Would not be able to close gracefully. This is 100% a bug."
+        );
 
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
 
@@ -296,12 +299,7 @@ impl WidgetRef for &App<'_> {
 
         let screen_titles: Vec<&str> = self.screens.iter().map(|screen| screen.0.as_str()).collect();
 
-        let top_bar = TopBar::new(
-            self.theme,
-            &screen_titles,
-            self.focused_screen,
-            self.frame,
-        );
+        let top_bar = TopBar::new(self.theme, &screen_titles, self.focused_screen, self.frame);
         top_bar.render(area_top, buf);
 
         let Some((_, component)) = self.screens.get(self.focused_screen) else {

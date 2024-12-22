@@ -87,7 +87,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let task_player = task::spawn_blocking(move || {
         let mut app = App::new(mpris);
-        app.start().unwrap_or_else(|err| log::error!("app.start error :( \n{:#?}", err));
+        app.start()
+            .unwrap_or_else(|err| log::error!("app.start error :( \n{:#?}", err));
         log::trace!("Player.start() finished");
     });
 
