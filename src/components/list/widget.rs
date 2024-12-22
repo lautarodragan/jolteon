@@ -63,7 +63,7 @@ impl<'a> Widget for ListLine<'a> {
     }
 }
 
-impl<'a, T> WidgetRef for List<'a, T>
+impl<T> WidgetRef for List<'_, T>
 where
     T: std::fmt::Display,
 {

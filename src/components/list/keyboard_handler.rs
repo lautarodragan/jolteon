@@ -113,7 +113,7 @@ fn is_key_dir_downwards(key_code: KeyCode) -> bool {
     key_code == KeyCode::Down || key_code == KeyCode::End || key_code == KeyCode::PageDown
 }
 
-impl<'a, T> List<'a, T>
+impl<T> List<'_, T>
 where
     T: std::fmt::Display + Clone,
 {

@@ -189,7 +189,7 @@ mod tests {
 
         let Some(file) = cue.file else { panic!() };
 
-        assert_eq!(file.tracks.len(), 6, "{:#?}", file);
+        assert_eq!(file.tracks.len(), 6, "{file:#?}");
 
         assert_eq!(
             file.tracks[0],

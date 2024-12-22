@@ -15,7 +15,7 @@ pub struct Help<'a> {
     state: TableState,
 }
 
-impl<'a> Help<'a> {
+impl Help<'_> {
     pub fn new(theme: Theme) -> Self {
         Self {
             theme,
@@ -78,7 +78,7 @@ impl<'a> KeyboardHandlerMut<'a> for Help<'a> {
     }
 }
 
-impl<'a> WidgetRef for Help<'a> {
+impl WidgetRef for Help<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let [area_top, area_main] = Layout::vertical([Constraint::Max(5), Constraint::Max(5)])
             .horizontal_margin(2)

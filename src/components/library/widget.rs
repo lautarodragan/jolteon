@@ -7,13 +7,13 @@ use ratatui::{
 
 use super::Library;
 
-impl<'a> Widget for Library<'a> {
+impl Widget for Library<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         WidgetRef::render_ref(&self, area, buf);
     }
 }
 
-impl<'a> WidgetRef for Library<'a> {
+impl WidgetRef for Library<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let [area_left, _, area_right] = Layout::horizontal([
             Constraint::Percentage(50),

@@ -144,7 +144,7 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
     }
 }
 
-impl<'a> AlbumTree<'a> {
+impl AlbumTree<'_> {
     fn on_artist_list_directional_key(&self, key: KeyEvent) {
         let artists = self.artist_list.lock().unwrap();
         let length = {

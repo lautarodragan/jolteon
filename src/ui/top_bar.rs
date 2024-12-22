@@ -41,7 +41,7 @@ impl<'a> TopBar<'a> {
     }
 }
 
-impl<'a> Widget for TopBar<'a> {
+impl Widget for TopBar<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let tab_titles: Vec<Line> = self
             .tab_titles

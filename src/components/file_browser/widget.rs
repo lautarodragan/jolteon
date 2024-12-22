@@ -33,7 +33,7 @@ impl Display for AddMode {
     }
 }
 
-impl<'a> WidgetRef for FileBrowser<'a> {
+impl WidgetRef for FileBrowser<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let [area_top, area_main, _, area_help] = Layout::vertical([
             Constraint::Length(2),

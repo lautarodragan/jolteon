@@ -77,7 +77,7 @@ mod tests {
         let path = Path::new("./src/cue/Tim Buckley - Happy Sad.cue");
         let cue_lines = CueLine::from_file(path).unwrap();
 
-        assert_eq!(cue_lines.len(), 31, "{:#?}", cue_lines);
+        assert_eq!(cue_lines.len(), 31, "{cue_lines:#?}");
 
         assert_eq!(
             cue_lines[0],

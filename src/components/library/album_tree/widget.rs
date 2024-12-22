@@ -27,7 +27,7 @@ fn line_style(theme: &Theme, list_has_focus: bool, is_selected: bool, is_search_
     }
 }
 
-impl<'a> WidgetRef for AlbumTree<'a> {
+impl WidgetRef for AlbumTree<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.height.store(area.height as usize, Ordering::Relaxed);
 

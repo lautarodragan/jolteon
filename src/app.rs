@@ -53,7 +53,7 @@ pub struct App<'a> {
     mpris: Arc<Mpris>,
 }
 
-impl<'a> App<'a> {
+impl App<'_> {
     pub fn new(mpris: Mpris) -> Self {
         let state = State::from_file();
         let actions = Actions::from_file_or_default();
@@ -280,7 +280,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
     }
 }
 
-impl<'a> WidgetRef for &App<'a> {
+impl WidgetRef for &App<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         Block::default()
             .style(Style::default().bg(self.theme.background))
@@ -325,7 +325,7 @@ impl<'a> WidgetRef for &App<'a> {
     }
 }
 
-impl<'a> OnActionMut for App<'a> {
+impl OnActionMut for App<'_> {
     fn on_action(&mut self, action: Action) {
         if let Action::Screen(action) = action {
             match action {
