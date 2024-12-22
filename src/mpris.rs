@@ -267,6 +267,7 @@ impl Mpris {
         self.emit_properties_changed(vec![
             Property::Metadata(metadata),
             Property::CanPlay(true),
+            Property::CanPause(true),
             Property::CanGoNext(true),
             Property::CanSeek(true),
         ]);
