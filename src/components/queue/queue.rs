@@ -1,8 +1,8 @@
 use std::{
     collections::VecDeque,
     sync::{
-        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
-        Arc, Condvar, Mutex, MutexGuard,
+        atomic::{AtomicU64, AtomicUsize, Ordering},
+        Arc, Mutex, MutexGuard,
     },
     time::Duration,
 };
@@ -15,11 +15,10 @@ pub struct Queue {
     songs: Arc<Mutex<VecDeque<Song>>>,
     selected_item_index: AtomicUsize,
 
-    pop_condvar: Condvar,
-    must_exit_pop_loop: AtomicBool,
-
     queue_length: AtomicUsize,
     total_time: AtomicU64,
+
+    on_queue_changed: Arc<Mutex<Option<Box<dyn Fn() + Send + 'static>>>>,
 }
 
 fn song_list_to_duration(items: &VecDeque<Song>) -> Duration {
@@ -38,43 +37,31 @@ impl Queue {
             songs: Arc::new(Mutex::new(songs)),
             selected_item_index: AtomicUsize::new(0),
 
-            pop_condvar: Condvar::new(),
-            must_exit_pop_loop: AtomicBool::new(false),
-
             queue_length,
             total_time: AtomicU64::new(total_time.as_secs()),
+
+            on_queue_changed: Arc::new(Mutex::new(None)),
         }
     }
 
-    /// Retrieves the first item of the queue, removing it in the process.
-    /// This function will block if there is no item available, until there is one.
-    pub fn pop(&self) -> Result<Song, ()> {
+    pub fn on_queue_changed(&self, f: impl Fn() + Send + 'static) {
+        *self.on_queue_changed.lock().unwrap() = Some(Box::new(f));
+    }
+
+    pub fn pop(&self) -> Option<Song> {
         let target = "::queue.pop()";
 
         let mut items = self.songs();
 
-        loop {
-            if self.must_exit_pop_loop.load(Ordering::SeqCst) {
-                log::trace!(target: target, "Exit");
-                return Err(());
-            }
+        let song = items.pop_front();
 
-            if let Some(song) = items.pop_front() {
-                log::trace!(target: target, "Got song {:?}", song.title);
-                self.queue_length.fetch_sub(1, Ordering::SeqCst);
-                self.set_total_time(song_list_to_duration(&items).as_secs());
-                return Ok(song);
-            }
-
-            log::trace!(target: target, "Waiting for queue change...");
-            items = self.pop_condvar.wait(items).unwrap();
+        if let Some(ref song) = song {
+            log::trace!(target: target, "Got song {:?}", song.title);
+            self.queue_length.fetch_sub(1, Ordering::SeqCst);
+            self.set_total_time(song_list_to_duration(&items).as_secs());
         }
-    }
 
-    pub fn quit(&self) {
-        log::trace!("Queue.quit()");
-        self.must_exit_pop_loop.store(true, Ordering::SeqCst);
-        self.pop_condvar.notify_one();
+        song
     }
 
     fn mut_queue(&self, f: impl FnOnce(&mut VecDeque<Song>)) {
@@ -86,7 +73,9 @@ impl Queue {
         self.queue_length.store(songs.len(), Ordering::SeqCst);
         self.set_total_time(song_list_to_duration(&songs).as_secs());
 
-        self.pop_condvar.notify_one();
+        if let Some(on_queue_changed) = &*self.on_queue_changed.lock().unwrap() {
+            on_queue_changed();
+        }
     }
 
     pub fn songs(&self) -> MutexGuard<VecDeque<Song>> {

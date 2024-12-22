@@ -4,7 +4,12 @@ use std::{
     error::Error,
     path::PathBuf,
     rc::Rc,
-    sync::{Arc, Mutex},
+    sync::{
+        mpsc::{channel, Sender},
+        Arc, Mutex,
+    },
+    thread,
+    thread::JoinHandle,
     time::Duration,
 };
 
@@ -27,6 +32,12 @@ use crate::{
     term::set_terminal,
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
+
+enum SongPlayerThreadCommand {
+    Quit,
+    PlaybackEnded,
+    QueueSongAdded,
+}
 
 pub struct App<'a> {
     must_quit: bool,
@@ -71,8 +82,8 @@ impl App<'_> {
         let is_focus_trapped = Rc::new(Cell::new(false));
 
         let mpris = Arc::new(mpris);
+        let player = Arc::new(Player::new(output_stream_handle, mpris.clone()));
         let queue = Arc::new(Queue::new(state.queue_items, theme));
-        let player = Arc::new(Player::new(queue.clone(), output_stream_handle, theme, mpris.clone()));
         let library = Rc::new(Library::new(theme));
         let playlist = Rc::new(Playlists::new(theme));
         let browser = Rc::new(FileBrowser::new(theme, current_directory));
@@ -83,7 +94,6 @@ impl App<'_> {
                 player.toggle();
             }
         });
-
         mpris.on_stop({
             let player = player.clone();
             move || {
@@ -100,8 +110,10 @@ impl App<'_> {
         });
         library.on_enter_alt({
             let player = player.clone();
+            let queue = queue.clone();
             move |song| {
-                player.play_song(song.clone());
+                queue.add_front(song);
+                player.stop();
             }
         });
         library.on_select_songs_fn({
@@ -125,8 +137,10 @@ impl App<'_> {
         });
         playlist.on_enter_song_alt({
             let player = player.clone();
+            let queue = queue.clone();
             move |song| {
-                player.play_song(song.clone());
+                queue.add_front(song);
+                player.stop();
             }
         });
         playlist.on_enter_playlist({
@@ -209,6 +223,7 @@ impl App<'_> {
         let mut last_tick = std::time::Instant::now();
 
         self.player.spawn();
+        let (queue_thread, queue_thread_sender) = self.spawn_song_player();
 
         while !self.must_quit {
             terminal.draw(|frame| {
@@ -232,10 +247,62 @@ impl App<'_> {
         log::trace!("App.start() -> exiting");
 
         self.to_state().to_file()?;
-
         // self.actions.to_file();
 
+        queue_thread_sender.send(SongPlayerThreadCommand::Quit).unwrap();
+        if let Err(err) = queue_thread.join() {
+            log::error!("error joining queue_thread {err:?}");
+        };
+
         Ok(())
+    }
+
+    fn spawn_song_player(&self) -> (JoinHandle<()>, Sender<SongPlayerThreadCommand>) {
+        let queue = self.queue.clone();
+        let player = self.player.clone();
+        let (tx, rx) = channel::<SongPlayerThreadCommand>();
+
+        player.on_playback_end({
+            let tx = tx.clone();
+            move |song| {
+                log::debug!("player.on_playback_end called {song:?}");
+                tx.send(SongPlayerThreadCommand::PlaybackEnded).unwrap();
+            }
+        });
+
+        queue.on_queue_changed({
+            let tx = tx.clone();
+            move || {
+                tx.send(SongPlayerThreadCommand::QueueSongAdded).unwrap();
+            }
+        });
+
+        let t = thread::Builder::new()
+            .name("song_player".to_string())
+            .spawn(move || loop {
+                let song = queue.pop();
+                if let Some(song) = song {
+                    log::debug!("song_player grabbed song from queue {song:?}");
+                    player.play_song(song);
+                }
+                loop {
+                    match rx.recv().unwrap() {
+                        SongPlayerThreadCommand::Quit => {
+                            return;
+                        }
+                        SongPlayerThreadCommand::PlaybackEnded => {
+                            break;
+                        }
+                        SongPlayerThreadCommand::QueueSongAdded => {
+                            if player.currently_playing().lock().unwrap().is_none() {
+                                break;
+                            }
+                        }
+                    }
+                }
+            })
+            .unwrap();
+        (t, tx)
     }
 }
 
@@ -310,7 +377,25 @@ impl WidgetRef for &App<'_> {
             }
         }
 
-        self.player.render(area_bottom, buf);
+        let frame = self.frame;
+
+        // let is_paused = self.player.is_paused() && {
+        //     const ANIM_LEN: u64 = 6 * 16;
+        //     let step = (frame - self.paused_animation_start_frame.load(Ordering::Relaxed)) % (ANIM_LEN);
+        //     step % 12 < 6 || step >= 6 * 8 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
+        // };
+
+        let is_paused = self.player.is_paused();
+
+        crate::ui::CurrentlyPlaying::new(
+            self.theme,
+            self.player.currently_playing().lock().unwrap().clone(),
+            self.player.get_pos(),
+            self.queue.total_time(),
+            self.queue.length(),
+            is_paused,
+        )
+        .render(area_bottom, buf);
     }
 }
 
@@ -331,6 +416,5 @@ impl OnActionMut for App<'_> {
 impl Drop for App<'_> {
     fn drop(&mut self) {
         log::trace!("App.drop");
-        self.queue.quit();
     }
 }
