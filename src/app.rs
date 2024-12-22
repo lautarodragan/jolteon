@@ -60,7 +60,7 @@ impl App<'_> {
         let actions = Actions::from_file_or_default();
         assert!(
             actions.contains(Action::Quit),
-            "No key binding for Action::Quit! Would not be able to close gracefully. This is 100% a bug."
+            "No key binding for Action::Quit! User would not be able to exit Jolteon. This is 100% a bug."
         );
 
         let (output_stream, output_stream_handle) = OutputStream::try_default().unwrap(); // Indirectly this spawns the cpal_alsa_out thread, and creates the mixer tied to it
