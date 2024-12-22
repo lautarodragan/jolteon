@@ -7,7 +7,6 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
     },
-    thread::JoinHandle,
     time::Duration,
 };
 
@@ -38,7 +37,10 @@ pub struct App<'a> {
     actions: Actions,
     frame: u64,
 
-    _music_output: OutputStream,
+    #[allow(unused)]
+    output_stream: OutputStream,
+    #[allow(unused)]
+    mpris: Arc<Mpris>,
 
     screens: Vec<(String, Component<'a>)>,
     focused_screen: usize,
@@ -47,11 +49,6 @@ pub struct App<'a> {
     player: Arc<Player>,
     queue: Arc<Queue>,
     browser: Rc<FileBrowser<'a>>,
-
-    // player_command_receiver: Arc<Mutex<Receiver<Action>>>,
-    player_command_receiver_thread: Option<JoinHandle<()>>,
-    #[allow(unused)]
-    mpris: Arc<Mpris>,
 }
 
 impl App<'_> {
@@ -178,7 +175,8 @@ impl App<'_> {
             actions,
             frame: 0,
 
-            _music_output: output_stream,
+            output_stream,
+            mpris,
 
             screens: vec![
                 ("Library".to_string(), Component::RefRc(library.clone())),
@@ -193,9 +191,6 @@ impl App<'_> {
             player,
             queue,
             browser,
-
-            player_command_receiver_thread: None,
-            mpris,
         }
     }
 
@@ -248,9 +243,6 @@ impl App<'_> {
 
 impl<'a> KeyboardHandlerMut<'a> for App<'a> {
     fn on_key(&mut self, key: KeyEvent) {
-        // let Some(action) = self.actions.by_key(key) else {
-        //     return;
-        // };
         let action = self.actions.action_by_key(key);
 
         log::debug!("app.on_key action=('{:?}')", action);
@@ -341,23 +333,6 @@ impl OnActionMut for App<'_> {
 impl Drop for App<'_> {
     fn drop(&mut self) {
         log::trace!("App.drop");
-
         self.queue.quit();
-
-        if let Some(a) = self.player_command_receiver_thread.take() {
-            log::trace!("App.drop: joining media_key_rx thread");
-            match a.join() {
-                Ok(_) => {
-                    // log::trace!("ok");
-                }
-                Err(err) => {
-                    log::error!("{:?}", err);
-                }
-            }
-        } else {
-            log::warn!("No media_key_rx thread!?");
-        }
-
-        log::trace!("media_key_rx thread joined successfully");
     }
 }
