@@ -7,13 +7,10 @@ use std::{
     time::Duration,
 };
 
-use crate::{config::Theme, structs::Song};
+use crate::structs::Song;
 
 pub struct Queue {
-    pub(super) theme: Theme,
-
     songs: Arc<Mutex<VecDeque<Song>>>,
-    selected_item_index: AtomicUsize,
 
     queue_length: AtomicUsize,
     total_time: AtomicU64,
@@ -26,16 +23,13 @@ fn song_list_to_duration(items: &VecDeque<Song>) -> Duration {
 }
 
 impl Queue {
-    pub fn new(songs: Vec<Song>, theme: Theme) -> Self {
+    pub fn new(songs: Vec<Song>) -> Self {
         let songs = VecDeque::from(songs);
         let queue_length = AtomicUsize::new(songs.len());
         let total_time = song_list_to_duration(&songs);
 
         Self {
-            theme,
-
             songs: Arc::new(Mutex::new(songs)),
-            selected_item_index: AtomicUsize::new(0),
 
             queue_length,
             total_time: AtomicU64::new(total_time.as_secs()),
@@ -62,6 +56,11 @@ impl Queue {
         }
 
         song
+    }
+
+    pub fn with_items(&self, f: impl FnOnce(&VecDeque<Song>)) {
+        let songs = self.songs();
+        f(&songs);
     }
 
     fn mut_queue(&self, f: impl FnOnce(&mut VecDeque<Song>)) {
@@ -94,39 +93,6 @@ impl Queue {
         self.total_time.store(seconds, Ordering::SeqCst);
     }
 
-    pub fn selected_song_index(&self) -> usize {
-        self.selected_item_index.load(Ordering::SeqCst)
-    }
-
-    pub fn selected_song(&self) -> Option<Song> {
-        let songs = self.songs();
-        songs.get(self.selected_song_index()).cloned()
-    }
-
-    pub fn select_next(&self) {
-        let length = self.length();
-
-        if length == 0 {
-            return;
-        };
-
-        self.selected_item_index.fetch_add(1, Ordering::SeqCst);
-        self.selected_item_index
-            .fetch_min(length.saturating_sub(1), Ordering::SeqCst);
-    }
-
-    pub fn select_previous(&self) {
-        let length = self.length();
-
-        if length == 0 {
-            return;
-        };
-
-        self.selected_item_index.fetch_sub(1, Ordering::SeqCst);
-        self.selected_item_index
-            .fetch_min(length.saturating_sub(1), Ordering::SeqCst);
-    }
-
     pub fn add_front(&self, song: Song) {
         self.mut_queue(|queue_songs| {
             queue_songs.push_front(song);
@@ -145,18 +111,10 @@ impl Queue {
         });
     }
 
-    pub fn remove_selected(&self) {
-        if self.length() == 0 {
-            return;
-        }
-
-        let selected_index = self.selected_song_index();
-
+    pub fn remove(&self, index: usize) {
         self.mut_queue(|queue_songs| {
-            queue_songs.remove(selected_index);
+            queue_songs.remove(index);
         });
-
-        self.select_previous();
     }
 }
 

@@ -1,12 +1,12 @@
 use std::{
-    cell::Cell,
+    cell::{Cell, RefCell},
     env,
     error::Error,
     path::PathBuf,
     rc::Rc,
     sync::{
         mpsc::{channel, Sender},
-        Arc, Mutex,
+        Arc,
     },
     thread,
     thread::JoinHandle,
@@ -23,12 +23,12 @@ use ratatui::{
 use rodio::OutputStream;
 
 use crate::{
-    components::{FileBrowser, Help, Library, Playlists, Queue},
+    components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
     config::Theme,
     mpris::Mpris,
     player::Player,
     state::State,
-    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction},
+    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction, Queue},
     term::set_terminal,
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
@@ -57,6 +57,7 @@ pub struct App<'a> {
 
     player: Arc<Player>,
     queue: Arc<Queue>,
+    queue_ui: Rc<QueueScreen<'a>>,
     browser: Rc<FileBrowser<'a>>,
 }
 
@@ -83,7 +84,8 @@ impl App<'_> {
 
         let mpris = Arc::new(mpris);
         let player = Arc::new(Player::new(output_stream_handle, mpris.clone()));
-        let queue = Arc::new(Queue::new(state.queue_items, theme));
+        let queue_ui = Rc::new(QueueScreen::new(state.queue_items.clone(), theme));
+        let queue = Arc::new(Queue::new(state.queue_items));
         let library = Rc::new(Library::new(theme));
         let playlist = Rc::new(Playlists::new(theme));
         let browser = Rc::new(FileBrowser::new(theme, current_directory));
@@ -156,6 +158,23 @@ impl App<'_> {
             }
         });
 
+        queue_ui.on_enter({
+            let player = player.clone();
+            let queue = queue.clone();
+
+            move |song| {
+                queue.add_front(song);
+                player.stop();
+            }
+        });
+        queue_ui.on_delete({
+            let queue = queue.clone();
+
+            move |_song, index| {
+                queue.remove(index);
+            }
+        });
+
         browser.on_enqueue({
             let queue = queue.clone();
 
@@ -178,7 +197,7 @@ impl App<'_> {
             }
         });
 
-        let help = Arc::new(Mutex::new(Help::new(theme)));
+        let help = Rc::new(RefCell::new(Help::new(theme)));
 
         Self {
             must_quit: false,
@@ -191,10 +210,10 @@ impl App<'_> {
             mpris,
 
             screens: vec![
-                ("Library".to_string(), Component::RefRc(library.clone())),
-                ("Playlists".to_string(), Component::RefRc(playlist.clone())),
-                ("Queue".to_string(), Component::RefArc(queue.clone())),
-                ("File Browser".to_string(), Component::RefRc(browser.clone())),
+                ("Library".to_string(), Component::Ref(library.clone())),
+                ("Playlists".to_string(), Component::Ref(playlist.clone())),
+                ("Queue".to_string(), Component::Ref(queue_ui.clone())),
+                ("File Browser".to_string(), Component::Ref(browser.clone())),
                 ("Help".to_string(), Component::Mut(help.clone())),
             ],
             focused_screen: 0,
@@ -202,6 +221,7 @@ impl App<'_> {
 
             player,
             queue,
+            queue_ui,
             browser,
         }
     }
@@ -226,6 +246,34 @@ impl App<'_> {
         let (queue_thread, queue_thread_sender) = self.spawn_song_player();
 
         while !self.must_quit {
+            if self.queue.length() != self.queue_ui.len() {
+                // Primitive way to keep both instances of the song queue in sync.
+                //
+                // To keep code simple (and slightly more performance), all rendering and input handling happens in a single thread,
+                // and UI elements cannot escape that thread.
+                // But we do need to share the song queue between threads.
+                //
+                // To achieve this, we duplicate the data:
+                // we keep two lists in memory: one "abstract" that is UI and input agnostic,
+                // and can be sent between threads, and a "UI" one, which does the rendering and input handling.
+                //
+                //
+                // We need to keep both lists in sync. The "abstract" queue is the source of truth, but both can be changed,
+                // meaning the sync has to be bidirectional.
+                //
+                // Changes that happen in the UI queue are sync'ed into the "abstract" queue immediately, as they happen, because
+                // we can move that queue back and forth between this thread (which handles both rendering and input) and
+                // any other threads that need it (see spawn_song_player). This is done via `queue_ui.on_enter` etc.
+                //
+                // Changes that happen in the "abstract" queue are sync'ed into the UI queue here, \
+                // blocking this "main" thread — thus blocking rendering and input handling.
+                // In practice the impact of this is insignificant, and probably more performant than having the rendering
+                // of a single frame jumping between CPU cores etc.
+                self.queue.with_items(|songs| {
+                    self.queue_ui.set_items(Vec::from(songs.clone()));
+                });
+            }
+
             terminal.draw(|frame| {
                 frame.render_widget_ref(&*self, frame.area());
             })?;
@@ -366,14 +414,11 @@ impl WidgetRef for &App<'_> {
         };
 
         match component {
-            Component::RefArc(ref s) => {
-                s.render_ref(area_center, buf);
-            }
-            Component::RefRc(ref s) => {
+            Component::Ref(ref s) => {
                 s.render_ref(area_center, buf);
             }
             Component::Mut(ref s) => {
-                s.lock().unwrap().render_ref(area_center, buf);
+                s.borrow().render_ref(area_center, buf);
             }
         }
 

@@ -147,8 +147,8 @@ impl<'a> Library<'a> {
         });
 
         let components: Rc<Vec<Component>> = Rc::new(vec![
-            Component::RefRc(album_tree.clone()),
-            Component::RefRc(song_list.clone()),
+            Component::Ref(album_tree.clone()),
+            Component::Ref(song_list.clone()),
         ]);
 
         let lib = Self {

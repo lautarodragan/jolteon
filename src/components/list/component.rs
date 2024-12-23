@@ -1,6 +1,9 @@
-use std::sync::{
-    atomic::{AtomicBool, AtomicU8, AtomicUsize, Ordering},
-    Mutex,
+use std::{
+    cell::Cell,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
 };
 
 use crossterm::event::KeyCode;
@@ -46,7 +49,7 @@ where
     pub(super) theme: Theme,
 
     pub(super) items: Mutex<Vec<ListItem<T>>>,
-    pub(super) selected_item_index: AtomicUsize,
+    pub(super) selected_item_index: Cell<usize>,
 
     pub(super) on_select_fn: Mutex<Box<dyn Fn(T) + 'a>>,
     pub(super) on_enter_fn: Mutex<Box<dyn Fn(T) + 'a>>,
@@ -60,16 +63,16 @@ where
 
     pub(super) auto_select_next: AtomicBool,
 
-    pub(super) offset: AtomicUsize,
-    pub(super) height: AtomicUsize,
+    pub(super) offset: Cell<usize>,
+    pub(super) height: Cell<usize>,
     pub(super) line_style: Mutex<Option<Box<dyn Fn(&T) -> Option<ratatui::style::Style> + 'a>>>,
     pub(super) is_focused: AtomicBool,
 
     pub(super) filter: Mutex<String>,
     pub(super) rename: Mutex<Option<String>>,
 
-    pub(super) padding: AtomicU8,
-    pub(super) page_size: AtomicU8,
+    pub(super) padding: Cell<u8>,
+    pub(super) page_size: Cell<u8>,
 }
 
 impl<'a, T> List<'a, T>
@@ -99,20 +102,20 @@ where
             find_next_item_by_fn: Mutex::new(None),
 
             items: Mutex::new(items),
-            selected_item_index: AtomicUsize::new(0),
+            selected_item_index: Cell::new(0),
 
             auto_select_next: AtomicBool::new(true),
 
-            offset: AtomicUsize::new(0),
-            height: AtomicUsize::new(0),
+            offset: Cell::new(0),
+            height: Cell::new(0),
             line_style: Mutex::new(None),
             is_focused: AtomicBool::default(),
 
             filter: Mutex::new("".to_string()),
             rename: Mutex::new(None),
 
-            padding: AtomicU8::new(5),
-            page_size: AtomicU8::new(5),
+            padding: Cell::new(5),
+            page_size: Cell::new(5),
         }
     }
 
@@ -141,13 +144,13 @@ where
 
     pub fn with_selected_item<R>(&self, cb: impl FnOnce(&T) -> R) -> R {
         let items = self.items.lock().unwrap();
-        let i = self.selected_item_index.load(Ordering::Acquire);
+        let i = self.selected_item_index.get();
         cb(&items[i].inner)
     }
 
     pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut T)) {
         let mut items = self.items.lock().unwrap();
-        let i = self.selected_item_index.load(Ordering::Acquire);
+        let i = self.selected_item_index.get();
         cb(&mut items[i].inner);
     }
 
@@ -195,31 +198,46 @@ where
         self.set_items_s(items, 0, 0);
     }
 
-    pub fn set_items_s(&self, items: Vec<T>, i: usize, o: usize) {
-        self.selected_item_index.store(i, Ordering::Release);
-        self.offset.store(o, Ordering::Release);
+    pub fn set_items_k(&self, new_items: Vec<T>) {
+        let mut items = self.items.lock().unwrap();
 
-        *self.items.lock().unwrap() = items
-            .into_iter()
-            .map(ListItem::new)
-            .collect();
+        if new_items.len() < items.len() {
+            let difference = items.len().saturating_sub(new_items.len());
+            let selected_item_index = self.selected_item_index.get();
+            let new_selected_item_index = selected_item_index.saturating_sub(difference).min(new_items.len());
+            self.selected_item_index.set(new_selected_item_index);
+
+            let current_offset = self.offset.get();
+            if current_offset > new_items.len().saturating_sub(self.height.get()) {
+                self.offset.set(current_offset.saturating_sub(difference));
+            }
+        }
+
+        *items = new_items.into_iter().map(ListItem::new).collect();
     }
 
+    pub fn set_items_s(&self, items: Vec<T>, i: usize, o: usize) {
+        self.selected_item_index.set(i);
+        self.offset.set(o);
+
+        *self.items.lock().unwrap() = items.into_iter().map(ListItem::new).collect();
+    }
+
+    #[allow(dead_code)]
     pub fn push_item(&self, item: T) {
         let mut items = self.items.lock().unwrap();
         items.push(ListItem::new(item));
     }
 
+    #[allow(dead_code)]
     pub fn append_items(&self, items_to_append: impl IntoIterator<Item = T>) {
         let mut items = self.items.lock().unwrap();
-        let mut items_to_append: Vec<ListItem<T>> = items_to_append
-            .into_iter()
-            .map(ListItem::new)
-            .collect();
+        let mut items_to_append: Vec<ListItem<T>> = items_to_append.into_iter().map(ListItem::new).collect();
 
         items.append(&mut items_to_append);
     }
 
+    #[allow(dead_code)]
     pub fn pop_item(&self) -> Option<T> {
         let mut items = self.items.lock().unwrap();
 
@@ -253,23 +271,23 @@ where
             }
         }
 
-        let selected_item_index = self.selected_item_index.load(Ordering::Acquire);
+        let selected_item_index = self.selected_item_index.get();
         if !items[selected_item_index].is_match {
             if let Some(i) = items.iter().skip(selected_item_index).position(|item| item.is_match) {
                 let i = i + selected_item_index;
-                self.selected_item_index.store(i, Ordering::Release);
+                self.selected_item_index.set(i);
             } else if let Some(i) = items.iter().position(|item| item.is_match) {
-                self.selected_item_index.store(i, Ordering::Release);
+                self.selected_item_index.set(i);
             }
         }
     }
 
     pub fn selected_index(&self) -> usize {
-        self.selected_item_index.load(Ordering::Acquire)
+        self.selected_item_index.get()
     }
 
     pub fn scroll_position(&self) -> usize {
-        self.offset.load(Ordering::Acquire)
+        self.offset.get()
     }
 }
 

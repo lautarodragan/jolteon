@@ -68,7 +68,7 @@ where
     T: std::fmt::Display,
 {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        self.height.store(area.height as usize, Ordering::Relaxed);
+        self.height.set(area.height as usize);
 
         let items = &self.items.lock().unwrap();
 
@@ -76,8 +76,8 @@ where
             return;
         }
 
-        let selected_item_index = self.selected_item_index.load(Ordering::Relaxed);
-        let offset = self.offset.load(Ordering::Relaxed);
+        let selected_item_index = self.selected_item_index.get();
+        let offset = self.offset.get();
 
         let rename = self.rename.lock().unwrap();
 

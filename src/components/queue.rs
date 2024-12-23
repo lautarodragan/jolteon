@@ -1,5 +1,5 @@
 pub mod keyboard_handler;
-pub mod queue;
+pub mod queue_ui;
 pub mod widget;
 
-pub use queue::Queue;
+pub use queue_ui::Queue;

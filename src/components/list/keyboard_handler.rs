@@ -32,7 +32,7 @@ where
 
                 let items = self.items.lock().unwrap();
 
-                let i = self.selected_item_index.load(Ordering::Acquire);
+                let i = self.selected_item_index.get();
                 if i >= items.len() {
                     log::error!(target: target, "selected_item_index > items.len");
                     return;
@@ -70,12 +70,11 @@ where
                     return;
                 }
 
-                let i = self.selected_item_index.load(Ordering::Acquire);
+                let i = self.selected_item_index.get();
                 let removed_item = items.remove(i);
 
                 if i >= items.len() {
-                    self.selected_item_index
-                        .store(items.len().saturating_sub(1), Ordering::Release);
+                    self.selected_item_index.set(items.len().saturating_sub(1));
                 }
 
                 drop(items);
@@ -126,9 +125,9 @@ where
             return;
         }
 
-        let height = self.height.load(Ordering::Relaxed) as i32;
-        let padding = self.padding.load(Ordering::Relaxed) as i32;
-        let page_size = self.page_size.load(Ordering::Relaxed) as i32;
+        let height = self.height.get() as i32;
+        let padding = self.padding.get() as i32;
+        let page_size = self.page_size.get() as i32;
 
         let padding = if is_key_dir_downwards(key.code) {
             height.saturating_sub(padding).saturating_sub(1)
@@ -136,7 +135,7 @@ where
             padding
         };
 
-        let mut i = self.selected_item_index.load(Ordering::SeqCst) as i32;
+        let mut i = self.selected_item_index.get() as i32;
         let initial_i = i;
 
         let on_reorder = self.on_reorder_fn.lock().unwrap();
@@ -219,9 +218,9 @@ where
         }
 
         i = i.min(length - 1).max(0);
-        self.selected_item_index.store(i as usize, Ordering::SeqCst);
+        self.selected_item_index.set(i as usize);
 
-        let offset = self.offset.load(Ordering::Acquire) as i32;
+        let offset = self.offset.get() as i32;
         if (is_key_dir_upwards(key.code) && i < offset + padding)
             || (is_key_dir_downwards(key.code) && i > offset + padding)
         {
@@ -230,7 +229,7 @@ where
             } else {
                 0
             };
-            self.offset.store(offset as usize, Ordering::Release);
+            self.offset.set(offset as usize);
         }
 
         let newly_selected_item = items[i as usize].inner.clone();
