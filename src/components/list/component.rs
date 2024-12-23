@@ -30,6 +30,15 @@ pub struct ListItem<T> {
     pub is_match: bool,
 }
 
+impl<T> ListItem<T> {
+    pub fn new(t: T) -> Self {
+        Self {
+            inner: t,
+            is_match: false,
+        }
+    }
+}
+
 pub struct List<'a, T: 'a>
 where
     T: std::fmt::Display,
@@ -192,19 +201,33 @@ where
 
         *self.items.lock().unwrap() = items
             .into_iter()
-            .map(|item| ListItem {
-                inner: item,
-                is_match: false,
-            })
+            .map(ListItem::new)
             .collect();
     }
 
     pub fn push_item(&self, item: T) {
         let mut items = self.items.lock().unwrap();
-        items.push(ListItem {
-            inner: item,
-            is_match: false,
-        });
+        items.push(ListItem::new(item));
+    }
+
+    pub fn append_items(&self, items_to_append: impl IntoIterator<Item = T>) {
+        let mut items = self.items.lock().unwrap();
+        let mut items_to_append: Vec<ListItem<T>> = items_to_append
+            .into_iter()
+            .map(ListItem::new)
+            .collect();
+
+        items.append(&mut items_to_append);
+    }
+
+    pub fn pop_item(&self) -> Option<T> {
+        let mut items = self.items.lock().unwrap();
+
+        if items.is_empty() {
+            None
+        } else {
+            Some(items.remove(0).inner)
+        }
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
