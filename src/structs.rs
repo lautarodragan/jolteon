@@ -1,11 +1,11 @@
 mod action;
 mod jolt;
 mod playlist;
-mod song;
 mod queue;
+mod song;
 
 pub use action::*;
 pub use jolt::Jolt;
 pub use playlist::Playlist;
-pub use song::Song;
 pub use queue::Queue;
+pub use song::Song;

@@ -11,4 +11,4 @@ pub use help::Help;
 pub use library::Library;
 pub use list::List;
 pub use playlists::Playlists;
-pub use queue::{Queue};
+pub use queue::Queue;
