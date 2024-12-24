@@ -1,4 +1,4 @@
-use std::sync::MutexGuard;
+use std::cell::RefMut;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -14,7 +14,7 @@ where
         let target = "::List.on_key";
         log::trace!(target: target, "{:?}", key);
 
-        let mut rename = self.rename.lock().unwrap();
+        let mut rename = self.rename.borrow_mut();
 
         if rename.is_some() {
             self.on_rename_key(key, rename);
@@ -30,7 +30,7 @@ where
                     filter.clear();
                 });
 
-                let items = self.items.lock().unwrap();
+                let items = self.items.borrow();
 
                 let i = self.selected_item_index.get();
                 if i >= items.len() {
@@ -41,30 +41,30 @@ where
                 drop(items);
 
                 if key.modifiers == KeyModifiers::NONE {
-                    self.on_enter_fn.lock().unwrap()(item);
+                    self.on_enter_fn.borrow_mut()(item);
                     if self.auto_select_next.get() {
                         self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
                     }
                 } else if key.modifiers == KeyModifiers::ALT {
-                    if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.lock().unwrap() {
+                    if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
                         on_enter_alt_fn(item);
                         self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
                     }
                 }
             }
             KeyCode::Insert => {
-                let f = self.on_insert_fn.lock().unwrap();
+                let f = self.on_insert_fn.borrow_mut();
                 let Some(f) = &*f else {
                     return;
                 };
                 f();
             }
             KeyCode::Delete => {
-                let Some(on_delete) = &*self.on_delete_fn.lock().unwrap() else {
+                let Some(on_delete) = &*self.on_delete_fn.borrow_mut() else {
                     return;
                 };
 
-                let mut items = self.items.lock().unwrap();
+                let mut items = self.items.borrow_mut();
 
                 if items.is_empty() {
                     return;
@@ -82,12 +82,12 @@ where
                 on_delete(removed_item.inner, i);
             }
             KeyCode::Char('r') if key.modifiers == KeyModifiers::CONTROL => {
-                if self.on_rename_fn.lock().unwrap().is_none() {
+                if self.on_rename_fn.borrow_mut().is_none() {
                     return;
                 }
                 *rename = self.with_selected_item(|item| Some(item.to_string()));
                 drop(rename);
-                self.on_request_focus_trap_fn.lock().unwrap()(true);
+                self.on_request_focus_trap_fn.borrow_mut()(true);
             }
             KeyCode::Char(char) => {
                 self.filter_mut(|filter| {
@@ -117,8 +117,8 @@ where
     T: std::fmt::Display + Clone,
 {
     fn on_directional_key(&self, key: KeyEvent) {
-        let is_filtering = !self.filter.lock().unwrap().is_empty();
-        let mut items = self.items.lock().unwrap();
+        let is_filtering = !self.filter.borrow_mut().is_empty();
+        let mut items = self.items.borrow_mut();
         let length = items.len() as i32;
 
         if length < 2 {
@@ -138,7 +138,7 @@ where
         let mut i = self.selected_item_index.get() as i32;
         let initial_i = i;
 
-        let on_reorder = self.on_reorder_fn.lock().unwrap();
+        let on_reorder = self.on_reorder_fn.borrow_mut();
         let mut swapped: Option<(usize, usize)> = None;
 
         match key.code {
@@ -160,7 +160,7 @@ where
                         i += 1;
                     }
                 } else if key.modifiers == KeyModifiers::ALT {
-                    if let Some(next_item_special) = &*self.find_next_item_by_fn.lock().unwrap() {
+                    if let Some(next_item_special) = &*self.find_next_item_by_fn.borrow_mut() {
                         let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
 
                         if let Some(ii) = next_item_special(&inners, i as usize, Direction::from(key.code)) {
@@ -242,11 +242,11 @@ where
             }
         } else {
             drop(on_reorder);
-            self.on_select_fn.lock().unwrap()(newly_selected_item);
+            self.on_select_fn.borrow_mut()(newly_selected_item);
         }
     }
 
-    fn on_rename_key(&self, key: KeyEvent, mut rename_opt: MutexGuard<Option<String>>) {
+    fn on_rename_key(&self, key: KeyEvent, mut rename_opt: RefMut<Option<String>>) {
         let Some(ref mut rename) = *rename_opt else {
             return;
         };
@@ -264,14 +264,14 @@ where
             }
             KeyCode::Esc => {
                 *rename_opt = None;
-                self.on_request_focus_trap_fn.lock().unwrap()(false);
+                self.on_request_focus_trap_fn.borrow_mut()(false);
             }
             KeyCode::Enter => {
                 if rename.is_empty() {
                     return;
                 }
 
-                let on_rename_fn = self.on_rename_fn.lock().unwrap();
+                let on_rename_fn = self.on_rename_fn.borrow_mut();
 
                 let Some(ref on_rename_fn) = *on_rename_fn else {
                     return;
@@ -280,7 +280,7 @@ where
                 on_rename_fn((*rename).to_string());
 
                 *rename_opt = None;
-                self.on_request_focus_trap_fn.lock().unwrap()(false);
+                self.on_request_focus_trap_fn.borrow_mut()(false);
             }
             _ => {}
         }

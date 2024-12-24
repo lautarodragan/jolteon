@@ -69,7 +69,7 @@ where
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.height.set(area.height as usize);
 
-        let items = &self.items.lock().unwrap();
+        let items = self.items.borrow();
 
         if items.len() < 1 {
             return;
@@ -78,7 +78,7 @@ where
         let selected_item_index = self.selected_item_index.get();
         let offset = self.offset.get();
 
-        let rename = self.rename.lock().unwrap();
+        let rename = self.rename.borrow();
 
         for i in 0..items.len().min(area.height as usize) {
             let item_index = i + offset;
@@ -104,7 +104,7 @@ where
             };
 
             let style_overrides = {
-                let line_style = self.line_style.lock().unwrap();
+                let line_style = self.line_style.borrow_mut();
                 line_style.as_ref().and_then(|ls| ls(&item.inner))
             };
 
