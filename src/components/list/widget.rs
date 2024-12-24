@@ -1,6 +1,5 @@
 use std::{
     borrow::Cow,
-    sync::atomic::Ordering,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -112,7 +111,7 @@ where
             let line = ListLine {
                 theme: &self.theme,
                 text,
-                list_has_focus: self.is_focused.load(Ordering::Acquire),
+                list_has_focus: self.is_focused.get(),
                 is_selected,
                 is_match: item.is_match,
                 is_renaming,

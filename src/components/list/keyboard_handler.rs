@@ -1,4 +1,4 @@
-use std::sync::{atomic::Ordering, MutexGuard};
+use std::sync::MutexGuard;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -42,7 +42,7 @@ where
 
                 if key.modifiers == KeyModifiers::NONE {
                     self.on_enter_fn.lock().unwrap()(item);
-                    if self.auto_select_next.load(Ordering::Acquire) {
+                    if self.auto_select_next.get() {
                         self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
                     }
                 } else if key.modifiers == KeyModifiers::ALT {

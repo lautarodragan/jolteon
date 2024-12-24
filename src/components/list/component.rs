@@ -1,9 +1,6 @@
 use std::{
     cell::Cell,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Mutex,
-    },
+    sync::Mutex,
 };
 
 use crossterm::event::KeyCode;
@@ -61,12 +58,12 @@ where
     pub(super) on_request_focus_trap_fn: Mutex<Box<dyn Fn(bool) + 'a>>,
     pub(super) find_next_item_by_fn: Mutex<Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>>,
 
-    pub(super) auto_select_next: AtomicBool,
+    pub(super) auto_select_next: Cell<bool>,
 
     pub(super) offset: Cell<usize>,
     pub(super) height: Cell<usize>,
     pub(super) line_style: Mutex<Option<Box<dyn Fn(&T) -> Option<ratatui::style::Style> + 'a>>>,
-    pub(super) is_focused: AtomicBool,
+    pub(super) is_focused: Cell<bool>,
 
     pub(super) filter: Mutex<String>,
     pub(super) rename: Mutex<Option<String>>,
@@ -104,12 +101,12 @@ where
             items: Mutex::new(items),
             selected_item_index: Cell::new(0),
 
-            auto_select_next: AtomicBool::new(true),
+            auto_select_next: Cell::new(true),
 
             offset: Cell::new(0),
             height: Cell::new(0),
             line_style: Mutex::new(None),
-            is_focused: AtomicBool::default(),
+            is_focused: Cell::default(),
 
             filter: Mutex::new("".to_string()),
             rename: Mutex::new(None),
@@ -120,15 +117,15 @@ where
     }
 
     pub fn focus(&self) {
-        self.is_focused.store(true, Ordering::Release);
+        self.is_focused.set(true);
     }
 
     pub fn blur(&self) {
-        self.is_focused.store(false, Ordering::Release);
+        self.is_focused.set(false);
     }
 
     pub fn set_auto_select_next(&self, v: bool) {
-        self.auto_select_next.store(v, Ordering::Release);
+        self.auto_select_next.set(v);
     }
 
     pub fn line_style(&self, cb: impl Fn(&T) -> Option<ratatui::style::Style> + 'a) {
