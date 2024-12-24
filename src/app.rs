@@ -28,16 +28,11 @@ use crate::{
     mpris::Mpris,
     player::Player,
     state::State,
-    structs::{Action, Actions, OnAction, OnActionMut, ScreenAction, Queue},
+    structs::{Action, Actions, OnAction, OnActionMut, Queue, ScreenAction, MainPlayerAction},
     term::set_terminal,
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
+    main_player::MainPlayer,
 };
-
-enum SongPlayerThreadCommand {
-    Quit,
-    PlaybackEnded,
-    QueueSongAdded,
-}
 
 pub struct App<'a> {
     must_quit: bool,
@@ -55,8 +50,10 @@ pub struct App<'a> {
     focused_screen: usize,
     is_focus_trapped: Rc<Cell<bool>>,
 
+    main_player: RefCell<Option<MainPlayer>>,
     player: Arc<Player>,
     queue: Arc<Queue>,
+
     queue_ui: Rc<QueueScreen<'a>>,
     browser: Rc<FileBrowser<'a>>,
 }
@@ -219,8 +216,10 @@ impl App<'_> {
             focused_screen: 0,
             is_focus_trapped,
 
+            main_player: RefCell::new(None),
             player,
             queue,
+
             queue_ui,
             browser,
         }
@@ -243,7 +242,10 @@ impl App<'_> {
         let mut last_tick = std::time::Instant::now();
 
         self.player.spawn();
-        let (queue_thread, queue_thread_sender) = self.spawn_song_player();
+
+        let player_something = MainPlayer::spawn(self.player.clone(), self.queue.clone());
+
+        *self.main_player.borrow_mut() = Some(player_something);
 
         while !self.must_quit {
             if self.queue.length() != self.queue_ui.len() {
@@ -297,60 +299,11 @@ impl App<'_> {
         self.to_state().to_file()?;
         // self.actions.to_file();
 
-        queue_thread_sender.send(SongPlayerThreadCommand::Quit).unwrap();
-        if let Err(err) = queue_thread.join() {
-            log::error!("error joining queue_thread {err:?}");
-        };
+        let player_something = self.main_player.borrow_mut().take().unwrap();
+
+        player_something.quit();
 
         Ok(())
-    }
-
-    fn spawn_song_player(&self) -> (JoinHandle<()>, Sender<SongPlayerThreadCommand>) {
-        let queue = self.queue.clone();
-        let player = self.player.clone();
-        let (tx, rx) = channel::<SongPlayerThreadCommand>();
-
-        player.on_playback_end({
-            let tx = tx.clone();
-            move |song| {
-                log::debug!("player.on_playback_end called {song:?}");
-                tx.send(SongPlayerThreadCommand::PlaybackEnded).unwrap();
-            }
-        });
-
-        queue.on_queue_changed({
-            let tx = tx.clone();
-            move || {
-                tx.send(SongPlayerThreadCommand::QueueSongAdded).unwrap();
-            }
-        });
-
-        let t = thread::Builder::new()
-            .name("song_player".to_string())
-            .spawn(move || loop {
-                let song = queue.pop();
-                if let Some(song) = song {
-                    log::debug!("song_player grabbed song from queue {song:?}");
-                    player.play_song(song);
-                }
-                loop {
-                    match rx.recv().unwrap() {
-                        SongPlayerThreadCommand::Quit => {
-                            return;
-                        }
-                        SongPlayerThreadCommand::PlaybackEnded => {
-                            break;
-                        }
-                        SongPlayerThreadCommand::QueueSongAdded => {
-                            if player.currently_playing().lock().unwrap().is_none() {
-                                break;
-                            }
-                        }
-                    }
-                }
-            })
-            .unwrap();
-        (t, tx)
     }
 }
 
@@ -373,6 +326,17 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                     }
                     Action::Player(_) => {
                         self.player.on_action(action);
+                        return;
+                    }
+                    Action::MainPlayer(a) => {
+                        match a {
+                            MainPlayerAction::RepeatOff => {
+                                self.main_player.borrow().as_ref().unwrap().repeat_off();
+                            }
+                            MainPlayerAction::RepeatOne => {
+                                self.main_player.borrow().as_ref().unwrap().repeat_one();
+                            }
+                        }
                         return;
                     }
                     _ => {}

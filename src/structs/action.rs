@@ -46,6 +46,7 @@ pub enum Action {
     QueueNext,
     Screen(ScreenAction),
     Player(PlayerAction),
+    MainPlayer(MainPlayerAction),
     ListAction(ListAction),
     FileBrowser(FileBrowserAction),
 }
@@ -76,6 +77,12 @@ pub enum PlayerAction {
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+pub enum MainPlayerAction {
+    RepeatOff,
+    RepeatOne,
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
 pub enum FileBrowserAction {
     AddToQueue,
     AddToLibrary,
@@ -98,6 +105,8 @@ impl TryFrom<&str> for Action {
 
         if parent == "Player" {
             PlayerAction::try_from(child).map(Action::Player)
+        } else if parent == "MainPlayer" {
+            MainPlayerAction::try_from(child).map(Action::MainPlayer)
         } else if parent == "Screen" {
             ScreenAction::try_from(child).map(Action::Screen)
         } else if parent == "List" {
@@ -134,6 +143,18 @@ impl TryFrom<&str> for PlayerAction {
             "VolumeDown" => Ok(Self::VolumeDown),
             "SeekForwards" => Ok(Self::SeekForwards),
             "SeekBackwards" => Ok(Self::SeekBackwards),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<&str> for MainPlayerAction {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, ()> {
+        match value {
+            "RepeatOff" => Ok(Self::RepeatOff),
+            "RepeatOne" => Ok(Self::RepeatOne),
             _ => Err(()),
         }
     }
