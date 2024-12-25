@@ -249,28 +249,7 @@ impl App<'_> {
 
         while !self.must_quit {
             if self.queue.length() != self.queue_ui.len() {
-                // Primitive way to keep both instances of the song queue in sync.
-                //
-                // To keep code simple (and slightly more performance), all rendering and input handling happens in a single thread,
-                // and UI elements cannot escape that thread.
-                // But we do need to share the song queue between threads.
-                //
-                // To achieve this, we duplicate the data:
-                // we keep two lists in memory: one "abstract" that is UI and input agnostic,
-                // and can be sent between threads, and a "UI" one, which does the rendering and input handling.
-                //
-                //
-                // We need to keep both lists in sync. The "abstract" queue is the source of truth, but both can be changed,
-                // meaning the sync has to be bidirectional.
-                //
-                // Changes that happen in the UI queue are sync'ed into the "abstract" queue immediately, as they happen, because
-                // we can move that queue back and forth between this thread (which handles both rendering and input) and
-                // any other threads that need it (see spawn_song_player). This is done via `queue_ui.on_enter` etc.
-                //
-                // Changes that happen in the "abstract" queue are sync'ed into the UI queue here, \
-                // blocking this "main" thread — thus blocking rendering and input handling.
-                // In practice the impact of this is insignificant, and probably more performant than having the rendering
-                // of a single frame jumping between CPU cores etc.
+                // See src/README.md to make sense of this
                 self.queue.with_items(|songs| {
                     self.queue_ui.set_items(Vec::from(songs.clone()));
                 });
