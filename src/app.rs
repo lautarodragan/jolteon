@@ -22,7 +22,7 @@ use crate::{
     config::Theme,
     main_player::MainPlayer,
     mpris::Mpris,
-    player::Player,
+    player::SingleTrackPlayer,
     state::State,
     structs::{Action, Actions, OnAction, OnActionMut, Queue, ScreenAction},
     term::set_terminal,
@@ -46,7 +46,7 @@ pub struct App<'a> {
     is_focus_trapped: Rc<Cell<bool>>,
 
     main_player: RefCell<Option<MainPlayer>>,
-    player: Arc<Player>,
+    player: Arc<SingleTrackPlayer>,
     queue: Arc<Queue>,
 
     queue_ui: Rc<QueueScreen<'a>>,
@@ -75,7 +75,7 @@ impl App<'_> {
         let is_focus_trapped = Rc::new(Cell::new(false));
 
         let mpris = Arc::new(mpris);
-        let player = Arc::new(Player::new(output_stream_handle, mpris.clone()));
+        let player = Arc::new(SingleTrackPlayer::new(output_stream_handle, mpris.clone()));
         let queue_ui = Rc::new(QueueScreen::new(state.queue_items.clone(), theme));
         let queue = Arc::new(Queue::new(state.queue_items));
         let library = Rc::new(Library::new(theme));

@@ -4,7 +4,7 @@ use std::thread;
 use std::thread::JoinHandle;
 
 use crate::{
-    player::Player,
+    player::SingleTrackPlayer,
     structs::{MainPlayerAction, OnAction, Queue, Song},
 };
 
@@ -29,7 +29,7 @@ pub struct MainPlayer {
 }
 
 impl MainPlayer {
-    pub fn spawn(player: Arc<Player>, queue: Arc<Queue>) -> Self {
+    pub fn spawn(player: Arc<SingleTrackPlayer>, queue: Arc<Queue>) -> Self {
         let (tx, rx) = channel::<MainPlayerMessage>();
 
         player.on_playback_end({

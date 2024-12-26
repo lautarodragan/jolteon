@@ -15,11 +15,11 @@ use rodio::OutputStreamHandle;
 use crate::{
     mpris::Mpris,
     source::{Controls, Source},
-    structs::{OnAction, PlayerAction, Song},
+    structs::{OnAction, SingleTrackPlayerAction, Song},
     ui::KeyboardHandlerRef,
 };
 
-pub struct Player {
+pub struct SingleTrackPlayer {
     output_stream: OutputStreamHandle,
     main_thread: Mutex<Option<JoinHandle<()>>>,
 
@@ -51,7 +51,7 @@ enum Command {
     Quit,
 }
 
-impl Player {
+impl SingleTrackPlayer {
     pub fn new(output_stream: OutputStreamHandle, mpris: Arc<Mpris>) -> Self {
         let (command_sender, command_receiver) = channel();
 
@@ -390,7 +390,7 @@ impl Player {
     }
 }
 
-impl Drop for Player {
+impl Drop for SingleTrackPlayer {
     fn drop(&mut self) {
         log::trace!("Player.drop()");
 
@@ -415,7 +415,7 @@ impl Drop for Player {
     }
 }
 
-impl KeyboardHandlerRef<'_> for Player {
+impl KeyboardHandlerRef<'_> for SingleTrackPlayer {
     fn on_key(&self, key: KeyEvent) {
         match key.code {
             KeyCode::Right => self.seek_forward(),
@@ -429,25 +429,25 @@ impl KeyboardHandlerRef<'_> for Player {
     }
 }
 
-impl OnAction<PlayerAction> for Player {
-    fn on_action(&self, action: PlayerAction) {
+impl OnAction<SingleTrackPlayerAction> for SingleTrackPlayer {
+    fn on_action(&self, action: SingleTrackPlayerAction) {
         match action {
-            PlayerAction::PlayPause => {
+            SingleTrackPlayerAction::PlayPause => {
                 self.toggle();
             }
-            PlayerAction::Stop => {
+            SingleTrackPlayerAction::Stop => {
                 self.stop();
             }
-            PlayerAction::VolumeUp => {
+            SingleTrackPlayerAction::VolumeUp => {
                 self.change_volume(0.05);
             }
-            PlayerAction::VolumeDown => {
+            SingleTrackPlayerAction::VolumeDown => {
                 self.change_volume(-0.05);
             }
-            PlayerAction::SeekForwards => {
+            SingleTrackPlayerAction::SeekForwards => {
                 self.seek_forward();
             }
-            PlayerAction::SeekBackwards => {
+            SingleTrackPlayerAction::SeekBackwards => {
                 self.seek_backward();
             }
         }

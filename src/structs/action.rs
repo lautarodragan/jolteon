@@ -45,7 +45,7 @@ pub enum Action {
     Quit,
     QueueNext,
     Screen(ScreenAction),
-    Player(PlayerAction),
+    Player(SingleTrackPlayerAction),
     MainPlayer(MainPlayerAction),
     ListAction(ListAction),
     FileBrowser(FileBrowserAction),
@@ -67,7 +67,7 @@ pub enum ScreenAction {
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
-pub enum PlayerAction {
+pub enum SingleTrackPlayerAction {
     Stop,
     PlayPause,
     VolumeUp,
@@ -104,7 +104,7 @@ impl TryFrom<&str> for Action {
         };
 
         if parent == "Player" {
-            PlayerAction::try_from(child).map(Action::Player)
+            SingleTrackPlayerAction::try_from(child).map(Action::Player)
         } else if parent == "MainPlayer" {
             MainPlayerAction::try_from(child).map(Action::MainPlayer)
         } else if parent == "Screen" {
@@ -132,7 +132,7 @@ impl TryFrom<&str> for ScreenAction {
     }
 }
 
-impl TryFrom<&str> for PlayerAction {
+impl TryFrom<&str> for SingleTrackPlayerAction {
     type Error = ();
 
     fn try_from(value: &str) -> Result<Self, ()> {
