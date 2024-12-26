@@ -36,12 +36,11 @@ use std::error::Error;
 use std::io::stdout;
 use std::thread;
 
-use async_std::task;
 use colored::{Color, Colorize};
 use flexi_logger::{style, DeferredNow, FileSpec, Logger, WriteMode};
 use log::{debug, info, Record};
 
-use crate::{app::App, auto_update::auto_update, bye::bye, mpris::Mpris, term::reset_terminal};
+use crate::{auto_update::auto_update, bye::bye, term::reset_terminal};
 
 pub fn log_format(w: &mut dyn std::io::Write, now: &mut DeferredNow, record: &Record) -> Result<(), std::io::Error> {
     write!(w, "{}   ", now.format("%-l:%M:%S%P"))?;
@@ -84,17 +83,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     debug!("Starting mpris and player");
 
-    let mpris = Mpris::new().await?;
+    if let Err(err) = app::run().await {
+        log::error!("app::run error :( \n{:#?}", err);
+    }
 
-    let task_player = task::spawn_blocking(move || {
-        let mut app = App::new(mpris);
-        app.start()
-            .unwrap_or_else(|err| log::error!("app.start error :( \n{:#?}", err));
-        log::trace!("Player.start() finished");
-    });
-
-    debug!("Awaiting player task");
-    task_player.await;
     debug!("Quitting Jolteon");
 
     debug!("Resetting terminal");

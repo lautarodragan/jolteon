@@ -8,6 +8,7 @@ use std::{
     time::Duration,
 };
 
+use async_std::task;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     buffer::Buffer,
@@ -391,4 +392,20 @@ impl Drop for App<'_> {
     fn drop(&mut self) {
         log::trace!("App.drop");
     }
+}
+
+pub async fn run() -> Result<(), Box<dyn Error>> {
+    let mpris = Mpris::new().await?;
+
+    task::spawn_blocking(move || {
+        let mut app = App::new(mpris);
+        if let Err(err) = app.start() {
+            // dyn Error cannot be shared between threads.
+            // TODO: stop using dyn Error. Use an Enum instead.
+            log::error!("app.start error :( \n{:#?}", err);
+        }
+    })
+    .await;
+
+    Ok(())
 }
