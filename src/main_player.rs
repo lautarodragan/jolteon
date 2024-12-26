@@ -1,39 +1,50 @@
-use std::sync::Arc;
 use std::sync::mpsc::{channel, Sender};
+use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
 
-use crate::player::Player;
-use crate::structs::{Queue, Song};
+use crate::{
+    player::Player,
+    structs::{MainPlayerAction, OnAction, Queue, Song},
+};
 
-enum Action {
+enum MainPlayerCommand {
     Quit,
+}
+
+enum MainPlayerEvent {
     PlaybackEnded(Song),
     QueueChanged,
-    RepeatOff,
-    RepeatOne,
+}
+
+enum MainPlayerMessage {
+    Action(MainPlayerAction),
+    Event(MainPlayerEvent),
+    Command(MainPlayerCommand),
 }
 
 pub struct MainPlayer {
     thread: JoinHandle<()>,
-    sender: Sender<Action>,
+    sender: Sender<MainPlayerMessage>,
 }
 
 impl MainPlayer {
     pub fn spawn(player: Arc<Player>, queue: Arc<Queue>) -> Self {
-        let (tx, rx) = channel::<Action>();
+        let (tx, rx) = channel::<MainPlayerMessage>();
 
         player.on_playback_end({
             let tx = tx.clone();
             move |song| {
-                tx.send(Action::PlaybackEnded(song)).unwrap();
+                tx.send(MainPlayerMessage::Event(MainPlayerEvent::PlaybackEnded(song)))
+                    .unwrap();
             }
         });
 
         queue.on_queue_changed({
             let tx = tx.clone();
             move || {
-                tx.send(Action::QueueChanged).unwrap();
+                tx.send(MainPlayerMessage::Event(MainPlayerEvent::QueueChanged))
+                    .unwrap();
             }
         });
 
@@ -56,23 +67,23 @@ impl MainPlayer {
 
                     loop {
                         match rx.recv().unwrap() {
-                            Action::Quit => {
+                            MainPlayerMessage::Command(MainPlayerCommand::Quit) => {
                                 return;
                             }
-                            Action::PlaybackEnded(song) => {
+                            MainPlayerMessage::Event(MainPlayerEvent::PlaybackEnded(song)) => {
                                 log::debug!("playback ended {song:?}");
                                 break;
                             }
-                            Action::QueueChanged => {
+                            MainPlayerMessage::Event(MainPlayerEvent::QueueChanged) => {
                                 if player.currently_playing().lock().unwrap().is_none() {
                                     break;
                                 }
                             }
-                            Action::RepeatOne => {
+                            MainPlayerMessage::Action(MainPlayerAction::RepeatOne) => {
                                 log::debug!("will repeat one song");
                                 repeat = true;
                             }
-                            Action::RepeatOff => {
+                            MainPlayerMessage::Action(MainPlayerAction::RepeatOff) => {
                                 log::debug!("will not repeat");
                                 repeat = false;
                             }
@@ -82,24 +93,21 @@ impl MainPlayer {
             })
             .unwrap();
 
-        Self {
-            thread: t,
-            sender: tx,
-        }
+        Self { thread: t, sender: tx }
     }
 
     pub fn quit(self) {
-        self.sender.send(Action::Quit).unwrap();
+        self.sender
+            .send(MainPlayerMessage::Command(MainPlayerCommand::Quit))
+            .unwrap();
         if let Err(err) = self.thread.join() {
             log::error!("error joining player thread {err:?}");
         };
     }
+}
 
-    pub fn repeat_one(&self) {
-        self.sender.send(Action::RepeatOne).unwrap();
-    }
-
-    pub fn repeat_off(&self) {
-        self.sender.send(Action::RepeatOff).unwrap();
+impl OnAction<MainPlayerAction> for MainPlayer {
+    fn on_action(&self, action: MainPlayerAction) {
+        self.sender.send(MainPlayerMessage::Action(action)).unwrap();
     }
 }

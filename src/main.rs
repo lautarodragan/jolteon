@@ -21,6 +21,7 @@ mod cue;
 mod duration;
 mod extensions;
 mod files;
+mod main_player;
 mod mpris;
 mod player;
 mod source;
@@ -30,7 +31,6 @@ mod structs;
 mod term;
 mod toml;
 mod ui;
-mod main_player;
 
 use std::error::Error;
 use std::io::stdout;

@@ -4,12 +4,7 @@ use std::{
     error::Error,
     path::PathBuf,
     rc::Rc,
-    sync::{
-        mpsc::{channel, Sender},
-        Arc,
-    },
-    thread,
-    thread::JoinHandle,
+    sync::Arc,
     time::Duration,
 };
 
@@ -25,13 +20,13 @@ use rodio::OutputStream;
 use crate::{
     components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
     config::Theme,
+    main_player::MainPlayer,
     mpris::Mpris,
     player::Player,
     state::State,
-    structs::{Action, Actions, OnAction, OnActionMut, Queue, ScreenAction, MainPlayerAction},
+    structs::{Action, Actions, OnAction, OnActionMut, Queue, ScreenAction},
     term::set_terminal,
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
-    main_player::MainPlayer,
 };
 
 pub struct App<'a> {
@@ -303,19 +298,12 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
                         self.on_action(action);
                         return;
                     }
-                    Action::Player(_) => {
+                    Action::Player(action) => {
                         self.player.on_action(action);
                         return;
                     }
-                    Action::MainPlayer(a) => {
-                        match a {
-                            MainPlayerAction::RepeatOff => {
-                                self.main_player.borrow().as_ref().unwrap().repeat_off();
-                            }
-                            MainPlayerAction::RepeatOne => {
-                                self.main_player.borrow().as_ref().unwrap().repeat_one();
-                            }
-                        }
+                    Action::MainPlayer(action) => {
+                        self.main_player.borrow().as_ref().unwrap().on_action(action);
                         return;
                     }
                     _ => {}

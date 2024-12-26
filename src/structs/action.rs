@@ -306,8 +306,8 @@ impl Actions {
     }
 }
 
-pub trait OnAction {
-    fn on_action(&self, action: Action);
+pub trait OnAction<T = Action> {
+    fn on_action(&self, action: T);
 }
 
 pub trait OnActionMut {

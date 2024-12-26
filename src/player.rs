@@ -15,7 +15,7 @@ use rodio::OutputStreamHandle;
 use crate::{
     mpris::Mpris,
     source::{Controls, Source},
-    structs::{Action, OnAction, PlayerAction, Song},
+    structs::{OnAction, PlayerAction, Song},
     ui::KeyboardHandlerRef,
 };
 
@@ -429,28 +429,26 @@ impl KeyboardHandlerRef<'_> for Player {
     }
 }
 
-impl OnAction for Player {
-    fn on_action(&self, action: Action) {
-        if let Action::Player(action) = action {
-            match action {
-                PlayerAction::PlayPause => {
-                    self.toggle();
-                }
-                PlayerAction::Stop => {
-                    self.stop();
-                }
-                PlayerAction::VolumeUp => {
-                    self.change_volume(0.05);
-                }
-                PlayerAction::VolumeDown => {
-                    self.change_volume(-0.05);
-                }
-                PlayerAction::SeekForwards => {
-                    self.seek_forward();
-                }
-                PlayerAction::SeekBackwards => {
-                    self.seek_backward();
-                }
+impl OnAction<PlayerAction> for Player {
+    fn on_action(&self, action: PlayerAction) {
+        match action {
+            PlayerAction::PlayPause => {
+                self.toggle();
+            }
+            PlayerAction::Stop => {
+                self.stop();
+            }
+            PlayerAction::VolumeUp => {
+                self.change_volume(0.05);
+            }
+            PlayerAction::VolumeDown => {
+                self.change_volume(-0.05);
+            }
+            PlayerAction::SeekForwards => {
+                self.seek_forward();
+            }
+            PlayerAction::SeekBackwards => {
+                self.seek_backward();
             }
         }
     }
