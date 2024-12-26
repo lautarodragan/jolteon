@@ -310,6 +310,6 @@ pub trait OnAction<T = Action> {
     fn on_action(&self, action: T);
 }
 
-pub trait OnActionMut {
-    fn on_action(&mut self, action: Action);
+pub trait OnActionMut<T = Action> {
+    fn on_action(&mut self, action: T);
 }

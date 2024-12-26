@@ -294,7 +294,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
             }
             if !self.is_focus_trapped.get() {
                 match action {
-                    Action::Screen(_) => {
+                    Action::Screen(action) => {
                         self.on_action(action);
                         return;
                     }
@@ -375,16 +375,14 @@ impl WidgetRef for &App<'_> {
     }
 }
 
-impl OnActionMut for App<'_> {
-    fn on_action(&mut self, action: Action) {
-        if let Action::Screen(action) = action {
-            match action {
-                ScreenAction::Library => self.focused_screen = 0,
-                ScreenAction::Playlists => self.focused_screen = 1,
-                ScreenAction::Queue => self.focused_screen = 2,
-                ScreenAction::FileBrowser => self.focused_screen = 3,
-                ScreenAction::Help => self.focused_screen = 4,
-            }
+impl OnActionMut<ScreenAction> for App<'_> {
+    fn on_action(&mut self, action: ScreenAction) {
+        match action {
+            ScreenAction::Library => self.focused_screen = 0,
+            ScreenAction::Playlists => self.focused_screen = 1,
+            ScreenAction::Queue => self.focused_screen = 2,
+            ScreenAction::FileBrowser => self.focused_screen = 3,
+            ScreenAction::Help => self.focused_screen = 4,
         }
     }
 }
