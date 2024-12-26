@@ -141,7 +141,7 @@ impl SingleTrackPlayer {
         let on_playback_end = self.on_playback_end.clone();
 
         let thread = thread::Builder::new()
-            .name("player".to_string())
+            .name("single_track_player".to_string())
             .spawn(move || loop {
                 let song = loop {
                     match command_receiver.recv() {

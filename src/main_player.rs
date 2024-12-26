@@ -49,7 +49,7 @@ impl MainPlayer {
         });
 
         let t = thread::Builder::new()
-            .name("song_player".to_string())
+            .name("main_player".to_string())
             .spawn(move || {
                 let mut repeat = false;
                 let mut song: Option<Song> = None;
