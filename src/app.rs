@@ -1,6 +1,6 @@
 use std::error::Error;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use async_std::task;
@@ -82,7 +82,6 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
                     main_player.remove(index);
                 }
             }
-
         }
     });
 

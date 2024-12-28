@@ -1,10 +1,9 @@
 use std::{
     collections::VecDeque,
     sync::{
-        atomic::{AtomicU64, AtomicUsize, Ordering},
+        atomic::{AtomicUsize, Ordering},
         Arc, Mutex, MutexGuard,
     },
-    time::Duration,
 };
 
 use crate::structs::Song;

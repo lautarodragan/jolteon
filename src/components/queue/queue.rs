@@ -11,7 +11,10 @@ impl<'a> Queue<'a> {
     pub fn new(songs: Vec<Song>, theme: Theme) -> Self {
         let song_list = List::new(theme, songs);
 
-        Self { song_list, duration: Cell::new(Duration::default()) }
+        Self {
+            song_list,
+            duration: Cell::new(Duration::default()),
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -19,7 +22,8 @@ impl<'a> Queue<'a> {
     }
 
     fn refresh_duration(&self) {
-        self.duration.set(self.song_list.with_items(|items| items.iter().map(|s| s.length).sum()));
+        self.duration
+            .set(self.song_list.with_items(|items| items.iter().map(|s| s.length).sum()));
     }
 
     pub fn duration(&self) -> Duration {

@@ -191,19 +191,19 @@ impl MainPlayer {
     }
 
     pub fn add_front(&self, song: Song) {
-            self.queue.add_front(song);
+        self.queue.add_front(song);
     }
 
     pub fn add_back(&self, song: Song) {
-            self.queue.add_back(song);
+        self.queue.add_back(song);
     }
 
     pub fn append(&self, songs: &mut VecDeque<Song>) {
-            self.queue.append(songs);
+        self.queue.append(songs);
     }
 
     pub fn remove(&self, index: usize) {
-            self.queue.remove(index);
+        self.queue.remove(index);
     }
 }
 

@@ -3,7 +3,7 @@ use std::{
     env,
     path::PathBuf,
     rc::Rc,
-    sync::{Arc, Weak},
+    sync::Weak,
 };
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -19,7 +19,7 @@ use crate::{
     config::Theme,
     main_player::MainPlayer,
     state::State,
-    structs::{OnActionMut, Queue, ScreenAction, Song},
+    structs::{OnActionMut, ScreenAction, Song},
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
 
@@ -213,7 +213,7 @@ impl<'a> Root<'a> {
 
     pub fn set_queue(&self, songs: Vec<Song>) {
         // if self.queue_screen.len() != songs.len() {
-            self.queue_screen.set_items(songs);
+        self.queue_screen.set_items(songs);
         // }
     }
 }
