@@ -50,35 +50,36 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
     // Creating the output_stream indirectly spawns the cpal_alsa_out thread, and creates the mixer tied to it.
     let (_output_stream, output_stream_handle) = OutputStream::try_default()?;
 
-    let main_player = Arc::new(MainPlayer::spawn(output_stream_handle, mpris, state.queue_items));
+    let player = Arc::new(MainPlayer::spawn(output_stream_handle, mpris, state.queue_items));
     let queue_changed = Arc::new(AtomicBool::default());
 
-    main_player.on_queue_changed({
+    player.on_queue_changed({
+        // See src/README.md to make sense of this
         let queue_changed = queue_changed.clone();
         move || {
             queue_changed.store(true, Ordering::Release);
         }
     });
 
-    let mut root_component = Root::new(theme, Arc::downgrade(&main_player));
+    let mut root_component = Root::new(theme, Arc::downgrade(&player));
 
     root_component.on_queue_changed({
-        let main_player = main_player.clone();
+        let player = player.clone();
         move |change| {
             log::debug!("root_component.on_queue_changed {change:?}");
 
             match change {
                 QueueChange::AddFront(song) => {
-                    main_player.add_front(song);
+                    player.add_front(song);
                 }
                 QueueChange::AddBack(song) => {
-                    main_player.add_back(song);
+                    player.add_back(song);
                 }
                 QueueChange::Append(songs) => {
-                    main_player.append(&mut std::collections::VecDeque::from(songs));
+                    player.append(&mut songs.into());
                 }
                 QueueChange::Remove(index) => {
-                    main_player.remove(index);
+                    player.remove(index);
                 }
             }
         }
@@ -89,9 +90,8 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     loop {
         if queue_changed.swap(false, Ordering::AcqRel) {
-            main_player.queue().with_items(|songs| {
-                // See src/README.md to make sense of this
-                root_component.set_queue(Vec::from(songs.clone()));
+            player.queue().with_items(|songs| {
+                root_component.set_queue(songs.clone().into());
             });
         }
 
@@ -110,10 +110,10 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
                     match action {
                         Action::Player(action) => {
-                            main_player.single_track_player().on_action(action);
+                            player.single_track_player().on_action(action);
                         }
                         Action::MainPlayer(action) => {
-                            main_player.on_action(action);
+                            player.on_action(action);
                         }
                         Action::Screen(action) => {
                             root_component.on_action(action);
@@ -135,7 +135,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     let state = State {
         last_visited_path: root_component.browser_directory().to_str().map(String::from),
-        queue_items: Vec::from(main_player.queue().songs().clone()),
+        queue_items: Vec::from(player.queue().songs().clone()),
     };
 
     if let Err(err) = state.to_file() {
@@ -146,10 +146,10 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     log::debug!(
         "main_player strong_count: {}. weak_count: {}",
-        Arc::strong_count(&main_player),
-        Arc::weak_count(&main_player)
+        Arc::strong_count(&player),
+        Arc::weak_count(&player)
     );
-    if let Some(main_player) = Arc::into_inner(main_player) {
+    if let Some(main_player) = Arc::into_inner(player) {
         log::debug!("main_player.quit()");
         main_player.quit();
     } else {

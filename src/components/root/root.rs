@@ -212,9 +212,7 @@ impl<'a> Root<'a> {
     }
 
     pub fn set_queue(&self, songs: Vec<Song>) {
-        // if self.queue_screen.len() != songs.len() {
         self.queue_screen.set_items(songs);
-        // }
     }
 }
 
@@ -293,8 +291,8 @@ impl WidgetRef for &Root<'_> {
 
         crate::ui::CurrentlyPlaying::new(
             self.theme,
-            player.currently_playing().lock().unwrap().clone(),
-            player.get_pos(),
+            player.playing_song().lock().unwrap().clone(),
+            player.playing_position(),
             self.queue_screen.duration(),
             self.queue_screen.len(),
             is_paused,

@@ -157,25 +157,29 @@ impl MainPlayer {
         self.queue.clone()
     }
 
+    //// Playback Management
+
+    pub fn playing_song(&self) -> Arc<Mutex<Option<Song>>> {
+        self.player.currently_playing()
+    }
+
+    pub fn playing_position(&self) -> Duration {
+        self.player.get_pos()
+    }
+
     pub fn is_paused(&self) -> bool {
         self.player.is_paused()
     }
 
-    pub fn currently_playing(&self) -> Arc<Mutex<Option<Song>>> {
-        self.player.currently_playing()
-    }
-
-    pub fn get_pos(&self) -> Duration {
-        self.player.get_pos()
+    pub fn play(&self, song: Song) {
+        self.single_track_player().play_song(song);
     }
 
     pub fn stop(&self) {
         self.player.stop()
     }
 
-    pub fn play(&self, song: Song) {
-        self.single_track_player().play_song(song);
-    }
+    //// Queue Management
 
     pub fn on_queue_changed(&self, f: impl Fn() + Send + 'static) {
         *self.on_queue_changed.lock().unwrap() = Some(Box::new(f));
