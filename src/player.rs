@@ -36,7 +36,6 @@ pub struct SingleTrackPlayer {
 }
 
 #[derive(Debug)]
-#[allow(dead_code)]
 enum Command {
     SetSong(Song),
     Play,
