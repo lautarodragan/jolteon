@@ -31,6 +31,24 @@ pub enum QueueChange {
     Remove(usize),
 }
 
+struct Callback<'a, T>(RefCell<Option<Box<dyn Fn(T) + 'a>>>);
+
+impl<'a, T> Callback<'a, T> {
+    pub fn call(&self, v: T) {
+        self.0.borrow().as_ref().inspect(|f| f(v));
+    }
+
+    pub fn set(&self, f: impl Fn(T) + 'a) {
+        *self.0.borrow_mut() = Some(Box::new(f));
+    }
+}
+
+impl<T> Default for Callback<'_, T> {
+    fn default() -> Self {
+        Self(RefCell::new(None))
+    }
+}
+
 pub struct Root<'a> {
     theme: Theme,
     frame: u64,
@@ -45,7 +63,7 @@ pub struct Root<'a> {
     queue_screen: Rc<QueueScreen<'a>>,
     browser_screen: Rc<FileBrowser<'a>>,
 
-    on_queue_changed_fn: Rc<RefCell<Option<Box<dyn Fn(QueueChange) + 'a>>>>,
+    on_queue_changed_fn: Rc<Callback<'a, QueueChange>>,
 }
 
 impl<'a> Root<'a> {
@@ -64,7 +82,7 @@ impl<'a> Root<'a> {
         let playlist = Rc::new(Playlists::new(theme));
         let browser = Rc::new(FileBrowser::new(theme, current_directory));
 
-        let on_queue_changed_fn = Rc::new(RefCell::new(None::<Box<dyn Fn(QueueChange) + 'a>>));
+        let on_queue_changed_fn = Rc::new(Callback::default());
 
         library.on_enter({
             let queue_screen = queue_screen.clone();
@@ -72,7 +90,7 @@ impl<'a> Root<'a> {
 
             move |song| {
                 queue_screen.append(vec![song.clone()]);
-                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::AddBack(song)));
+                on_queue_changed_fn.call(QueueChange::AddBack(song));
             }
         });
         library.on_enter_alt({
@@ -90,7 +108,7 @@ impl<'a> Root<'a> {
             move |songs| {
                 log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
                 queue_screen.append(songs.clone());
-                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::Append(songs)));
+                on_queue_changed_fn.call(QueueChange::Append(songs));
                 // hackish way to "select_next()":
                 library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
             }
@@ -101,7 +119,7 @@ impl<'a> Root<'a> {
             let on_queue_changed_fn = on_queue_changed_fn.clone();
             move |song| {
                 queue_screen.append(vec![song.clone()]);
-                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::AddBack(song)));
+                on_queue_changed_fn.call(QueueChange::AddBack(song));
             }
         });
         playlist.on_enter_song_alt({
@@ -115,7 +133,7 @@ impl<'a> Root<'a> {
             let on_queue_changed_fn = on_queue_changed_fn.clone();
             move |playlist| {
                 queue_screen.append(playlist.songs.clone());
-                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::Append(playlist.songs)));
+                on_queue_changed_fn.call(QueueChange::Append(playlist.songs));
             }
         });
         playlist.on_request_focus_trap_fn({
@@ -134,7 +152,7 @@ impl<'a> Root<'a> {
         queue_screen.on_delete({
             let on_queue_changed_fn = on_queue_changed_fn.clone();
             move |_song, index| {
-                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::Remove(index)));
+                on_queue_changed_fn.call(QueueChange::Remove(index));
             }
         });
 
@@ -143,7 +161,7 @@ impl<'a> Root<'a> {
             let on_queue_changed_fn = on_queue_changed_fn.clone();
             move |songs| {
                 queue_screen.append(songs.clone());
-                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::Append(songs)));
+                on_queue_changed_fn.call(QueueChange::Append(songs));
             }
         });
         browser.on_add_to_lib({
@@ -192,7 +210,7 @@ impl<'a> Root<'a> {
     }
 
     pub fn on_queue_changed(&self, f: impl Fn(QueueChange) + 'a) {
-        *self.on_queue_changed_fn.borrow_mut() = Some(Box::new(f));
+        self.on_queue_changed_fn.set(f);
     }
 }
 
