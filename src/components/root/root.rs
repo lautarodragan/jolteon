@@ -298,8 +298,8 @@ impl WidgetRef for &Root<'_> {
             self.theme,
             player.currently_playing().lock().unwrap().clone(),
             player.get_pos(),
-            self.queue.total_time(),
-            self.queue.length(),
+            self.queue_screen.duration(),
+            self.queue_screen.len(),
             is_paused,
         )
         .render(area_bottom, buf);

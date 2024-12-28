@@ -11,28 +11,19 @@ use crate::structs::Song;
 
 pub struct Queue {
     songs: Arc<Mutex<VecDeque<Song>>>,
-
     queue_length: AtomicUsize,
-    total_time: AtomicU64,
-
     on_queue_changed: Mutex<Option<Box<dyn Fn() + Send + 'static>>>,
-}
-
-fn song_list_to_duration(items: &VecDeque<Song>) -> Duration {
-    items.iter().map(|s| s.length).sum()
 }
 
 impl Queue {
     pub fn new(songs: Vec<Song>) -> Self {
         let songs = VecDeque::from(songs);
         let queue_length = AtomicUsize::new(songs.len());
-        let total_time = song_list_to_duration(&songs);
 
         Self {
             songs: Arc::new(Mutex::new(songs)),
 
             queue_length,
-            total_time: AtomicU64::new(total_time.as_secs()),
 
             on_queue_changed: Mutex::new(None),
         }
@@ -52,7 +43,6 @@ impl Queue {
         if let Some(ref song) = song {
             log::trace!(target: target, "Got song {:?}", song.title);
             self.queue_length.fetch_sub(1, Ordering::SeqCst);
-            self.set_total_time(song_list_to_duration(&items).as_secs());
         }
 
         song
@@ -70,7 +60,6 @@ impl Queue {
         f(&mut songs);
 
         self.queue_length.store(songs.len(), Ordering::SeqCst);
-        self.set_total_time(song_list_to_duration(&songs).as_secs());
 
         if let Some(on_queue_changed) = &*self.on_queue_changed.lock().unwrap() {
             on_queue_changed();
@@ -83,14 +72,6 @@ impl Queue {
 
     pub fn length(&self) -> usize {
         self.queue_length.load(Ordering::SeqCst)
-    }
-
-    pub fn total_time(&self) -> Duration {
-        Duration::new(self.total_time.load(Ordering::SeqCst), 0)
-    }
-
-    fn set_total_time(&self, seconds: u64) {
-        self.total_time.store(seconds, Ordering::SeqCst);
     }
 
     pub fn add_front(&self, song: Song) {
