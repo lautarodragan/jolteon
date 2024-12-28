@@ -44,7 +44,7 @@ impl MainPlayer {
         let (tx, rx) = channel::<MainPlayerMessage>();
 
         let mpris = Arc::new(mpris);
-        let player = Arc::new(SingleTrackPlayer::new(output_stream_handle, mpris.clone()));
+        let player = Arc::new(SingleTrackPlayer::spawn(output_stream_handle, mpris.clone()));
         let queue = Arc::new(Queue::new(queue_songs));
 
         mpris.on_play_pause({
@@ -59,8 +59,6 @@ impl MainPlayer {
                 player.stop();
             }
         });
-
-        player.spawn();
 
         player.on_playback_end({
             let tx = tx.clone();
@@ -141,6 +139,12 @@ impl MainPlayer {
     }
 
     pub fn quit(self) {
+        if let Some(player) = Arc::into_inner(self.player) {
+            player.quit();
+        } else {
+            log::error!("Dangling references to player! Could not quit it gracefully.")
+        }
+
         self.sender
             .send(MainPlayerMessage::Command(MainPlayerCommand::Quit))
             .unwrap();

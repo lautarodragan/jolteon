@@ -2,7 +2,7 @@ use std::{io::BufRead, path::PathBuf, thread};
 
 #[allow(dead_code)]
 fn spawn_terminal(cwd: PathBuf) {
-    if let Err(err) = thread::Builder::new().name("term".to_string()).spawn(move || {
+    thread::Builder::new().name("term".to_string()).spawn(move || {
         log::debug!("spawning child process");
 
         let proc = std::process::Command::new("kitty")
@@ -25,7 +25,5 @@ fn spawn_terminal(cwd: PathBuf) {
         } else if let Err(err) = proc {
             log::error!("error spawning thread {:?}", err);
         }
-    }) {
-        log::error!("Error spawning thread! {:?}", err);
-    }
+    }).unwrap();
 }
