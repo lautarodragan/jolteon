@@ -108,7 +108,8 @@ impl<'a> Root<'a> {
                 log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
                 queue_screen.append(songs.clone());
                 on_queue_changed_fn.call(QueueChange::Append(songs));
-                // hackish way to "select_next()":
+                // hackish way to "select_next()"
+                // TODO: migrate the artist/album tree to List and use list.set_auto_select_next(true)
                 library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
             }
         });

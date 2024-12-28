@@ -188,10 +188,12 @@ where
         *self.find_next_item_by_fn.borrow_mut() = Some(Box::new(cb));
     }
 
+    /// Sets the list of items and resets selection and scroll
     pub fn set_items(&self, items: Vec<T>) {
         self.set_items_s(items, 0, 0);
     }
 
+    /// Sets the list of items but tries to conserve selection and scroll
     pub fn set_items_k(&self, new_items: Vec<T>) {
         let mut items = self.items.borrow_mut();
 
@@ -210,6 +212,7 @@ where
         *items = new_items.into_iter().map(ListItem::new).collect();
     }
 
+    /// Sets the list of items, selection and scroll
     pub fn set_items_s(&self, items: Vec<T>, i: usize, o: usize) {
         self.selected_item_index.set(i);
         self.offset.set(o);
@@ -217,29 +220,16 @@ where
         *self.items.borrow_mut() = items.into_iter().map(ListItem::new).collect();
     }
 
-    #[allow(dead_code)]
     pub fn push_item(&self, item: T) {
         let mut items = self.items.borrow_mut();
         items.push(ListItem::new(item));
     }
 
-    #[allow(dead_code)]
     pub fn append_items(&self, items_to_append: impl IntoIterator<Item = T>) {
         let mut items = self.items.borrow_mut();
         let mut items_to_append: Vec<ListItem<T>> = items_to_append.into_iter().map(ListItem::new).collect();
 
         items.append(&mut items_to_append);
-    }
-
-    #[allow(dead_code)]
-    pub fn pop_item(&self) -> Option<T> {
-        let mut items = self.items.borrow_mut();
-
-        if items.is_empty() {
-            None
-        } else {
-            Some(items.remove(0).inner)
-        }
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
