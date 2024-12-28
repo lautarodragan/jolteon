@@ -125,6 +125,33 @@ impl SingleTrackPlayer {
                         log::debug!(target: target, "done");
                     };
 
+                    let periodic_access = || {
+                        let is_stopped = is_stopped.clone();
+                        let must_stop = must_stop.clone();
+                        let volume = volume.clone();
+                        let pause = pause.clone();
+                        let must_seek = must_seek.clone();
+
+                        move |controls: &mut Controls| {
+                            if must_stop.swap(false, Ordering::SeqCst) {
+                                controls.stop();
+                                controls.skip();
+                                is_stopped.store(true, Ordering::SeqCst);
+                                log::debug!("periodic access stop");
+                                return;
+                            }
+
+                            controls.set_volume(*volume.lock().unwrap());
+                            controls.set_paused(pause.load(Ordering::SeqCst));
+
+                            if let Some(seek) = must_seek.lock().unwrap().take() {
+                                if let Err(err) = controls.seek(seek) {
+                                    log::error!("periodic_access.try_seek() error. {:?}", err)
+                                }
+                            }
+                        }
+                    };
+
                     loop {
                         let song = loop {
                             match command_receiver.recv() {
@@ -143,34 +170,7 @@ impl SingleTrackPlayer {
 
                         set_currently_playing(Some(song.clone()));
 
-                        let periodic_access = {
-                            let is_stopped = is_stopped.clone();
-                            let must_stop = must_stop.clone();
-                            let volume = volume.clone();
-                            let pause = pause.clone();
-                            let must_seek = must_seek.clone();
-
-                            move |controls: &mut Controls| {
-                                if must_stop.swap(false, Ordering::SeqCst) {
-                                    controls.stop();
-                                    controls.skip();
-                                    is_stopped.store(true, Ordering::SeqCst);
-                                    log::debug!("periodic access stop");
-                                    return;
-                                }
-
-                                controls.set_volume(*volume.lock().unwrap());
-                                controls.set_paused(pause.load(Ordering::SeqCst));
-
-                                if let Some(seek) = must_seek.lock().unwrap().take() {
-                                    if let Err(err) = controls.seek(seek) {
-                                        log::error!("periodic_access.try_seek() error. {:?}", err)
-                                    }
-                                }
-                            }
-                        };
-
-                        let mut source = Source::from_file(path, periodic_access, position.clone(), {
+                        let mut source = Source::from_file(path, periodic_access(), position.clone(), {
                             let song_ended_tx = song_ended_tx.clone();
                             move || {
                                 log::trace!("source.on_playback_ended");
