@@ -154,6 +154,10 @@ impl MainPlayer {
     pub fn stop(&self) {
         self.player.stop()
     }
+
+    pub fn play(&self, song: Song) {
+        self.single_track_player().play_song(song);
+    }
 }
 
 impl OnAction<MainPlayerAction> for MainPlayer {

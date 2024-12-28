@@ -54,8 +54,27 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     let mut root_component = Root::new(theme, queue.clone(), Arc::downgrade(&main_player));
 
-    root_component.on_queue_changed(|songs| {
-        log::debug!("root_component.on_queue_changed {songs:?}");
+    root_component.on_queue_changed({
+        let queue = queue.clone();
+        move |change| {
+            log::debug!("root_component.on_queue_changed {change:?}");
+
+            match change {
+                QueueChange::AddFront(song) => {
+                    queue.add_front(song);
+                }
+                QueueChange::AddBack(song) => {
+                    queue.add_back(song);
+                }
+                QueueChange::Append(songs) => {
+                    queue.append(&mut std::collections::VecDeque::from(songs));
+                }
+                QueueChange::Remove(index) => {
+                    queue.remove(index);
+                }
+            }
+
+        }
     });
 
     let tick_rate = Duration::from_millis(100);

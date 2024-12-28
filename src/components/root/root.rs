@@ -23,6 +23,14 @@ use crate::{
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
 
+#[derive(Debug)]
+pub enum QueueChange {
+    AddFront(Song),
+    AddBack(Song),
+    Append(Vec<Song>),
+    Remove(usize),
+}
+
 pub struct Root<'a> {
     theme: Theme,
     frame: u64,
@@ -37,7 +45,7 @@ pub struct Root<'a> {
     queue_screen: Rc<QueueScreen<'a>>,
     browser_screen: Rc<FileBrowser<'a>>,
 
-    on_queue_changed_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
+    on_queue_changed_fn: Rc<RefCell<Option<Box<dyn Fn(QueueChange) + 'a>>>>,
 }
 
 impl<'a> Root<'a> {
@@ -56,59 +64,58 @@ impl<'a> Root<'a> {
         let playlist = Rc::new(Playlists::new(theme));
         let browser = Rc::new(FileBrowser::new(theme, current_directory));
 
-        let on_queue_changed_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
+        let on_queue_changed_fn = Rc::new(RefCell::new(None::<Box<dyn Fn(QueueChange) + 'a>>));
 
         library.on_enter({
-            let queue = queue.clone();
+            let queue_screen = queue_screen.clone();
             let on_queue_changed_fn = on_queue_changed_fn.clone();
 
             move |song| {
-                queue.add_back(song.clone());
-
-                if let Some(on_queue_changed_fn) = &*on_queue_changed_fn.borrow() {
-                    on_queue_changed_fn(vec![song]);
-                }
+                queue_screen.append(vec![song.clone()]);
+                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::AddBack(song)));
             }
         });
         library.on_enter_alt({
             let player = player.clone();
-            let queue = queue.clone();
             move |song| {
-                queue.add_front(song);
-                player.upgrade().inspect(|p| p.stop());
+                player.upgrade().inspect(|p| p.play(song));
             }
         });
         library.on_select_songs_fn({
             // selected artist/album
-            let queue = queue.clone();
+            let queue_screen = queue_screen.clone();
             let library = library.clone();
+            let on_queue_changed_fn = on_queue_changed_fn.clone();
 
             move |songs| {
                 log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
-                queue.append(&mut std::collections::VecDeque::from(songs));
+                queue_screen.append(songs.clone());
+                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::Append(songs)));
                 // hackish way to "select_next()":
                 library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
             }
         });
 
         playlist.on_enter_song({
-            let queue = queue.clone();
+            let queue_screen = queue_screen.clone();
+            let on_queue_changed_fn = on_queue_changed_fn.clone();
             move |song| {
-                queue.add_back(song);
+                queue_screen.append(vec![song.clone()]);
+                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::AddBack(song)));
             }
         });
         playlist.on_enter_song_alt({
             let player = player.clone();
-            let queue = queue.clone();
             move |song| {
-                queue.add_front(song);
-                player.upgrade().inspect(|p| p.stop());
+                player.upgrade().inspect(|p| p.play(song));
             }
         });
         playlist.on_enter_playlist({
-            let queue = queue.clone();
+            let queue_screen = queue_screen.clone();
+            let on_queue_changed_fn = on_queue_changed_fn.clone();
             move |playlist| {
-                queue.append(&mut std::collections::VecDeque::from(playlist.songs));
+                queue_screen.append(playlist.songs.clone());
+                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::Append(playlist.songs)));
             }
         });
         playlist.on_request_focus_trap_fn({
@@ -120,26 +127,23 @@ impl<'a> Root<'a> {
 
         queue_screen.on_enter({
             let player = player.clone();
-            let queue = queue.clone();
-
             move |song| {
-                queue.add_front(song);
-                player.upgrade().inspect(|p| p.stop());
+                player.upgrade().inspect(|p| p.play(song));
             }
         });
         queue_screen.on_delete({
-            let queue = queue.clone();
-
+            let on_queue_changed_fn = on_queue_changed_fn.clone();
             move |_song, index| {
-                queue.remove(index);
+                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::Remove(index)));
             }
         });
 
         browser.on_enqueue({
-            let queue = queue.clone();
-
+            let queue_screen = queue_screen.clone();
+            let on_queue_changed_fn = on_queue_changed_fn.clone();
             move |songs| {
-                queue.append(&mut std::collections::VecDeque::from(songs));
+                queue_screen.append(songs.clone());
+                on_queue_changed_fn.borrow().as_ref().inspect(|f| f(QueueChange::Append(songs)));
             }
         });
         browser.on_add_to_lib({
@@ -187,7 +191,7 @@ impl<'a> Root<'a> {
         self.browser_screen.current_directory()
     }
 
-    pub fn on_queue_changed(&self, f: impl Fn(Vec<Song>) + 'a) {
+    pub fn on_queue_changed(&self, f: impl Fn(QueueChange) + 'a) {
         *self.on_queue_changed_fn.borrow_mut() = Some(Box::new(f));
     }
 }

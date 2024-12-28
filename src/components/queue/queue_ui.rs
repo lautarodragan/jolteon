@@ -26,6 +26,10 @@ impl<'a> Queue<'a> {
     pub fn on_delete(&self, cb: impl Fn(Song, usize) + 'a) {
         self.song_list.on_delete(cb);
     }
+
+    pub fn append(&self, songs: Vec<Song>) {
+        self.song_list.append_items(songs);
+    }
 }
 
 impl Drop for Queue<'_> {
