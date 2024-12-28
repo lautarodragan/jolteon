@@ -70,7 +70,7 @@ pub struct Source<F> {
 impl Source<()> {
     pub fn from_file(
         path: PathBuf,
-        mut periodic_access: impl FnMut(&mut Controls) + Send,
+        periodic_access: impl Fn(&mut Controls) + Send,
         shared_pos: Arc<Mutex<Duration>>,
         on_playback_end: impl FnOnce() + Send + 'static,
     ) -> Source<Box<impl FnMut(&mut FullRodioSource) + Send>> {
