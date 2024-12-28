@@ -3,7 +3,7 @@ use std::{
     env,
     path::PathBuf,
     rc::Rc,
-    sync::Arc,
+    sync::{Arc, Weak},
 };
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -17,7 +17,7 @@ use ratatui::{
 use crate::{
     components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
     config::Theme,
-    player::SingleTrackPlayer,
+    main_player::MainPlayer,
     state::State,
     structs::{OnActionMut, Queue, ScreenAction},
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
@@ -31,15 +31,15 @@ pub struct Root<'a> {
     focused_screen: usize,
     is_focus_trapped: Rc<Cell<bool>>,
 
-    player: Arc<SingleTrackPlayer>,
+    player: Weak<MainPlayer>,
     queue: Arc<Queue>,
 
-    pub queue_ui: Rc<QueueScreen<'a>>,
-    pub browser: Rc<FileBrowser<'a>>,
+    queue_screen: Rc<QueueScreen<'a>>,
+    browser_screen: Rc<FileBrowser<'a>>,
 }
 
 impl Root<'_> {
-    pub fn new(theme: Theme, queue: Arc<Queue>, player: Arc<SingleTrackPlayer>) -> Self {
+    pub fn new(theme: Theme, queue: Arc<Queue>, player: Weak<MainPlayer>) -> Self {
         let state = State::from_file();
 
         let current_directory = match &state.last_visited_path {
@@ -49,7 +49,7 @@ impl Root<'_> {
 
         let is_focus_trapped = Rc::new(Cell::new(false));
 
-        let queue_ui = Rc::new(QueueScreen::new(state.queue_items.clone(), theme));
+        let queue_screen = Rc::new(QueueScreen::new(state.queue_items.clone(), theme));
         let library = Rc::new(Library::new(theme));
         let playlist = Rc::new(Playlists::new(theme));
         let browser = Rc::new(FileBrowser::new(theme, current_directory));
@@ -66,7 +66,7 @@ impl Root<'_> {
             let queue = queue.clone();
             move |song| {
                 queue.add_front(song);
-                player.stop();
+                player.upgrade().inspect(|p| p.stop());
             }
         });
         library.on_select_songs_fn({
@@ -93,7 +93,7 @@ impl Root<'_> {
             let queue = queue.clone();
             move |song| {
                 queue.add_front(song);
-                player.stop();
+                player.upgrade().inspect(|p| p.stop());
             }
         });
         playlist.on_enter_playlist({
@@ -109,16 +109,16 @@ impl Root<'_> {
             }
         });
 
-        queue_ui.on_enter({
+        queue_screen.on_enter({
             let player = player.clone();
             let queue = queue.clone();
 
             move |song| {
                 queue.add_front(song);
-                player.stop();
+                player.upgrade().inspect(|p| p.stop());
             }
         });
-        queue_ui.on_delete({
+        queue_screen.on_delete({
             let queue = queue.clone();
 
             move |_song, index| {
@@ -157,7 +157,7 @@ impl Root<'_> {
             screens: vec![
                 ("Library".to_string(), Component::Ref(library.clone())),
                 ("Playlists".to_string(), Component::Ref(playlist.clone())),
-                ("Queue".to_string(), Component::Ref(queue_ui.clone())),
+                ("Queue".to_string(), Component::Ref(queue_screen.clone())),
                 ("File Browser".to_string(), Component::Ref(browser.clone())),
                 ("Help".to_string(), Component::Mut(help.clone())),
             ],
@@ -167,9 +167,13 @@ impl Root<'_> {
             player,
             queue,
 
-            queue_ui,
-            browser,
+            queue_screen,
+            browser_screen: browser,
         }
+    }
+
+    pub fn browser_directory(&self) -> PathBuf {
+        self.browser_screen.current_directory()
     }
 }
 
@@ -201,6 +205,13 @@ impl<'a> KeyboardHandlerMut<'a> for Root<'a> {
 
 impl WidgetRef for &Root<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+        if self.queue.length() != self.queue_screen.len() {
+            self.queue.with_items(|songs| {
+                // See src/README.md to make sense of this
+                self.queue_screen.set_items(Vec::from(songs.clone()));
+            });
+        }
+
         Block::default()
             .style(Style::default().bg(self.theme.background))
             .render(area, buf);
@@ -240,12 +251,16 @@ impl WidgetRef for &Root<'_> {
         //     step % 12 < 6 || step >= 6 * 8 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
         // };
 
-        let is_paused = self.player.is_paused();
+        let Some(player) = self.player.upgrade() else {
+            return;
+        };
+
+        let is_paused = player.is_paused();
 
         crate::ui::CurrentlyPlaying::new(
             self.theme,
-            self.player.currently_playing().lock().unwrap().clone(),
-            self.player.get_pos(),
+            player.currently_playing().lock().unwrap().clone(),
+            player.get_pos(),
             self.queue.total_time(),
             self.queue.length(),
             is_paused,

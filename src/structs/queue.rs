@@ -15,7 +15,7 @@ pub struct Queue {
     queue_length: AtomicUsize,
     total_time: AtomicU64,
 
-    on_queue_changed: Arc<Mutex<Option<Box<dyn Fn() + Send + 'static>>>>,
+    on_queue_changed: Mutex<Option<Box<dyn Fn() + Send + 'static>>>,
 }
 
 fn song_list_to_duration(items: &VecDeque<Song>) -> Duration {
@@ -34,7 +34,7 @@ impl Queue {
             queue_length,
             total_time: AtomicU64::new(total_time.as_secs()),
 
-            on_queue_changed: Arc::new(Mutex::new(None)),
+            on_queue_changed: Mutex::new(None),
         }
     }
 

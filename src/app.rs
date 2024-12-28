@@ -12,7 +12,6 @@ use crate::{
     config::Theme,
     main_player::MainPlayer,
     mpris::Mpris,
-    player::SingleTrackPlayer,
     state::State,
     structs::{Action, Actions, OnAction, OnActionMut, Queue},
     term::set_terminal,
@@ -50,41 +49,17 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
     // Creating the output_stream indirectly spawns the cpal_alsa_out thread, and creates the mixer tied to it.
     let (_output_stream, output_stream_handle) = OutputStream::try_default()?;
 
-    let mpris = Arc::new(mpris);
-    let single_track_player = Arc::new(SingleTrackPlayer::new(output_stream_handle, mpris.clone()));
     let queue = Arc::new(Queue::new(state.queue_items));
-    let main_player = MainPlayer::spawn(single_track_player.clone(), queue.clone());
+    let main_player = Arc::new(MainPlayer::spawn(output_stream_handle, queue.clone(), mpris));
 
-    mpris.on_play_pause({
-        let player = single_track_player.clone();
-        move || {
-            player.toggle();
-        }
-    });
-    mpris.on_stop({
-        let player = single_track_player.clone();
-        move || {
-            player.stop();
-        }
-    });
-
-    single_track_player.spawn();
-
-    let mut app = Root::new(theme, queue.clone(), single_track_player.clone());
+    let mut root_component = Root::new(theme, queue.clone(), Arc::downgrade(&main_player));
 
     let tick_rate = Duration::from_millis(100);
     let mut last_tick = std::time::Instant::now();
 
     loop {
-        if queue.length() != app.queue_ui.len() {
-            queue.with_items(|songs| {
-                // See src/README.md to make sense of this
-                app.queue_ui.set_items(Vec::from(songs.clone()));
-            });
-        }
-
         terminal.draw(|frame| {
-            frame.render_widget_ref(&app, frame.area());
+            frame.render_widget_ref(&root_component, frame.area());
         })?;
 
         let timeout = tick_rate.saturating_sub(last_tick.elapsed());
@@ -98,20 +73,20 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
                     match action {
                         Action::Player(action) => {
-                            single_track_player.on_action(action);
+                            main_player.single_track_player().on_action(action);
                         }
                         Action::MainPlayer(action) => {
                             main_player.on_action(action);
                         }
                         Action::Screen(action) => {
-                            app.on_action(action);
+                            root_component.on_action(action);
                         }
                         _ => {
-                            app.on_key(key);
+                            root_component.on_key(key);
                         }
                     }
                 } else {
-                    app.on_key(key);
+                    root_component.on_key(key);
                 }
             }
         }
@@ -121,15 +96,27 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    main_player.quit();
-
     let state = State {
-        last_visited_path: app.browser.current_directory().to_str().map(String::from),
+        last_visited_path: root_component.browser_directory().to_str().map(String::from),
         queue_items: Vec::from(queue.songs().clone()),
     };
 
     if let Err(err) = state.to_file() {
         log::error!("Could not save app state {err:?}");
+    }
+
+    drop(root_component);
+
+    log::debug!(
+        "main_player strong_count: {}. weak_count: {}",
+        Arc::strong_count(&main_player),
+        Arc::weak_count(&main_player)
+    );
+    if let Some(main_player) = Arc::into_inner(main_player) {
+        log::debug!("main_player.quit()");
+        main_player.quit();
+    } else {
+        log::error!("Could not gracefully quit main_player. There are some outstanding references somewhere.");
     }
 
     Ok(())
