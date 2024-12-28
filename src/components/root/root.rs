@@ -17,10 +17,9 @@ use ratatui::{
 use crate::{
     components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
     config::Theme,
-    main_player::MainPlayer,
     player::SingleTrackPlayer,
     state::State,
-    structs::{Actions, OnActionMut, Queue, ScreenAction},
+    structs::{OnActionMut, Queue, ScreenAction},
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
 
@@ -32,7 +31,6 @@ pub struct Root<'a> {
     focused_screen: usize,
     is_focus_trapped: Rc<Cell<bool>>,
 
-    main_player: RefCell<Option<MainPlayer>>,
     player: Arc<SingleTrackPlayer>,
     queue: Arc<Queue>,
 
@@ -166,7 +164,6 @@ impl Root<'_> {
             focused_screen: 0,
             is_focus_trapped,
 
-            main_player: RefCell::new(None),
             player,
             queue,
 
