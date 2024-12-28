@@ -105,7 +105,7 @@ impl MainPlayer {
                                     break;
                                 }
                                 MainPlayerMessage::Event(MainPlayerEvent::QueueChanged) => {
-                                    if player.currently_playing().lock().unwrap().is_none() {
+                                    if player.playing_song().lock().unwrap().is_none() {
                                         log::debug!("MainPlayerEvent::QueueChanged");
                                         break;
                                     }
@@ -164,11 +164,11 @@ impl MainPlayer {
     //// Playback Management
 
     pub fn playing_song(&self) -> Arc<Mutex<Option<Song>>> {
-        self.player.currently_playing()
+        self.player.playing_song()
     }
 
     pub fn playing_position(&self) -> Duration {
-        self.player.get_pos()
+        self.player.playing_position()
     }
 
     pub fn is_paused(&self) -> bool {

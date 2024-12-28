@@ -20,15 +20,15 @@ use crate::{
 };
 
 pub struct SingleTrackPlayer {
-    main_thread: JoinHandle<()>,
+    thread: JoinHandle<()>,
     command_sender: Sender<Command>,
 
-    currently_playing: Arc<Mutex<Option<Song>>>,
-    currently_playing_start_time: Arc<AtomicU64>,
+    playing_song: Arc<Mutex<Option<Song>>>,
+    playing_song_start_time: Arc<AtomicU64>,
     is_stopped: Arc<AtomicBool>,
     volume: Arc<Mutex<f32>>,
     pause: Arc<AtomicBool>,
-    position: Arc<Mutex<Duration>>,
+    playing_position: Arc<Mutex<Duration>>,
 
     mpris: Arc<Mpris>,
 
@@ -63,7 +63,7 @@ impl SingleTrackPlayer {
 
         let on_playback_end = Arc::new(Mutex::new(None::<Box<dyn Fn(Song) + Send + 'static>>));
 
-        let main_thread = thread::Builder::new()
+        let thread = thread::Builder::new()
             .name("single_track_player".to_string())
             .spawn({
                 let on_playback_end = on_playback_end.clone();
@@ -296,33 +296,37 @@ impl SingleTrackPlayer {
             .unwrap();
 
         Self {
-            main_thread,
+            thread,
 
-            currently_playing,
-            currently_playing_start_time,
+            playing_song: currently_playing,
+            playing_song_start_time: currently_playing_start_time,
             command_sender,
             on_playback_end,
 
             is_stopped,
             volume,
             pause,
-            position,
+            playing_position: position,
 
             mpris,
         }
     }
 
-    pub fn quit(self) {
-        self.send_command(Command::Quit);
-        match self.main_thread.join() {
-            Ok(_) => {
-                log::trace!("Player.drop: main_thread joined successfully");
-            }
-            Err(err) => {
-                log::error!("Player.drop: {:?}", err);
-            }
-        }
+    pub fn playing_song(&self) -> Arc<Mutex<Option<Song>>> {
+        self.playing_song.clone()
     }
+
+    pub fn playing_position(&self) -> Duration {
+        let start_time = self.playing_song_start_time.load(Ordering::Relaxed);
+        let pos = self.playing_position.lock().unwrap();
+        pos.saturating_sub(Duration::from_secs(start_time))
+    }
+
+    pub fn on_playback_end(&self, f: impl Fn(Song) + Send + 'static) {
+        *self.on_playback_end.lock().unwrap() = Some(Box::new(f));
+    }
+
+    //// Controls
 
     fn send_command(&self, command: Command) {
         if let Err(err) = self.command_sender.send(command) {
@@ -330,18 +334,16 @@ impl SingleTrackPlayer {
         }
     }
 
-    pub fn get_pos(&self) -> Duration {
-        let start_time = self.currently_playing_start_time.load(Ordering::Relaxed);
-        let pos = self.position.lock().unwrap();
-        pos.saturating_sub(Duration::from_secs(start_time))
-    }
-
-    pub fn currently_playing(&self) -> Arc<Mutex<Option<Song>>> {
-        self.currently_playing.clone()
-    }
-
-    pub fn on_playback_end(&self, f: impl Fn(Song) + Send + 'static) {
-        *self.on_playback_end.lock().unwrap() = Some(Box::new(f));
+    pub fn quit(self) {
+        self.send_command(Command::Quit);
+        match self.thread.join() {
+            Ok(_) => {
+                log::trace!("Player.drop: main_thread joined successfully");
+            }
+            Err(err) => {
+                log::error!("Player.drop: {:?}", err);
+            }
+        }
     }
 
     pub fn play_song(&self, song: Song) {
@@ -389,20 +391,6 @@ impl SingleTrackPlayer {
     pub fn change_volume(&self, amount: f32) {
         let mut volume = self.volume.lock().unwrap();
         *volume = (*volume + amount).clamp(0., 1.);
-    }
-}
-
-impl KeyboardHandlerRef<'_> for SingleTrackPlayer {
-    fn on_key(&self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Right => self.seek_forward(),
-            KeyCode::Left => self.seek_backward(),
-            KeyCode::Char('-') => self.change_volume(-0.05),
-            KeyCode::Char('+') => self.change_volume(0.05),
-            KeyCode::Char(' ') if key.modifiers == KeyModifiers::CONTROL => self.toggle(),
-            KeyCode::Char('g') if key.modifiers == KeyModifiers::CONTROL => self.stop(),
-            _ => {}
-        };
     }
 }
 
