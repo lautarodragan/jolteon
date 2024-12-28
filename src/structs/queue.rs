@@ -11,7 +11,6 @@ use crate::structs::Song;
 pub struct Queue {
     songs: Arc<Mutex<VecDeque<Song>>>,
     queue_length: AtomicUsize,
-    on_queue_changed: Mutex<Option<Box<dyn Fn() + Send + 'static>>>,
 }
 
 impl Queue {
@@ -21,15 +20,8 @@ impl Queue {
 
         Self {
             songs: Arc::new(Mutex::new(songs)),
-
             queue_length,
-
-            on_queue_changed: Mutex::new(None),
         }
-    }
-
-    pub fn on_queue_changed(&self, f: impl Fn() + Send + 'static) {
-        *self.on_queue_changed.lock().unwrap() = Some(Box::new(f));
     }
 
     pub fn pop(&self) -> Option<Song> {
@@ -59,10 +51,6 @@ impl Queue {
         f(&mut songs);
 
         self.queue_length.store(songs.len(), Ordering::SeqCst);
-
-        if let Some(on_queue_changed) = &*self.on_queue_changed.lock().unwrap() {
-            on_queue_changed();
-        }
     }
 
     pub fn songs(&self) -> MutexGuard<VecDeque<Song>> {

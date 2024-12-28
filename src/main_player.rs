@@ -69,14 +69,6 @@ impl MainPlayer {
             }
         });
 
-        queue.on_queue_changed({
-            let tx = tx.clone();
-            move || {
-                tx.send(MainPlayerMessage::Event(MainPlayerEvent::QueueChanged))
-                    .unwrap();
-            }
-        });
-
         let on_queue_changed = Arc::new(Mutex::new(None));
 
         let t = thread::Builder::new()
@@ -180,30 +172,34 @@ impl MainPlayer {
         self.single_track_player().play_song(song);
     }
 
-    pub fn queue_changed(&self) {
+    pub fn on_queue_changed(&self, f: impl Fn() + Send + 'static) {
+        *self.on_queue_changed.lock().unwrap() = Some(Box::new(f));
+    }
+
+    fn notify_queue_changed(&self) {
         self.sender
             .send(MainPlayerMessage::Event(MainPlayerEvent::QueueChanged))
             .unwrap();
     }
 
-    pub fn on_queue_changed(&self, f: impl Fn() + Send + 'static) {
-        *self.on_queue_changed.lock().unwrap() = Some(Box::new(f));
-    }
-
     pub fn add_front(&self, song: Song) {
         self.queue.add_front(song);
+        self.notify_queue_changed();
     }
 
     pub fn add_back(&self, song: Song) {
         self.queue.add_back(song);
+        self.notify_queue_changed();
     }
 
     pub fn append(&self, songs: &mut VecDeque<Song>) {
         self.queue.append(songs);
+        self.notify_queue_changed();
     }
 
     pub fn remove(&self, index: usize) {
         self.queue.remove(index);
+        self.notify_queue_changed();
     }
 }
 
