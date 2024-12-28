@@ -1,7 +1,7 @@
 use std::{
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
-        mpsc::{channel, Receiver, RecvTimeoutError, Sender},
+        mpsc::{channel, RecvTimeoutError, Sender},
         Arc, Mutex,
     },
     thread,
@@ -47,7 +47,6 @@ enum Command {
 }
 
 impl SingleTrackPlayer {
-
     pub fn spawn(output_stream: OutputStreamHandle, mpris: Arc<Mpris>) -> Self {
         let (command_sender, command_receiver) = channel();
 
@@ -324,7 +323,6 @@ impl SingleTrackPlayer {
                 log::error!("Player.drop: {:?}", err);
             }
         }
-
     }
 
     fn send_command(&self, command: Command) {
