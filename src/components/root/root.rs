@@ -51,7 +51,7 @@ impl<T> Default for Callback<'_, T> {
 
 pub struct Root<'a> {
     theme: Theme,
-    frame: u64,
+    frame: Cell<u64>,
 
     screens: Vec<(String, Component<'a>)>,
     focused_screen: usize,
@@ -183,7 +183,7 @@ impl<'a> Root<'a> {
 
         Self {
             theme,
-            frame: 0,
+            frame: Cell::default(),
 
             screens: vec![
                 ("Library".to_string(), Component::Ref(library.clone())),
@@ -259,7 +259,7 @@ impl WidgetRef for &Root<'_> {
 
         let screen_titles: Vec<&str> = self.screens.iter().map(|screen| screen.0.as_str()).collect();
 
-        let top_bar = TopBar::new(self.theme, &screen_titles, self.focused_screen, self.frame);
+        let top_bar = TopBar::new(self.theme, &screen_titles, self.focused_screen, self.frame.get());
         top_bar.render(area_top, buf);
 
         let Some((_, component)) = self.screens.get(self.focused_screen) else {
@@ -276,19 +276,17 @@ impl WidgetRef for &Root<'_> {
             }
         }
 
-        let frame = self.frame;
-
-        // let is_paused = self.player.is_paused() && {
-        //     const ANIM_LEN: u64 = 6 * 16;
-        //     let step = (frame - self.paused_animation_start_frame.load(Ordering::Relaxed)) % (ANIM_LEN);
-        //     step % 12 < 6 || step >= 6 * 8 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
-        // };
-
         let Some(player) = self.player.upgrade() else {
             return;
         };
 
-        let is_paused = player.is_paused();
+        let frame = self.frame.get();
+
+        let is_paused = player.is_paused() && {
+            const ANIM_LEN: u64 = 6 * 16;
+            let step = frame % ANIM_LEN;
+            step % 12 < 6 || step >= 6 * 8 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
+        };
 
         crate::ui::CurrentlyPlaying::new(
             self.theme,
@@ -299,6 +297,8 @@ impl WidgetRef for &Root<'_> {
             is_paused,
         )
         .render(area_bottom, buf);
+
+        self.frame.set(frame + 1);
     }
 }
 
