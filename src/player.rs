@@ -30,9 +30,6 @@ pub struct SingleTrackPlayer {
     pause: Arc<AtomicBool>,
     position: Arc<Mutex<Duration>>,
 
-    frame: AtomicU64,
-    paused_animation_start_frame: AtomicU64,
-
     mpris: Arc<Mpris>,
 
     on_playback_end: Arc<Mutex<Option<Box<dyn Fn(Song) + Send + 'static>>>>,
@@ -313,9 +310,6 @@ impl SingleTrackPlayer {
             pause,
             position,
 
-            frame: AtomicU64::new(0),
-            paused_animation_start_frame: AtomicU64::new(0),
-
             mpris,
         }
     }
@@ -365,8 +359,6 @@ impl SingleTrackPlayer {
             self.send_command(Command::Play);
         } else {
             self.send_command(Command::Pause);
-            self.paused_animation_start_frame
-                .store(self.frame.load(Ordering::Relaxed), Ordering::Relaxed);
         }
     }
 
