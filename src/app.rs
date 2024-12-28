@@ -54,6 +54,10 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     let mut root_component = Root::new(theme, queue.clone(), Arc::downgrade(&main_player));
 
+    root_component.on_queue_changed(|songs| {
+        log::debug!("root_component.on_queue_changed {songs:?}");
+    });
+
     let tick_rate = Duration::from_millis(100);
     let mut last_tick = std::time::Instant::now();
 

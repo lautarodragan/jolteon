@@ -19,7 +19,7 @@ use crate::{
     config::Theme,
     main_player::MainPlayer,
     state::State,
-    structs::{OnActionMut, Queue, ScreenAction},
+    structs::{OnActionMut, Queue, ScreenAction, Song},
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
 
@@ -36,9 +36,11 @@ pub struct Root<'a> {
 
     queue_screen: Rc<QueueScreen<'a>>,
     browser_screen: Rc<FileBrowser<'a>>,
+
+    on_queue_changed_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
 }
 
-impl Root<'_> {
+impl<'a> Root<'a> {
     pub fn new(theme: Theme, queue: Arc<Queue>, player: Weak<MainPlayer>) -> Self {
         let state = State::from_file();
 
@@ -54,11 +56,18 @@ impl Root<'_> {
         let playlist = Rc::new(Playlists::new(theme));
         let browser = Rc::new(FileBrowser::new(theme, current_directory));
 
+        let on_queue_changed_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
+
         library.on_enter({
             let queue = queue.clone();
+            let on_queue_changed_fn = on_queue_changed_fn.clone();
 
             move |song| {
-                queue.add_back(song);
+                queue.add_back(song.clone());
+
+                if let Some(on_queue_changed_fn) = &*on_queue_changed_fn.borrow() {
+                    on_queue_changed_fn(vec![song]);
+                }
             }
         });
         library.on_enter_alt({
@@ -169,11 +178,17 @@ impl Root<'_> {
 
             queue_screen,
             browser_screen: browser,
+
+            on_queue_changed_fn,
         }
     }
 
     pub fn browser_directory(&self) -> PathBuf {
         self.browser_screen.current_directory()
+    }
+
+    pub fn on_queue_changed(&self, f: impl Fn(Vec<Song>) + 'a) {
+        *self.on_queue_changed_fn.borrow_mut() = Some(Box::new(f));
     }
 }
 
