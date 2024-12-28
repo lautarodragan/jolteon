@@ -70,7 +70,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     single_track_player.spawn();
 
-    let mut app = App::new(theme, queue.clone(), single_track_player.clone());
+    let mut app = Root::new(theme, queue.clone(), single_track_player.clone());
 
     let tick_rate = Duration::from_millis(100);
     let mut last_tick = std::time::Instant::now();

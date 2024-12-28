@@ -13,4 +13,4 @@ pub use library::Library;
 pub use list::List;
 pub use playlists::Playlists;
 pub use queue::Queue;
-pub use root::App;
+pub use root::Root;

@@ -24,9 +24,8 @@ use crate::{
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
 
-pub struct App<'a> {
+pub struct Root<'a> {
     theme: Theme,
-    actions: Actions,
     frame: u64,
 
     screens: Vec<(String, Component<'a>)>,
@@ -41,10 +40,9 @@ pub struct App<'a> {
     pub browser: Rc<FileBrowser<'a>>,
 }
 
-impl App<'_> {
+impl Root<'_> {
     pub fn new(theme: Theme, queue: Arc<Queue>, player: Arc<SingleTrackPlayer>) -> Self {
         let state = State::from_file();
-        let actions = Actions::from_file_or_default();
 
         let current_directory = match &state.last_visited_path {
             Some(s) => PathBuf::from(s),
@@ -156,7 +154,6 @@ impl App<'_> {
 
         Self {
             theme,
-            actions,
             frame: 0,
 
             screens: vec![
@@ -179,7 +176,7 @@ impl App<'_> {
     }
 }
 
-impl OnActionMut<ScreenAction> for App<'_> {
+impl OnActionMut<ScreenAction> for Root<'_> {
     fn on_action(&mut self, action: ScreenAction) {
         if self.is_focus_trapped.get() {
             return;
@@ -194,7 +191,7 @@ impl OnActionMut<ScreenAction> for App<'_> {
     }
 }
 
-impl<'a> KeyboardHandlerMut<'a> for App<'a> {
+impl<'a> KeyboardHandlerMut<'a> for Root<'a> {
     fn on_key(&mut self, key: KeyEvent) {
         let Some((_, component)) = self.screens.get(self.focused_screen) else {
             log::error!("focused_screen is {}, which is out of bounds.", self.focused_screen);
@@ -205,7 +202,7 @@ impl<'a> KeyboardHandlerMut<'a> for App<'a> {
     }
 }
 
-impl WidgetRef for &App<'_> {
+impl WidgetRef for &Root<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         Block::default()
             .style(Style::default().bg(self.theme.background))
@@ -260,7 +257,7 @@ impl WidgetRef for &App<'_> {
     }
 }
 
-impl Drop for App<'_> {
+impl Drop for Root<'_> {
     fn drop(&mut self) {
         log::trace!("App.drop");
     }
