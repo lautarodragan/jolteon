@@ -40,11 +40,12 @@ pub struct MainPlayer {
 }
 
 impl MainPlayer {
-    pub fn spawn(output_stream_handle: OutputStreamHandle, queue: Arc<Queue>, mpris: Mpris) -> Self {
+    pub fn spawn(output_stream_handle: OutputStreamHandle, mpris: Mpris, queue_songs: Vec<Song>) -> Self {
         let (tx, rx) = channel::<MainPlayerMessage>();
 
         let mpris = Arc::new(mpris);
         let player = Arc::new(SingleTrackPlayer::new(output_stream_handle, mpris.clone()));
+        let queue = Arc::new(Queue::new(queue_songs));
 
         mpris.on_play_pause({
             let player = player.clone();
@@ -150,6 +151,10 @@ impl MainPlayer {
 
     pub fn single_track_player(&self) -> Arc<SingleTrackPlayer> {
         self.player.clone()
+    }
+
+    pub fn queue(&self) -> Arc<Queue> {
+        self.queue.clone()
     }
 
     pub fn is_paused(&self) -> bool {

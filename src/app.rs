@@ -14,7 +14,7 @@ use crate::{
     main_player::MainPlayer,
     mpris::Mpris,
     state::State,
-    structs::{Action, Actions, OnAction, OnActionMut, Queue},
+    structs::{Action, Actions, OnAction, OnActionMut},
     term::set_terminal,
     ui::KeyboardHandlerMut,
 };
@@ -50,8 +50,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
     // Creating the output_stream indirectly spawns the cpal_alsa_out thread, and creates the mixer tied to it.
     let (_output_stream, output_stream_handle) = OutputStream::try_default()?;
 
-    let queue = Arc::new(Queue::new(state.queue_items));
-    let main_player = Arc::new(MainPlayer::spawn(output_stream_handle, queue.clone(), mpris));
+    let main_player = Arc::new(MainPlayer::spawn(output_stream_handle, mpris, state.queue_items));
     let queue_changed = Arc::new(AtomicBool::default());
 
     main_player.on_queue_changed({
@@ -90,7 +89,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     loop {
         if queue_changed.swap(false, Ordering::AcqRel) {
-            queue.with_items(|songs| {
+            main_player.queue().with_items(|songs| {
                 // See src/README.md to make sense of this
                 root_component.set_queue(Vec::from(songs.clone()));
             });
@@ -136,7 +135,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     let state = State {
         last_visited_path: root_component.browser_directory().to_str().map(String::from),
-        queue_items: Vec::from(queue.songs().clone()),
+        queue_items: Vec::from(main_player.queue().songs().clone()),
     };
 
     if let Err(err) = state.to_file() {
