@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use async_std::task;
@@ -51,26 +52,34 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     let queue = Arc::new(Queue::new(state.queue_items));
     let main_player = Arc::new(MainPlayer::spawn(output_stream_handle, queue.clone(), mpris));
+    let queue_changed = Arc::new(AtomicBool::default());
 
-    let mut root_component = Root::new(theme, queue.clone(), Arc::downgrade(&main_player));
+    main_player.on_queue_changed({
+        let queue_changed = queue_changed.clone();
+        move || {
+            queue_changed.store(true, Ordering::Release);
+        }
+    });
+
+    let mut root_component = Root::new(theme, Arc::downgrade(&main_player));
 
     root_component.on_queue_changed({
-        let queue = queue.clone();
+        let main_player = main_player.clone();
         move |change| {
             log::debug!("root_component.on_queue_changed {change:?}");
 
             match change {
                 QueueChange::AddFront(song) => {
-                    queue.add_front(song);
+                    main_player.add_front(song);
                 }
                 QueueChange::AddBack(song) => {
-                    queue.add_back(song);
+                    main_player.add_back(song);
                 }
                 QueueChange::Append(songs) => {
-                    queue.append(&mut std::collections::VecDeque::from(songs));
+                    main_player.append(&mut std::collections::VecDeque::from(songs));
                 }
                 QueueChange::Remove(index) => {
-                    queue.remove(index);
+                    main_player.remove(index);
                 }
             }
 
@@ -81,6 +90,13 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
     let mut last_tick = std::time::Instant::now();
 
     loop {
+        if queue_changed.swap(false, Ordering::AcqRel) {
+            queue.with_items(|songs| {
+                // See src/README.md to make sense of this
+                root_component.set_queue(Vec::from(songs.clone()));
+            });
+        }
+
         terminal.draw(|frame| {
             frame.render_widget_ref(&root_component, frame.area());
         })?;

@@ -58,7 +58,6 @@ pub struct Root<'a> {
     is_focus_trapped: Rc<Cell<bool>>,
 
     player: Weak<MainPlayer>,
-    queue: Arc<Queue>,
 
     queue_screen: Rc<QueueScreen<'a>>,
     browser_screen: Rc<FileBrowser<'a>>,
@@ -67,7 +66,7 @@ pub struct Root<'a> {
 }
 
 impl<'a> Root<'a> {
-    pub fn new(theme: Theme, queue: Arc<Queue>, player: Weak<MainPlayer>) -> Self {
+    pub fn new(theme: Theme, player: Weak<MainPlayer>) -> Self {
         let state = State::from_file();
 
         let current_directory = match &state.last_visited_path {
@@ -196,7 +195,6 @@ impl<'a> Root<'a> {
             is_focus_trapped,
 
             player,
-            queue,
 
             queue_screen,
             browser_screen: browser,
@@ -211,6 +209,12 @@ impl<'a> Root<'a> {
 
     pub fn on_queue_changed(&self, f: impl Fn(QueueChange) + 'a) {
         self.on_queue_changed_fn.set(f);
+    }
+
+    pub fn set_queue(&self, songs: Vec<Song>) {
+        // if self.queue_screen.len() != songs.len() {
+            self.queue_screen.set_items(songs);
+        // }
     }
 }
 
@@ -242,13 +246,6 @@ impl<'a> KeyboardHandlerMut<'a> for Root<'a> {
 
 impl WidgetRef for &Root<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        if self.queue.length() != self.queue_screen.len() {
-            self.queue.with_items(|songs| {
-                // See src/README.md to make sense of this
-                self.queue_screen.set_items(Vec::from(songs.clone()));
-            });
-        }
-
         Block::default()
             .style(Style::default().bg(self.theme.background))
             .render(area, buf);

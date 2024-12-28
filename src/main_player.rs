@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -12,15 +13,18 @@ use crate::{
     structs::{MainPlayerAction, OnAction, Queue, Song},
 };
 
+#[derive(Debug)]
 enum MainPlayerCommand {
     Quit,
 }
 
+#[derive(Debug)]
 enum MainPlayerEvent {
     PlaybackEnded(Song),
     QueueChanged,
 }
 
+#[derive(Debug)]
 enum MainPlayerMessage {
     Action(MainPlayerAction),
     Event(MainPlayerEvent),
@@ -31,6 +35,8 @@ pub struct MainPlayer {
     thread: JoinHandle<()>,
     sender: Sender<MainPlayerMessage>,
     player: Arc<SingleTrackPlayer>,
+    queue: Arc<Queue>,
+    on_queue_changed: Arc<Mutex<Option<Box<dyn Fn() + Send + 'static>>>>,
 }
 
 impl MainPlayer {
@@ -71,10 +77,15 @@ impl MainPlayer {
             }
         });
 
+        let on_queue_changed = Arc::new(Mutex::new(None));
+
         let t = thread::Builder::new()
             .name("main_player".to_string())
             .spawn({
                 let player = player.clone();
+                let queue = queue.clone();
+                let on_queue_changed = on_queue_changed.clone();
+
                 move || {
                     let mut repeat = false;
                     let mut song: Option<Song> = None;
@@ -87,6 +98,9 @@ impl MainPlayer {
                             if let Some(ref song) = song {
                                 log::debug!("song_player grabbed song from queue {song:?}");
                                 player.play_song(song.clone());
+                                on_queue_changed.lock().unwrap().as_ref().inspect(|f| f());
+                            } else {
+                                log::debug!("song_player queue was empty. will wait for changes.");
                             }
                         }
 
@@ -101,6 +115,7 @@ impl MainPlayer {
                                 }
                                 MainPlayerMessage::Event(MainPlayerEvent::QueueChanged) => {
                                     if player.currently_playing().lock().unwrap().is_none() {
+                                        log::debug!("MainPlayerEvent::QueueChanged");
                                         break;
                                     }
                                 }
@@ -114,6 +129,10 @@ impl MainPlayer {
                                 }
                             }
                         }
+
+                        while let Ok(msg) = rx.try_recv() {
+                            log::error!("had more messages {msg:?}");
+                        }
                     }
                 }
             })
@@ -123,6 +142,8 @@ impl MainPlayer {
             thread: t,
             sender: tx,
             player,
+            on_queue_changed,
+            queue,
         }
     }
 
@@ -157,6 +178,32 @@ impl MainPlayer {
 
     pub fn play(&self, song: Song) {
         self.single_track_player().play_song(song);
+    }
+
+    pub fn queue_changed(&self) {
+        self.sender
+            .send(MainPlayerMessage::Event(MainPlayerEvent::QueueChanged))
+            .unwrap();
+    }
+
+    pub fn on_queue_changed(&self, f: impl Fn() + Send + 'static) {
+        *self.on_queue_changed.lock().unwrap() = Some(Box::new(f));
+    }
+
+    pub fn add_front(&self, song: Song) {
+            self.queue.add_front(song);
+    }
+
+    pub fn add_back(&self, song: Song) {
+            self.queue.add_back(song);
+    }
+
+    pub fn append(&self, songs: &mut VecDeque<Song>) {
+            self.queue.append(songs);
+    }
+
+    pub fn remove(&self, index: usize) {
+            self.queue.remove(index);
     }
 }
 
