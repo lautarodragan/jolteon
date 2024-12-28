@@ -290,7 +290,7 @@ impl WidgetRef for &Root<'_> {
 
         crate::ui::CurrentlyPlaying::new(
             self.theme,
-            player.playing_song().lock().unwrap().clone(),
+            player.playing_song(),
             player.playing_position(),
             self.queue_screen.duration(),
             self.queue_screen.len(),

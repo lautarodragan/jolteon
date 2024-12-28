@@ -23,12 +23,11 @@ pub struct SingleTrackPlayer {
 
     playing_song: Arc<Mutex<Option<Song>>>,
     playing_song_start_time: Arc<AtomicU64>,
-    is_stopped: Arc<AtomicBool>,
-    volume: Arc<Mutex<f32>>,
-    pause: Arc<AtomicBool>,
-    playing_position: Arc<Mutex<Duration>>,
 
-    mpris: Arc<Mpris>,
+    is_stopped: Arc<AtomicBool>,
+    is_paused: Arc<AtomicBool>,
+    playing_position: Arc<Mutex<Duration>>,
+    volume: Arc<Mutex<f32>>,
 
     on_playback_end: Arc<Mutex<Option<Box<dyn Fn(Song) + Send + 'static>>>>,
 }
@@ -47,17 +46,13 @@ impl SingleTrackPlayer {
     pub fn spawn(output_stream: OutputStreamHandle, mpris: Arc<Mpris>) -> Self {
         let (command_sender, command_receiver) = channel();
 
-        let currently_playing = Arc::new(Mutex::new(None));
-        let currently_playing_start_time = Arc::new(AtomicU64::new(0));
+        let playing_song = Arc::new(Mutex::new(None));
+        let playing_song_start_time = Arc::new(AtomicU64::new(0));
 
-        let position = Arc::new(Mutex::new(Duration::ZERO));
-        let volume = Arc::new(Mutex::new(1.0));
-        let pause = Arc::new(AtomicBool::default());
-
-        let (song_ended_tx, song_ended_rx) = channel::<()>();
         let is_stopped = Arc::new(AtomicBool::new(true));
-        let must_stop = Arc::new(AtomicBool::new(false));
-        let must_seek = Arc::new(Mutex::new(None));
+        let is_paused = Arc::new(AtomicBool::default());
+        let playing_position = Arc::new(Mutex::new(Duration::ZERO));
+        let volume = Arc::new(Mutex::new(1.0));
 
         let on_playback_end = Arc::new(Mutex::new(None::<Box<dyn Fn(Song) + Send + 'static>>));
 
@@ -66,12 +61,16 @@ impl SingleTrackPlayer {
             .spawn({
                 let on_playback_end = on_playback_end.clone();
                 let mpris = mpris.clone();
-                let currently_playing = currently_playing.clone();
-                let currently_playing_start_time = currently_playing_start_time.clone();
+                let currently_playing = playing_song.clone();
+                let currently_playing_start_time = playing_song_start_time.clone();
                 let is_stopped = is_stopped.clone();
                 let volume = volume.clone();
-                let pause = pause.clone();
-                let position = position.clone();
+                let pause = is_paused.clone();
+                let position = playing_position.clone();
+
+                let (song_ended_tx, song_ended_rx) = channel::<()>();
+                let must_stop = Arc::new(AtomicBool::new(false));
+                let must_seek = Arc::new(Mutex::new(None));
 
                 let set_currently_playing = {
                     let mpris = mpris.clone();
@@ -155,7 +154,11 @@ impl SingleTrackPlayer {
                     loop {
                         let song = loop {
                             match command_receiver.recv() {
-                                Ok(Command::SetSong(song)) => break song,
+                                Ok(Command::SetSong(song)) => {
+                                    mpris.set_song(song.clone());
+                                    mpris.play();
+                                    break song;
+                                }
                                 Ok(Command::Quit) => return,
                                 Err(_) => return,
                                 _ => continue,
@@ -286,10 +289,7 @@ impl SingleTrackPlayer {
 
                         wait_until_song_ends();
 
-                        let on_playback_end = on_playback_end.lock().unwrap();
-                        if let Some(on_playback_end) = &*on_playback_end {
-                            on_playback_end(song);
-                        }
+                        on_playback_end.lock().unwrap().as_ref().inspect(|f| f(song));
                     }
                 }
             })
@@ -297,18 +297,17 @@ impl SingleTrackPlayer {
 
         Self {
             thread,
-
-            playing_song: currently_playing,
-            playing_song_start_time: currently_playing_start_time,
             command_sender,
-            on_playback_end,
+
+            playing_song,
+            playing_song_start_time,
 
             is_stopped,
+            is_paused,
+            playing_position,
             volume,
-            pause,
-            playing_position: position,
 
-            mpris,
+            on_playback_end,
         }
     }
 
@@ -347,14 +346,12 @@ impl SingleTrackPlayer {
     }
 
     pub fn play_song(&self, song: Song) {
-        self.mpris.set_song(song.clone());
-        self.mpris.play();
         self.send_command(Command::Stop);
         self.send_command(Command::SetSong(song));
     }
 
     pub fn toggle(&self) {
-        if self.pause.load(Ordering::SeqCst) {
+        if self.is_paused.load(Ordering::SeqCst) {
             self.send_command(Command::Play);
         } else {
             self.send_command(Command::Pause);
@@ -362,7 +359,7 @@ impl SingleTrackPlayer {
     }
 
     pub fn is_paused(&self) -> bool {
-        self.pause.load(Ordering::SeqCst)
+        self.is_paused.load(Ordering::SeqCst)
     }
 
     pub fn stop(&self) {

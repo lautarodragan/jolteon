@@ -163,8 +163,8 @@ impl MainPlayer {
 
     //// Playback Management
 
-    pub fn playing_song(&self) -> Arc<Mutex<Option<Song>>> {
-        self.player.playing_song()
+    pub fn playing_song(&self) -> Option<Song> {
+        self.player.playing_song().lock().unwrap().clone()
     }
 
     pub fn playing_position(&self) -> Duration {
