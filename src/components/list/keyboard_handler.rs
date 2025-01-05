@@ -1,6 +1,7 @@
 use std::cell::RefMut;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
 use crate::structs::{Action, ListAction, NavigationAction, OnAction};
 use crate::ui::KeyboardHandlerRef;
 
@@ -85,21 +86,21 @@ where
         match action {
             NavigationAction::Up | NavigationAction::Down => {
                 // if action.modifiers == KeyModifiers::NONE {
-                    if action == NavigationAction::Up {
-                        if is_filtering {
-                            if let Some(n) = items.iter().take(i as usize).rposition(|item| item.is_match) {
-                                i = n as i32;
-                            }
-                        } else {
-                            i -= 1;
-                        }
-                    } else if is_filtering {
-                        if let Some(n) = items.iter().skip(i as usize + 1).position(|item| item.is_match) {
-                            i += n as i32 + 1;
+                if action == NavigationAction::Up {
+                    if is_filtering {
+                        if let Some(n) = items.iter().take(i as usize).rposition(|item| item.is_match) {
+                            i = n as i32;
                         }
                     } else {
-                        i += 1;
+                        i -= 1;
                     }
+                } else if is_filtering {
+                    if let Some(n) = items.iter().skip(i as usize + 1).position(|item| item.is_match) {
+                        i += n as i32 + 1;
+                    }
+                } else {
+                    i += 1;
+                }
                 // } else if action.modifiers == KeyModifiers::ALT {
                 //     if let Some(next_item_special) = &*self.find_next_item_by_fn.borrow_mut() {
                 //         let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
@@ -236,75 +237,70 @@ where
         let target = "::List.on_action";
 
         match action {
-            Action::Navigation(action) => {
-                match action {
-                    _ => {
-                        self.on_directional_action(action);
+            Action::Navigation(action) => match action {
+                _ => {
+                    self.on_directional_action(action);
+                }
+            },
+            Action::ListAction(action) => match action {
+                ListAction::Primary | ListAction::Secondary => {
+                    self.filter_mut(|filter| {
+                        filter.clear();
+                    });
+
+                    let items = self.items.borrow();
+
+                    let i = self.selected_item_index.get();
+                    if i >= items.len() {
+                        log::error!(target: target, "selected_item_index > items.len");
+                        return;
+                    }
+                    let item = items[i].inner.clone();
+                    drop(items);
+
+                    if action == ListAction::Primary {
+                        self.on_enter_fn.borrow_mut()(item);
+                        if self.auto_select_next.get() {
+                            self.on_directional_action(NavigationAction::Down);
+                        }
+                    } else if action == ListAction::Secondary {
+                        if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
+                            on_enter_alt_fn(item);
+                            self.on_directional_action(NavigationAction::Down);
+                        }
                     }
                 }
-            }
-            Action::ListAction(action) => {
-                match action {
-                    ListAction::Primary | ListAction::Secondary => {
-                        self.filter_mut(|filter| {
-                            filter.clear();
-                        });
-
-                        let items = self.items.borrow();
-
-                        let i = self.selected_item_index.get();
-                        if i >= items.len() {
-                            log::error!(target: target, "selected_item_index > items.len");
-                            return;
-                        }
-                        let item = items[i].inner.clone();
-                        drop(items);
-
-                        if action == ListAction::Primary {
-                            self.on_enter_fn.borrow_mut()(item);
-                            if self.auto_select_next.get() {
-                                self.on_directional_action(NavigationAction::Down);
-                            }
-                        } else if action == ListAction::Secondary {
-                            if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
-                                on_enter_alt_fn(item);
-                                self.on_directional_action(NavigationAction::Down);
-                            }
-                        }
-                    }
-                    ListAction::Insert => {
-                        let f = self.on_insert_fn.borrow_mut();
-                        let Some(f) = &*f else {
-                            return;
-                        };
-                        f();
-                    }
-                    ListAction::Delete => {
-                        let Some(on_delete) = &*self.on_delete_fn.borrow_mut() else {
-                            return;
-                        };
-
-                        let mut items = self.items.borrow_mut();
-
-                        if items.is_empty() {
-                            return;
-                        }
-
-                        let i = self.selected_item_index.get();
-                        let removed_item = items.remove(i);
-
-                        if i >= items.len() {
-                            self.selected_item_index.set(items.len().saturating_sub(1));
-                        }
-
-                        drop(items);
-
-                        on_delete(removed_item.inner, i);
-                    }
+                ListAction::Insert => {
+                    let f = self.on_insert_fn.borrow_mut();
+                    let Some(f) = &*f else {
+                        return;
+                    };
+                    f();
                 }
-            }
+                ListAction::Delete => {
+                    let Some(on_delete) = &*self.on_delete_fn.borrow_mut() else {
+                        return;
+                    };
+
+                    let mut items = self.items.borrow_mut();
+
+                    if items.is_empty() {
+                        return;
+                    }
+
+                    let i = self.selected_item_index.get();
+                    let removed_item = items.remove(i);
+
+                    if i >= items.len() {
+                        self.selected_item_index.set(items.len().saturating_sub(1));
+                    }
+
+                    drop(items);
+
+                    on_delete(removed_item.inner, i);
+                }
+            },
             _ => {}
         }
-
     }
 }

@@ -71,7 +71,9 @@ impl FileBrowserHelp {
                 Cell::new(Action::FileBrowser(FileBrowserAction::ToggleMode)),
             ),
             (
-                actions.key_by_action(Action::FileBrowser(FileBrowserAction::OpenTerminal)).unwrap(),
+                actions
+                    .key_by_action(Action::FileBrowser(FileBrowserAction::OpenTerminal))
+                    .unwrap(),
                 Cell::new(Action::FileBrowser(FileBrowserAction::OpenTerminal)),
             ),
         ];

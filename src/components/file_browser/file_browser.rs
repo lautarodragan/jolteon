@@ -6,14 +6,13 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-
 use crate::{
     components::{
         file_browser::{file_meta::FileMeta, help::FileBrowserHelp},
         List,
     },
     config::Theme,
-    structs::{Song, Action, FileBrowserAction, OnAction},
+    structs::{Action, FileBrowserAction, OnAction, Song},
 };
 
 use super::{
@@ -346,7 +345,7 @@ impl OnAction<Action> for FileBrowser<'_> {
                     });
                     self.help.set_add_mode(self.add_mode.get());
                 }
-            }
+            },
             Action::FocusNext | Action::FocusPrevious => {
                 let mut focus = self.focus.load(Ordering::Acquire);
 

@@ -1,8 +1,8 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::{components::playlists::playlists::PlaylistScreenElement, ui::KeyboardHandlerRef};
-use crate::structs::{Action, NavigationAction, OnAction};
 use super::Playlists;
+use crate::structs::{Action, NavigationAction, OnAction};
+use crate::{components::playlists::playlists::PlaylistScreenElement, ui::KeyboardHandlerRef};
 
 impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
     fn on_key(&self, key: KeyEvent) {

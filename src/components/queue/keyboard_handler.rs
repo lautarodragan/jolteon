@@ -1,6 +1,6 @@
-use crossterm::event::KeyEvent;
 use crate::structs::{Action, OnAction};
 use crate::ui::KeyboardHandlerRef;
+use crossterm::event::KeyEvent;
 
 use super::Queue;
 

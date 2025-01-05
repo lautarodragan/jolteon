@@ -2,9 +2,12 @@ use std::sync::atomic::Ordering;
 
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::{structs::{Action, OnAction}, ui::*};
-use crate::structs::{ListAction, NavigationAction};
 use super::{album_tree_item::AlbumTreeItem, component::AlbumTree};
+
+use crate::{
+    structs::{Action, OnAction, ListAction, NavigationAction},
+    ui::*,
+};
 
 impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
     fn on_key(&self, key: KeyEvent) {
@@ -241,8 +244,8 @@ impl OnAction for AlbumTree<'_> {
                     };
                     self.on_select_fn.lock().unwrap()(item);
                 }
-                _ => {},
-            }
+                _ => {}
+            },
             Action::ListAction(ListAction::Primary) => {
                 let Some(item) = self.selected_item() else {
                     log::warn!(target: target, "No selected item");

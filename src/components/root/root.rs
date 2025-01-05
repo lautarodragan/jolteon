@@ -18,10 +18,9 @@ use crate::{
     config::Theme,
     main_player::MainPlayer,
     state::State,
-    structs::{OnActionMut, ScreenAction, Song},
+    structs::{Action, NavigationAction, OnAction, OnActionMut, ScreenAction, Song},
     ui::{Component, TopBar},
 };
-use crate::structs::{Action, NavigationAction, OnAction};
 
 #[derive(Debug)]
 pub enum QueueChange {
@@ -223,15 +222,13 @@ impl OnActionMut for Root<'_> {
         //     return;
         // }
         match action {
-            Action::Screen(action) if !self.is_focus_trapped.get() => {
-                match action {
-                    ScreenAction::Library => self.focused_screen = 0,
-                    ScreenAction::Playlists => self.focused_screen = 1,
-                    ScreenAction::Queue => self.focused_screen = 2,
-                    ScreenAction::FileBrowser => self.focused_screen = 3,
-                    ScreenAction::Help => self.focused_screen = 4,
-                }
-            }
+            Action::Screen(action) if !self.is_focus_trapped.get() => match action {
+                ScreenAction::Library => self.focused_screen = 0,
+                ScreenAction::Playlists => self.focused_screen = 1,
+                ScreenAction::Queue => self.focused_screen = 2,
+                ScreenAction::FileBrowser => self.focused_screen = 3,
+                ScreenAction::Help => self.focused_screen = 4,
+            },
             _ => {
                 let c = &self.screens[self.focused_screen].1;
                 c.on_action(action);

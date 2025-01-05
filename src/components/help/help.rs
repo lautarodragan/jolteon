@@ -6,7 +6,11 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState, WidgetRef},
 };
 
-use crate::{config::Theme, ui::{KeyboardHandlerMut}, structs::{Action, OnActionMut}};
+use crate::{
+    config::Theme,
+    structs::{Action, OnActionMut},
+    ui::KeyboardHandlerMut,
+};
 
 pub struct Help<'a> {
     theme: Theme,
@@ -83,7 +87,6 @@ impl OnActionMut for Help<'_> {
         todo!()
     }
 }
-
 
 impl WidgetRef for Help<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {

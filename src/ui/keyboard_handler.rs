@@ -6,14 +6,10 @@ use ratatui::widgets::WidgetRef;
 use crate::structs::{Action, OnAction, OnActionMut};
 
 pub trait KeyboardHandlerRef<'a>: 'a {
-    fn on_key(&self, key: KeyEvent) {
-
-    }
+    fn on_key(&self, key: KeyEvent) {}
 }
 pub trait KeyboardHandlerMut<'a>: 'a {
-    fn on_key(&mut self, key: KeyEvent) {
-
-    }
+    fn on_key(&mut self, key: KeyEvent) {}
 }
 
 // impl<T> KeyboardHandlerRef<'_> for T {
