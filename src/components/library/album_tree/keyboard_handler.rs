@@ -5,7 +5,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use super::{album_tree_item::AlbumTreeItem, component::AlbumTree};
 
 use crate::{
-    structs::{Action, OnAction, ListAction, NavigationAction},
+    structs::{Action, ListAction, NavigationAction, OnAction},
     ui::*,
 };
 

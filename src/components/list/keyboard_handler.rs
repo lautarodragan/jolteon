@@ -239,7 +239,7 @@ where
         match action {
             Action::Navigation(action) => {
                 self.on_directional_action(action);
-            },
+            }
             Action::ListAction(action) => match action {
                 ListAction::Primary | ListAction::Secondary => {
                     self.filter_mut(|filter| {

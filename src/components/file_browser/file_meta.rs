@@ -1,6 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crossterm::event::KeyEvent;
 use ratatui::{buffer::Buffer, layout::Rect, widgets::WidgetRef};
 
 use crate::{
@@ -8,8 +7,7 @@ use crate::{
     config::Theme,
     cue::CueSheet,
     duration::duration_to_string,
-    structs::{Jolt, Song},
-    ui::KeyboardHandlerRef,
+    structs::{Action, Jolt, OnAction, Song},
 };
 
 pub struct FileMeta<'a> {
@@ -172,8 +170,8 @@ impl WidgetRef for FileMeta<'_> {
     }
 }
 
-impl<'a> KeyboardHandlerRef<'a> for FileMeta<'a> {
-    fn on_key(&self, key: KeyEvent) {
-        self.list.on_key(key);
+impl OnAction for FileMeta<'_> {
+    fn on_action(&self, action: Action) {
+        self.list.on_action(action);
     }
 }

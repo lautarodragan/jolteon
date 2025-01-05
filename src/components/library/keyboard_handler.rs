@@ -1,5 +1,5 @@
 use crate::{
-    structs::{Action, OnAction, NavigationAction},
+    structs::{Action, NavigationAction, OnAction},
     ui::*,
 };
 

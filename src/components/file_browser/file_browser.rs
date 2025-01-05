@@ -3,7 +3,7 @@ use std::{
     collections::HashMap,
     path::PathBuf,
     rc::Rc,
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::atomic::AtomicUsize,
 };
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
         List,
     },
     config::Theme,
-    structs::{Action, FileBrowserAction, OnAction, Song},
+    structs::Song,
 };
 
 use super::{
@@ -316,72 +316,5 @@ impl<'a> FileBrowser<'a> {
 impl Drop for FileBrowser<'_> {
     fn drop(&mut self) {
         log::trace!("FileBrowser.drop()");
-    }
-}
-
-impl OnAction<Action> for FileBrowser<'_> {
-    fn on_action(&self, action: Action) {
-        match action {
-            Action::FileBrowser(action) => match action {
-                FileBrowserAction::NavigateUp => {
-                    self.navigate_up();
-                }
-                FileBrowserAction::OpenTerminal => {
-                    log::error!("FileBrowserAction::OpenTerminal {action:?} not implemented");
-                }
-                FileBrowserAction::AddToLibrary => {
-                    log::error!("FileBrowserAction::AddToLibrary not implemented");
-                }
-                FileBrowserAction::AddToQueue => {
-                    log::error!("FileBrowserAction::AddToQueue not implemented");
-                }
-                FileBrowserAction::AddToPlaylist => {
-                    log::error!("FileBrowserAction::AddToPlaylist not implemented");
-                }
-                FileBrowserAction::ToggleMode => {
-                    self.add_mode.set(match self.add_mode.get() {
-                        AddMode::AddToLibrary => AddMode::AddToPlaylist,
-                        AddMode::AddToPlaylist => AddMode::AddToLibrary,
-                    });
-                    self.help.set_add_mode(self.add_mode.get());
-                }
-            },
-            Action::FocusNext | Action::FocusPrevious => {
-                let mut focus = self.focus.load(Ordering::Acquire);
-
-                if action == Action::FocusNext {
-                    if focus > 1 {
-                        focus = 0
-                    } else {
-                        focus += 1;
-                    }
-                } else if action == Action::FocusPrevious {
-                    if focus == 0 {
-                        focus = 2
-                    } else {
-                        focus -= 1;
-                    }
-                }
-
-                self.focus.store(focus, Ordering::Release);
-
-                if focus == 0 {
-                    self.parents_list.focus();
-                    self.children_list.blur();
-                    self.file_meta.blur();
-                } else if focus == 1 {
-                    self.parents_list.blur();
-                    self.children_list.focus();
-                    self.file_meta.blur();
-                } else if focus == 2 {
-                    self.parents_list.blur();
-                    self.children_list.blur();
-                    self.file_meta.focus();
-                }
-            }
-            _ => {
-                log::error!("{action:?} not implemented");
-            }
-        }
     }
 }
