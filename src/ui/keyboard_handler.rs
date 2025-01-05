@@ -41,7 +41,7 @@ impl<'a> KeyboardHandlerRef<'a> for Component<'a> {
     }
 }
 
-impl<'a> OnAction for Component<'a> {
+impl OnAction for Component<'_> {
     fn on_action(&self, action: Action) {
         match self {
             Component::Ref(ref target) => {

@@ -6,11 +6,8 @@ use crate::{components::playlists::playlists::PlaylistScreenElement, ui::Keyboar
 
 impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
     fn on_key(&self, key: KeyEvent) {
-        match key.code {
-            KeyCode::F(8) => {
-                self.show_deleted_playlists.set(!self.show_deleted_playlists.get());
-            }
-            _ => {}
+        if let KeyCode::F(8) = key.code {
+            self.show_deleted_playlists.set(!self.show_deleted_playlists.get());
         }
     }
 }

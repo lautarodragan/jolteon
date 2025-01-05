@@ -237,10 +237,8 @@ where
         let target = "::List.on_action";
 
         match action {
-            Action::Navigation(action) => match action {
-                _ => {
-                    self.on_directional_action(action);
-                }
+            Action::Navigation(action) => {
+                self.on_directional_action(action);
             },
             Action::ListAction(action) => match action {
                 ListAction::Primary | ListAction::Secondary => {
