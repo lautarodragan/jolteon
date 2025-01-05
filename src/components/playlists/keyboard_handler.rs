@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{components::playlists::playlists::PlaylistScreenElement, ui::KeyboardHandlerRef};
-use crate::structs::{Action, ListAction, NavigationAction, OnAction};
+use crate::structs::{Action, NavigationAction, OnAction};
 use super::Playlists;
 
 impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {

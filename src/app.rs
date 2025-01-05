@@ -16,7 +16,6 @@ use crate::{
     state::State,
     structs::{Action, Actions, OnAction, OnActionMut},
     term::set_terminal,
-    ui::KeyboardHandlerMut,
 };
 
 pub async fn run() -> Result<(), Box<dyn Error>> {

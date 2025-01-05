@@ -6,7 +6,6 @@ use std::{
     sync::Weak,
 };
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
@@ -20,7 +19,7 @@ use crate::{
     main_player::MainPlayer,
     state::State,
     structs::{OnActionMut, ScreenAction, Song},
-    ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
+    ui::{Component, TopBar},
 };
 use crate::structs::{Action, NavigationAction, OnAction};
 

@@ -1,4 +1,3 @@
-use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
     structs::{Action, OnAction},

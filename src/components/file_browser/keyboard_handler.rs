@@ -1,10 +1,10 @@
 use std::sync::atomic::Ordering;
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::KeyEvent;
 
 use crate::ui::KeyboardHandlerRef;
 
-use super::{AddMode, FileBrowser};
+use super::FileBrowser;
 
 impl<'a> KeyboardHandlerRef<'a> for FileBrowser<'a> {
     fn on_key(&self, key: KeyEvent) {

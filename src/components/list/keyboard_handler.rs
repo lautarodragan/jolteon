@@ -1,11 +1,10 @@
 use std::cell::RefMut;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use crate::files::Library;
 use crate::structs::{Action, ListAction, NavigationAction, OnAction};
 use crate::ui::KeyboardHandlerRef;
 
-use super::component::{Direction, List};
+use super::component::List;
 
 impl<'a, T> KeyboardHandlerRef<'a> for List<'a, T>
 where
@@ -60,7 +59,7 @@ where
 {
     fn on_directional_action(&self, action: NavigationAction) {
         let is_filtering = !self.filter.borrow_mut().is_empty();
-        let mut items = self.items.borrow_mut();
+        let items = self.items.borrow_mut();
         let length = items.len() as i32;
 
         if length < 2 {
@@ -81,7 +80,7 @@ where
         let initial_i = i;
 
         let on_reorder = self.on_reorder_fn.borrow_mut();
-        let mut swapped: Option<(usize, usize)> = None;
+        let swapped: Option<(usize, usize)> = None;
 
         match action {
             NavigationAction::Up | NavigationAction::Down => {

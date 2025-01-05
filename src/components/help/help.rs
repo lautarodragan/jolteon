@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState, WidgetRef},
 };
 
-use crate::{config::Theme, ui::{KeyboardHandlerMut}, structs::{Action, OnAction, OnActionMut}};
+use crate::{config::Theme, ui::{KeyboardHandlerMut}, structs::{Action, OnActionMut}};
 
 pub struct Help<'a> {
     theme: Theme,

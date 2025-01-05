@@ -6,7 +6,6 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use crossterm::event::{KeyCode, KeyModifiers};
 
 use crate::{
     components::{
