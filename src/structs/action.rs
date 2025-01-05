@@ -51,6 +51,7 @@ pub enum Action {
     Player(SingleTrackPlayerAction),
     MainPlayer(MainPlayerAction),
     ListAction(ListAction),
+    Playlists(PlaylistsAction),
     FileBrowser(FileBrowserAction),
 }
 
@@ -111,16 +112,17 @@ pub enum FileBrowserAction {
     NavigateUp,
 }
 
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+pub enum PlaylistsAction {
+    ShowHideGraveyard,
+}
+
 impl TryFrom<&str> for Action {
     type Error = ();
 
     fn try_from(value: &str) -> Result<Self, ()> {
         if value == "Quit" {
             return Ok(Self::Quit);
-        } else if value == "FocusNext" {
-            return Ok(Self::FocusNext);
-        } else if value == "FocusPrevious" {
-            return Ok(Self::FocusPrevious);
         }
 
         let parts: Vec<&str> = value.split('.').collect();
@@ -138,6 +140,8 @@ impl TryFrom<&str> for Action {
             NavigationAction::try_from(child).map(Action::Navigation)
         } else if parent == "List" {
             ListAction::try_from(child).map(Action::ListAction)
+        } else if parent == "Playlists" {
+            PlaylistsAction::try_from(child).map(Action::Playlists)
         } else if parent == "FileBrowser" {
             FileBrowserAction::try_from(child).map(Action::FileBrowser)
         } else {
@@ -193,7 +197,6 @@ impl TryFrom<&str> for NavigationAction {
     type Error = ();
 
     fn try_from(value: &str) -> Result<Self, ()> {
-        log::warn!("navigationaction::try_from({value}");
         match value {
             "FocusNext" => Ok(Self::FocusNext),
             "FocusPrevious" => Ok(Self::FocusPrevious),
@@ -240,6 +243,17 @@ impl TryFrom<&str> for FileBrowserAction {
     }
 }
 
+impl TryFrom<&str> for PlaylistsAction {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, ()> {
+        match value {
+            "ShowHideGraveyard" => Ok(Self::ShowHideGraveyard),
+            _ => Err(()),
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Actions {
     actions: HashMap<Shortcut, Action>,
@@ -247,7 +261,7 @@ pub struct Actions {
 
 impl Actions {
     fn from_str(s: &str) -> Self {
-        log::trace!("from str {s}");
+        // log::trace!("from str {s}");
 
         let mut actions: HashMap<Shortcut, Action> = HashMap::new();
 
@@ -299,6 +313,14 @@ impl Actions {
                 } else {
                     code = KeyCode::Char(char);
                 }
+            } else if (key.len() == 2 || key.len() == 3) && key.starts_with('F') {
+                if let Ok(num) =  key[1..].parse::<u8>() {
+                    code = KeyCode::F(num);
+                } else {
+                    // Will treat all F[a-zA-Z]{2, 3} as invalid keys. Hacky because `if condition && let something {` isn't supported syntax yet, but I think it's okay.
+                    log::debug!("ignoring invalid line {l} with key={key}");
+                    continue;
+                }
             } else if key == "Enter" {
                 code = KeyCode::Enter;
             } else if key == "Space" {
@@ -330,7 +352,7 @@ impl Actions {
             } else if key == "Delete" {
                 code = KeyCode::Delete;
             } else {
-                log::debug!("ignoring invalid line with key={key}");
+                log::debug!("ignoring invalid line {l} with key={key}");
                 continue;
             }
 
@@ -343,7 +365,7 @@ impl Actions {
             actions.insert(binding, action);
         }
 
-        log::trace!("actions '{:#?}'", actions);
+        // log::trace!("actions '{:#?}'", actions);
 
         Self { actions }
     }
