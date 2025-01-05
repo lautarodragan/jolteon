@@ -4,7 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::structs::{Action, ListAction, NavigationAction, OnAction};
 
-use super::component::List;
+use super::component::{Direction, List};
 
 // TODO: OnAction
 // impl<'a, T> KeyboardHandlerRef<'a> for List<'a, T>
@@ -47,11 +47,17 @@ use super::component::List;
 // }
 
 fn is_navigation_action_upwards(action: NavigationAction) -> bool {
-    action == NavigationAction::Up || action == NavigationAction::Home || action == NavigationAction::PageUp
+    action == NavigationAction::Up
+        || action == NavigationAction::Home
+        || action == NavigationAction::PageUp
+        || action == NavigationAction::PreviousSpecial
 }
 
 fn is_navigation_action_downwards(action: NavigationAction) -> bool {
-    action == NavigationAction::Down || action == NavigationAction::End || action == NavigationAction::PageDown
+    action == NavigationAction::Down
+        || action == NavigationAction::End
+        || action == NavigationAction::PageDown
+        || action == NavigationAction::NextSpecial
 }
 
 impl<T> List<'_, T>
@@ -84,8 +90,16 @@ where
         let swapped: Option<(usize, usize)> = None;
 
         match action {
+            NavigationAction::NextSpecial | NavigationAction::PreviousSpecial => {
+                if let Some(next_item_special) = &*self.find_next_item_by_fn.borrow_mut() {
+                    let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
+
+                    if let Some(ii) = next_item_special(&inners, i as usize, Direction::from(action)) {
+                        i = ii as i32;
+                    }
+                }
+            }
             NavigationAction::Up | NavigationAction::Down => {
-                // if action.modifiers == KeyModifiers::NONE {
                 if action == NavigationAction::Up {
                     if is_filtering {
                         if let Some(n) = items.iter().take(i as usize).rposition(|item| item.is_match) {
@@ -102,14 +116,6 @@ where
                     i += 1;
                 }
                 // TODO: OnAction
-                // } else if action.modifiers == KeyModifiers::ALT {
-                //     if let Some(next_item_special) = &*self.find_next_item_by_fn.borrow_mut() {
-                //         let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
-                //
-                //         if let Some(ii) = next_item_special(&inners, i as usize, Direction::from(action.code)) {
-                //             i = ii as i32;
-                //         }
-                //     }
                 // } else if on_reorder.is_some() && action.modifiers == KeyModifiers::CONTROL {
                 //     // swap
                 //     let nexti = if action.code == KeyCode::Up && i > 0 {

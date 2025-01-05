@@ -67,6 +67,8 @@ pub enum NavigationAction {
     End,
     PageUp,
     PageDown,
+    NextSpecial,
+    PreviousSpecial,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -208,6 +210,8 @@ impl TryFrom<&str> for NavigationAction {
             "End" => Ok(Self::End),
             "PageUp" => Ok(Self::PageUp),
             "PageDown" => Ok(Self::PageDown),
+            "NextSpecial" => Ok(Self::NextSpecial),
+            "PreviousSpecial" => Ok(Self::PreviousSpecial),
             _ => Err(()),
         }
     }
@@ -313,7 +317,10 @@ impl Actions {
                 } else {
                     code = KeyCode::Char(char);
                 }
-            } else if (key.len() == 2 || key.len() == 3) && key.starts_with('F') && let Ok(num) =  key[1..].parse::<u8>() {
+            } else if (key.len() == 2 || key.len() == 3)
+                && key.starts_with('F')
+                && let Ok(num) = key[1..].parse::<u8>()
+            {
                 code = KeyCode::F(num);
             } else if key == "Enter" {
                 code = KeyCode::Enter;

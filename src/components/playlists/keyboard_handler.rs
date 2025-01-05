@@ -1,6 +1,9 @@
 use super::Playlists;
 
-use crate::{components::playlists::playlists::PlaylistScreenElement, structs::{Action, NavigationAction, OnAction, PlaylistsAction}};
+use crate::{
+    components::playlists::playlists::PlaylistScreenElement,
+    structs::{Action, NavigationAction, OnAction, PlaylistsAction},
+};
 
 impl OnAction for Playlists<'_> {
     fn on_action(&self, action: Action) {
