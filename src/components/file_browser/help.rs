@@ -22,6 +22,8 @@ impl Display for Action {
             FileBrowserAction::AddToLibrary => "add to Library",
             FileBrowserAction::AddToPlaylist => "add to Playlist",
             FileBrowserAction::ToggleMode => "toggle add mode",
+            FileBrowserAction::OpenTerminal => "open terminal",
+            FileBrowserAction::NavigateUp => "navigate up",
         })
     }
 }
@@ -67,6 +69,10 @@ impl FileBrowserHelp {
             (
                 Shortcut::new(KeyCode::Char('g'), KeyModifiers::CONTROL),
                 Cell::new(Action::FileBrowser(FileBrowserAction::ToggleMode)),
+            ),
+            (
+                actions.key_by_action(Action::FileBrowser(FileBrowserAction::OpenTerminal)).unwrap(),
+                Cell::new(Action::FileBrowser(FileBrowserAction::OpenTerminal)),
             ),
         ];
 

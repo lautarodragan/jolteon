@@ -115,15 +115,11 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
                         Action::MainPlayer(action) => {
                             player.on_action(action);
                         }
-                        Action::Screen(action) => {
+                        _ => {
+                            log::debug!("root_component.on_action({action:?});");
                             root_component.on_action(action);
                         }
-                        _ => {
-                            root_component.on_key(key);
-                        }
                     }
-                } else {
-                    root_component.on_key(key);
                 }
             }
         }

@@ -1,7 +1,7 @@
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{components::playlists::playlists::PlaylistScreenElement, ui::KeyboardHandlerRef};
-
+use crate::structs::{Action, OnAction};
 use super::Playlists;
 
 impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
@@ -26,5 +26,11 @@ impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
             }
             _ => {}
         }
+    }
+}
+
+impl OnAction for Playlists<'_> {
+    fn on_action(&self, action: Action) {
+        todo!()
     }
 }

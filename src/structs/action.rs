@@ -44,11 +44,28 @@ pub enum Action {
     Error,
     Quit,
     QueueNext,
+    FocusNext,
+    FocusPrevious,
     Screen(ScreenAction),
+    Navigation(NavigationAction),
     Player(SingleTrackPlayerAction),
     MainPlayer(MainPlayerAction),
     ListAction(ListAction),
     FileBrowser(FileBrowserAction),
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+pub enum NavigationAction {
+    FocusNext,
+    FocusPrevious,
+    Up,
+    Down,
+    Left,
+    Right,
+    Home,
+    End,
+    PageUp,
+    PageDown,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -88,6 +105,8 @@ pub enum FileBrowserAction {
     AddToLibrary,
     AddToPlaylist,
     ToggleMode,
+    OpenTerminal,
+    NavigateUp,
 }
 
 impl TryFrom<&str> for Action {
@@ -96,6 +115,10 @@ impl TryFrom<&str> for Action {
     fn try_from(value: &str) -> Result<Self, ()> {
         if value == "Quit" {
             return Ok(Self::Quit);
+        } else if value == "FocusNext" {
+            return Ok(Self::FocusNext);
+        } else if value == "FocusPrevious" {
+            return Ok(Self::FocusPrevious);
         }
 
         let parts: Vec<&str> = value.split('.').collect();
@@ -109,8 +132,12 @@ impl TryFrom<&str> for Action {
             MainPlayerAction::try_from(child).map(Action::MainPlayer)
         } else if parent == "Screen" {
             ScreenAction::try_from(child).map(Action::Screen)
+        } else if parent == "Navigation" {
+            NavigationAction::try_from(child).map(Action::Navigation)
         } else if parent == "List" {
             ListAction::try_from(child).map(Action::ListAction)
+        } else if parent == "FileBrowser" {
+            FileBrowserAction::try_from(child).map(Action::FileBrowser)
         } else {
             Err(())
         }
@@ -160,6 +187,27 @@ impl TryFrom<&str> for MainPlayerAction {
     }
 }
 
+impl TryFrom<&str> for NavigationAction {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, ()> {
+        log::warn!("navigationaction::try_from({value}");
+        match value {
+            "FocusNext" => Ok(Self::FocusNext),
+            "FocusPrevious" => Ok(Self::FocusPrevious),
+            "Up" => Ok(Self::Up),
+            "Down" => Ok(Self::Down),
+            "Left" => Ok(Self::Left),
+            "Right" => Ok(Self::Right),
+            "Home" => Ok(Self::Home),
+            "End" => Ok(Self::End),
+            "PageUp" => Ok(Self::PageUp),
+            "PageDown" => Ok(Self::PageDown),
+            _ => Err(()),
+        }
+    }
+}
+
 impl TryFrom<&str> for ListAction {
     type Error = ();
 
@@ -167,6 +215,22 @@ impl TryFrom<&str> for ListAction {
         match value {
             "Primary" => Ok(Self::Primary),
             "Secondary" => Ok(Self::Secondary),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<&str> for FileBrowserAction {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, ()> {
+        match value {
+            "NavigateUp" => Ok(Self::NavigateUp),
+            "AddToPlaylist" => Ok(Self::AddToPlaylist),
+            "AddToLibrary" => Ok(Self::AddToLibrary),
+            "AddToQueue" => Ok(Self::AddToQueue),
+            "ToggleMode" => Ok(Self::ToggleMode),
+            "OpenTerminal" => Ok(Self::OpenTerminal),
             _ => Err(()),
         }
     }
@@ -243,20 +307,32 @@ impl Actions {
                 code = KeyCode::Up;
             } else if key == "Down" {
                 code = KeyCode::Down;
+            } else if key == "Home" {
+                code = KeyCode::Home;
             } else if key == "End" {
                 code = KeyCode::End;
+            } else if key == "PageUp" {
+                code = KeyCode::PageUp;
+            } else if key == "PageDown" {
+                code = KeyCode::PageDown;
+            } else if key == "Backspace" {
+                code = KeyCode::Backspace;
+            } else if key == "Tab" {
+                code = KeyCode::Tab;
+            } else if key == "BackTab" {
+                code = KeyCode::BackTab;
             } else {
                 log::debug!("ignoring invalid line with key={key}");
                 continue;
             }
 
-            let shortcut = Shortcut::new(code, modifiers);
+            let binding = Shortcut::new(code, modifiers);
             let Ok(action) = Action::try_from(value) else {
-                log::debug!("ignoring invalid line, unknown shortcut {value} for key {shortcut}");
+                log::debug!("ignoring invalid line, unknown shortcut {value} for key {binding}");
                 continue;
             };
 
-            actions.insert(shortcut, action);
+            actions.insert(binding, action);
         }
 
         log::trace!("actions '{:#?}'", actions);

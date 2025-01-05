@@ -1,7 +1,8 @@
 use std::cell::RefMut;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-
+use crate::files::Library;
+use crate::structs::{Action, NavigationAction, OnAction};
 use crate::ui::KeyboardHandlerRef;
 
 use super::component::{Direction, List};
@@ -22,9 +23,6 @@ where
         }
 
         match key.code {
-            KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End | KeyCode::PageUp | KeyCode::PageDown => {
-                self.on_directional_key(key);
-            }
             KeyCode::Enter => {
                 self.filter_mut(|filter| {
                     filter.clear();
@@ -43,12 +41,12 @@ where
                 if key.modifiers == KeyModifiers::NONE {
                     self.on_enter_fn.borrow_mut()(item);
                     if self.auto_select_next.get() {
-                        self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+                        self.on_directional_action(NavigationAction::Down);
                     }
                 } else if key.modifiers == KeyModifiers::ALT {
                     if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
                         on_enter_alt_fn(item);
-                        self.on_directional_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+                        self.on_directional_action(NavigationAction::Down);
                     }
                 }
             }
@@ -104,19 +102,19 @@ where
     }
 }
 
-fn is_key_dir_upwards(key_code: KeyCode) -> bool {
-    key_code == KeyCode::Up || key_code == KeyCode::Home || key_code == KeyCode::PageUp
+fn is_navigation_action_upwards(action: NavigationAction) -> bool {
+    action == NavigationAction::Up || action == NavigationAction::Home || action == NavigationAction::PageUp
 }
 
-fn is_key_dir_downwards(key_code: KeyCode) -> bool {
-    key_code == KeyCode::Down || key_code == KeyCode::End || key_code == KeyCode::PageDown
+fn is_navigation_action_downwards(action: NavigationAction) -> bool {
+    action == NavigationAction::Down || action == NavigationAction::End || action == NavigationAction::PageDown
 }
 
 impl<T> List<'_, T>
 where
     T: std::fmt::Display + Clone,
 {
-    fn on_directional_key(&self, key: KeyEvent) {
+    fn on_directional_action(&self, action: NavigationAction) {
         let is_filtering = !self.filter.borrow_mut().is_empty();
         let mut items = self.items.borrow_mut();
         let length = items.len() as i32;
@@ -129,7 +127,7 @@ where
         let padding = self.padding.get() as i32;
         let page_size = self.page_size.get() as i32;
 
-        let padding = if is_key_dir_downwards(key.code) {
+        let padding = if is_navigation_action_downwards(action) {
             height.saturating_sub(padding).saturating_sub(1)
         } else {
             padding
@@ -141,10 +139,10 @@ where
         let on_reorder = self.on_reorder_fn.borrow_mut();
         let mut swapped: Option<(usize, usize)> = None;
 
-        match key.code {
-            KeyCode::Up | KeyCode::Down => {
-                if key.modifiers == KeyModifiers::NONE {
-                    if key.code == KeyCode::Up {
+        match action {
+            NavigationAction::Up | NavigationAction::Down => {
+                // if action.modifiers == KeyModifiers::NONE {
+                    if action == NavigationAction::Up {
                         if is_filtering {
                             if let Some(n) = items.iter().take(i as usize).rposition(|item| item.is_match) {
                                 i = n as i32;
@@ -159,40 +157,40 @@ where
                     } else {
                         i += 1;
                     }
-                } else if key.modifiers == KeyModifiers::ALT {
-                    if let Some(next_item_special) = &*self.find_next_item_by_fn.borrow_mut() {
-                        let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
-
-                        if let Some(ii) = next_item_special(&inners, i as usize, Direction::from(key.code)) {
-                            i = ii as i32;
-                        }
-                    }
-                } else if on_reorder.is_some() && key.modifiers == KeyModifiers::CONTROL {
-                    // swap
-                    let nexti = if key.code == KeyCode::Up && i > 0 {
-                        i - 1
-                    } else if key.code == KeyCode::Down && (i as usize) < items.len().saturating_sub(1) {
-                        i + 1
-                    } else {
-                        i
-                    };
-
-                    if nexti != i {
-                        items.swap(i as usize, nexti as usize);
-                        swapped = Some((i as usize, nexti as usize));
-                        i = nexti;
-                    }
-                } else {
-                    return;
-                }
+                // } else if action.modifiers == KeyModifiers::ALT {
+                //     if let Some(next_item_special) = &*self.find_next_item_by_fn.borrow_mut() {
+                //         let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
+                //
+                //         if let Some(ii) = next_item_special(&inners, i as usize, Direction::from(action.code)) {
+                //             i = ii as i32;
+                //         }
+                //     }
+                // } else if on_reorder.is_some() && action.modifiers == KeyModifiers::CONTROL {
+                //     // swap
+                //     let nexti = if action.code == KeyCode::Up && i > 0 {
+                //         i - 1
+                //     } else if action.code == KeyCode::Down && (i as usize) < items.len().saturating_sub(1) {
+                //         i + 1
+                //     } else {
+                //         i
+                //     };
+                //
+                //     if nexti != i {
+                //         items.swap(i as usize, nexti as usize);
+                //         swapped = Some((i as usize, nexti as usize));
+                //         i = nexti;
+                //     }
+                // } else {
+                //     return;
+                // }
             }
-            KeyCode::PageUp if !is_filtering => {
+            NavigationAction::PageUp if !is_filtering => {
                 i -= page_size;
             }
-            KeyCode::PageDown if !is_filtering => {
+            NavigationAction::PageDown if !is_filtering => {
                 i += page_size;
             }
-            KeyCode::Home => {
+            NavigationAction::Home => {
                 if is_filtering {
                     if let Some(n) = items.iter().position(|item| item.is_match) {
                         i = n as i32;
@@ -201,7 +199,7 @@ where
                     i = 0;
                 }
             }
-            KeyCode::End => {
+            NavigationAction::End => {
                 if is_filtering {
                     if let Some(n) = items.iter().rposition(|item| item.is_match) {
                         i = n as i32;
@@ -221,8 +219,8 @@ where
         self.selected_item_index.set(i as usize);
 
         let offset = self.offset.get() as i32;
-        if (is_key_dir_upwards(key.code) && i < offset + padding)
-            || (is_key_dir_downwards(key.code) && i > offset + padding)
+        if (is_navigation_action_upwards(action) && i < offset + padding)
+            || (is_navigation_action_downwards(action) && i > offset + padding)
         {
             let offset = if i > padding {
                 (i - padding).min(length - height).max(0)
@@ -284,5 +282,24 @@ where
             }
             _ => {}
         }
+    }
+}
+
+impl<'a, T> OnAction for List<'a, T>
+where
+    T: 'a + Clone + std::fmt::Display,
+{
+    fn on_action(&self, action: Action) {
+        match action {
+            Action::Navigation(action) => {
+                match action {
+                    _ => {
+                        self.on_directional_action(action);
+                    }
+                }
+            }
+            _ => {}
+        }
+
     }
 }

@@ -22,6 +22,7 @@ use crate::{
     structs::{OnActionMut, ScreenAction, Song},
     ui::{Component, KeyboardHandlerMut, KeyboardHandlerRef, TopBar},
 };
+use crate::structs::{Action, NavigationAction, OnAction};
 
 #[derive(Debug)]
 pub enum QueueChange {
@@ -110,7 +111,7 @@ impl<'a> Root<'a> {
                 on_queue_changed_fn.call(QueueChange::Append(songs));
                 // hackish way to "select_next()"
                 // TODO: migrate the artist/album tree to List and use list.set_auto_select_next(true)
-                library.on_key(KeyEvent::new(KeyCode::Down, KeyModifiers::NONE));
+                library.on_action(Action::Navigation(NavigationAction::Down));
             }
         });
 
@@ -217,29 +218,26 @@ impl<'a> Root<'a> {
     }
 }
 
-impl OnActionMut<ScreenAction> for Root<'_> {
-    fn on_action(&mut self, action: ScreenAction) {
-        if self.is_focus_trapped.get() {
-            return;
-        }
+impl OnActionMut for Root<'_> {
+    fn on_action(&mut self, action: Action) {
+        // if self.is_focus_trapped.get() {
+        //     return;
+        // }
         match action {
-            ScreenAction::Library => self.focused_screen = 0,
-            ScreenAction::Playlists => self.focused_screen = 1,
-            ScreenAction::Queue => self.focused_screen = 2,
-            ScreenAction::FileBrowser => self.focused_screen = 3,
-            ScreenAction::Help => self.focused_screen = 4,
+            Action::Screen(action) if !self.is_focus_trapped.get() => {
+                match action {
+                    ScreenAction::Library => self.focused_screen = 0,
+                    ScreenAction::Playlists => self.focused_screen = 1,
+                    ScreenAction::Queue => self.focused_screen = 2,
+                    ScreenAction::FileBrowser => self.focused_screen = 3,
+                    ScreenAction::Help => self.focused_screen = 4,
+                }
+            }
+            _ => {
+                let c = &self.screens[self.focused_screen].1;
+                c.on_action(action);
+            }
         }
-    }
-}
-
-impl<'a> KeyboardHandlerMut<'a> for Root<'a> {
-    fn on_key(&mut self, key: KeyEvent) {
-        let Some((_, component)) = self.screens.get(self.focused_screen) else {
-            log::error!("focused_screen is {}, which is out of bounds.", self.focused_screen);
-            return;
-        };
-
-        component.on_key(key);
     }
 }
 

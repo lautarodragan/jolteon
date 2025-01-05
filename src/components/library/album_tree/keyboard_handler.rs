@@ -2,8 +2,8 @@ use std::sync::atomic::Ordering;
 
 use crossterm::event::{KeyCode, KeyEvent};
 
-use crate::ui::KeyboardHandlerRef;
-
+use crate::{structs::{Action, OnAction}, ui::*};
+use crate::structs::{ListAction, NavigationAction};
 use super::{album_tree_item::AlbumTreeItem, component::AlbumTree};
 
 impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
@@ -12,22 +12,6 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
         log::trace!(target: target, "{:?}", key);
 
         match key.code {
-            KeyCode::Up | KeyCode::Down | KeyCode::Home | KeyCode::End => {
-                self.filter.lock().unwrap().clear(); // todo: same as file browser - JUMP TO NEXT MATCH
-                self.on_artist_list_directional_key(key);
-                let Some(item) = self.selected_item() else {
-                    log::warn!(target: target, "No selected item");
-                    return;
-                };
-                self.on_select_fn.lock().unwrap()(item);
-            }
-            KeyCode::Enter => {
-                let Some(item) = self.selected_item() else {
-                    log::warn!(target: target, "No selected item");
-                    return;
-                };
-                self.on_confirm_fn.lock().unwrap()(item);
-            }
             KeyCode::Char(' ') => {
                 let selected_artist = self.selected_artist.load(Ordering::SeqCst);
                 let mut artist_list = self.artist_list.lock().unwrap();
@@ -145,7 +129,7 @@ impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
 }
 
 impl AlbumTree<'_> {
-    fn on_artist_list_directional_key(&self, key: KeyEvent) {
+    fn on_artist_list_directional_key(&self, action: NavigationAction) {
         let artists = self.artist_list.lock().unwrap();
         let length = {
             let visible_albums: usize = artists.iter().filter(|a| a.is_open).map(|a| a.albums.len()).sum();
@@ -159,11 +143,11 @@ impl AlbumTree<'_> {
         let mut i = self.selected_artist.load(Ordering::SeqCst) as i32;
         let mut j = self.selected_album.load(Ordering::SeqCst) as i32;
 
-        match key.code {
-            KeyCode::Up | KeyCode::Down => {
+        match action {
+            NavigationAction::Up | NavigationAction::Down => {
                 let artist = artists.get(i.max(0) as usize).unwrap();
 
-                if key.code == KeyCode::Up {
+                if action == NavigationAction::Up {
                     if artist.is_open && j > 0 {
                         j -= 1;
                     } else if i > 0 {
@@ -187,7 +171,7 @@ impl AlbumTree<'_> {
                     i += 1;
                 }
 
-                let padding = if key.code == KeyCode::Up {
+                let padding = if action == NavigationAction::Up {
                     padding
                 } else {
                     height.saturating_sub(padding).saturating_sub(1)
@@ -201,8 +185,8 @@ impl AlbumTree<'_> {
                     .sum();
                 let visible_items = visible_items as i32 + i + j;
 
-                if (key.code == KeyCode::Up && visible_items < offset + padding + 1)
-                    || (key.code == KeyCode::Down && visible_items > offset + padding)
+                if (action == NavigationAction::Up && visible_items < offset + padding + 1)
+                    || (action == NavigationAction::Down && visible_items > offset + padding)
                 {
                     offset = if visible_items > padding {
                         visible_items - padding
@@ -211,12 +195,12 @@ impl AlbumTree<'_> {
                     };
                 }
             }
-            KeyCode::Home => {
+            NavigationAction::Home => {
                 i = 0;
                 j = 0;
                 offset = 0;
             }
-            KeyCode::End => {
+            NavigationAction::End => {
                 i = artists.len() as i32 - 1;
                 let artist = artists.get(i.max(0) as usize).unwrap();
                 j = if artist.is_open {
@@ -235,5 +219,38 @@ impl AlbumTree<'_> {
         self.offset.store(offset as usize, Ordering::SeqCst);
         self.selected_artist.store(i as usize, Ordering::SeqCst);
         self.selected_album.store(j as usize, Ordering::SeqCst);
+    }
+}
+
+impl OnAction for AlbumTree<'_> {
+    fn on_action(&self, action: Action) {
+        let target = "::AlbumTree.on_action";
+        log::trace!(target: target, "{action:?}");
+
+        match action {
+            Action::Navigation(action) => match action {
+                // NavigationAction::FocusNext | NavigationAction::FocusPrevious => {
+                //
+                // }
+                NavigationAction::Up | NavigationAction::Down | NavigationAction::Home | NavigationAction::End => {
+                    self.filter.lock().unwrap().clear(); // todo: same as file browser - JUMP TO NEXT MATCH
+                    self.on_artist_list_directional_key(action);
+                    let Some(item) = self.selected_item() else {
+                        log::warn!(target: target, "No selected item");
+                        return;
+                    };
+                    self.on_select_fn.lock().unwrap()(item);
+                }
+                _ => {},
+            }
+            Action::ListAction(ListAction::Primary) => {
+                let Some(item) = self.selected_item() else {
+                    log::warn!(target: target, "No selected item");
+                    return;
+                };
+                self.on_confirm_fn.lock().unwrap()(item);
+            }
+            _ => {}
+        }
     }
 }
