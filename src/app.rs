@@ -115,7 +115,6 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
                             player.on_action(action);
                         }
                         _ => {
-                            log::debug!("root_component.on_action({action:?});");
                             root_component.on_action(action);
                         }
                     }

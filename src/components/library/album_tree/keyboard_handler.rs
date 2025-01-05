@@ -4,6 +4,7 @@ use super::{album_tree_item::AlbumTreeItem, component::AlbumTree};
 
 use crate::structs::{Action, ListAction, NavigationAction, OnAction};
 
+// TODO: OnAction
 // impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
 //     fn on_key(&self, key: KeyEvent) {
 //         let target = "::ArtistList.on_key";
@@ -175,9 +176,6 @@ impl OnAction for AlbumTree<'_> {
 
         match action {
             Action::Navigation(action) => match action {
-                // NavigationAction::FocusNext | NavigationAction::FocusPrevious => {
-                //
-                // }
                 NavigationAction::Up | NavigationAction::Down | NavigationAction::Home | NavigationAction::End => {
                     self.filter.lock().unwrap().clear(); // todo: same as file browser - JUMP TO NEXT MATCH
                     self.on_artist_list_directional_key(action);

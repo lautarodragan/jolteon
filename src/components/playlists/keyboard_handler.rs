@@ -3,6 +3,7 @@ use super::Playlists;
 use crate::components::playlists::playlists::PlaylistScreenElement;
 use crate::structs::{Action, NavigationAction, OnAction};
 
+// TODO: OnAction
 // impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
 //     fn on_key(&self, key: KeyEvent) {
 //         if let KeyCode::F(8) = key.code {
