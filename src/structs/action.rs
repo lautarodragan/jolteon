@@ -72,6 +72,8 @@ pub enum NavigationAction {
 pub enum ListAction {
     Primary,
     Secondary,
+    Insert,
+    Delete,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -215,6 +217,8 @@ impl TryFrom<&str> for ListAction {
         match value {
             "Primary" => Ok(Self::Primary),
             "Secondary" => Ok(Self::Secondary),
+            "Insert" => Ok(Self::Insert),
+            "Delete" => Ok(Self::Delete),
             _ => Err(()),
         }
     }
@@ -321,6 +325,10 @@ impl Actions {
                 code = KeyCode::Tab;
             } else if key == "BackTab" {
                 code = KeyCode::BackTab;
+            } else if key == "Insert" {
+                code = KeyCode::Insert;
+            } else if key == "Delete" {
+                code = KeyCode::Delete;
             } else {
                 log::debug!("ignoring invalid line with key={key}");
                 continue;

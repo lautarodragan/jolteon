@@ -2,7 +2,7 @@ use std::cell::RefMut;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use crate::files::Library;
-use crate::structs::{Action, NavigationAction, OnAction};
+use crate::structs::{Action, ListAction, NavigationAction, OnAction};
 use crate::ui::KeyboardHandlerRef;
 
 use super::component::{Direction, List};
@@ -23,62 +23,6 @@ where
         }
 
         match key.code {
-            KeyCode::Enter => {
-                self.filter_mut(|filter| {
-                    filter.clear();
-                });
-
-                let items = self.items.borrow();
-
-                let i = self.selected_item_index.get();
-                if i >= items.len() {
-                    log::error!(target: target, "selected_item_index > items.len");
-                    return;
-                }
-                let item = items[i].inner.clone();
-                drop(items);
-
-                if key.modifiers == KeyModifiers::NONE {
-                    self.on_enter_fn.borrow_mut()(item);
-                    if self.auto_select_next.get() {
-                        self.on_directional_action(NavigationAction::Down);
-                    }
-                } else if key.modifiers == KeyModifiers::ALT {
-                    if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
-                        on_enter_alt_fn(item);
-                        self.on_directional_action(NavigationAction::Down);
-                    }
-                }
-            }
-            KeyCode::Insert => {
-                let f = self.on_insert_fn.borrow_mut();
-                let Some(f) = &*f else {
-                    return;
-                };
-                f();
-            }
-            KeyCode::Delete => {
-                let Some(on_delete) = &*self.on_delete_fn.borrow_mut() else {
-                    return;
-                };
-
-                let mut items = self.items.borrow_mut();
-
-                if items.is_empty() {
-                    return;
-                }
-
-                let i = self.selected_item_index.get();
-                let removed_item = items.remove(i);
-
-                if i >= items.len() {
-                    self.selected_item_index.set(items.len().saturating_sub(1));
-                }
-
-                drop(items);
-
-                on_delete(removed_item.inner, i);
-            }
             KeyCode::Char('r') if key.modifiers == KeyModifiers::CONTROL => {
                 if self.on_rename_fn.borrow_mut().is_none() {
                     return;
@@ -290,11 +234,73 @@ where
     T: 'a + Clone + std::fmt::Display,
 {
     fn on_action(&self, action: Action) {
+        let target = "::List.on_action";
+
         match action {
             Action::Navigation(action) => {
                 match action {
                     _ => {
                         self.on_directional_action(action);
+                    }
+                }
+            }
+            Action::ListAction(action) => {
+                match action {
+                    ListAction::Primary | ListAction::Secondary => {
+                        self.filter_mut(|filter| {
+                            filter.clear();
+                        });
+
+                        let items = self.items.borrow();
+
+                        let i = self.selected_item_index.get();
+                        if i >= items.len() {
+                            log::error!(target: target, "selected_item_index > items.len");
+                            return;
+                        }
+                        let item = items[i].inner.clone();
+                        drop(items);
+
+                        if action == ListAction::Primary {
+                            self.on_enter_fn.borrow_mut()(item);
+                            if self.auto_select_next.get() {
+                                self.on_directional_action(NavigationAction::Down);
+                            }
+                        } else if action == ListAction::Secondary {
+                            if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
+                                on_enter_alt_fn(item);
+                                self.on_directional_action(NavigationAction::Down);
+                            }
+                        }
+                    }
+                    ListAction::Insert => {
+                        let f = self.on_insert_fn.borrow_mut();
+                        let Some(f) = &*f else {
+                            return;
+                        };
+                        f();
+                    }
+                    ListAction::Delete => {
+                        let Some(on_delete) = &*self.on_delete_fn.borrow_mut() else {
+                            return;
+                        };
+
+                        let mut items = self.items.borrow_mut();
+
+                        if items.is_empty() {
+                            return;
+                        }
+
+                        let i = self.selected_item_index.get();
+                        let removed_item = items.remove(i);
+
+                        if i >= items.len() {
+                            self.selected_item_index.set(items.len().saturating_sub(1));
+                        }
+
+                        drop(items);
+
+                        on_delete(removed_item.inner, i);
                     }
                 }
             }
