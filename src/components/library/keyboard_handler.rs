@@ -1,11 +1,6 @@
-use crate::{
-    structs::{Action, NavigationAction, OnAction},
-    ui::*,
-};
+use crate::structs::{Action, NavigationAction, OnAction};
 
 use super::library::Library;
-
-impl<'a> KeyboardHandlerRef<'a> for Library<'a> {}
 
 impl OnAction for Library<'_> {
     fn on_action(&self, action: Action) {

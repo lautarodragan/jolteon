@@ -3,48 +3,47 @@ use std::cell::RefMut;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::structs::{Action, ListAction, NavigationAction, OnAction};
-use crate::ui::KeyboardHandlerRef;
 
 use super::component::List;
-
-impl<'a, T> KeyboardHandlerRef<'a> for List<'a, T>
-where
-    T: 'a + Clone + std::fmt::Display,
-{
-    fn on_key(&self, key: KeyEvent) {
-        let target = "::List.on_key";
-        log::trace!(target: target, "{:?}", key);
-
-        let mut rename = self.rename.borrow_mut();
-
-        if rename.is_some() {
-            self.on_rename_key(key, rename);
-            return;
-        }
-
-        match key.code {
-            KeyCode::Char('r') if key.modifiers == KeyModifiers::CONTROL => {
-                if self.on_rename_fn.borrow_mut().is_none() {
-                    return;
-                }
-                *rename = self.with_selected_item(|item| Some(item.to_string()));
-                drop(rename);
-                self.on_request_focus_trap_fn.borrow_mut()(true);
-            }
-            KeyCode::Char(char) => {
-                self.filter_mut(|filter| {
-                    filter.push(char);
-                });
-            }
-            KeyCode::Esc => {
-                self.filter_mut(|filter| {
-                    filter.clear();
-                });
-            }
-            _ => {}
-        }
-    }
-}
+//
+// impl<'a, T> KeyboardHandlerRef<'a> for List<'a, T>
+// where
+//     T: 'a + Clone + std::fmt::Display,
+// {
+//     fn on_key(&self, key: KeyEvent) {
+//         let target = "::List.on_key";
+//         log::trace!(target: target, "{:?}", key);
+//
+//         let mut rename = self.rename.borrow_mut();
+//
+//         if rename.is_some() {
+//             self.on_rename_key(key, rename);
+//             return;
+//         }
+//
+//         match key.code {
+//             KeyCode::Char('r') if key.modifiers == KeyModifiers::CONTROL => {
+//                 if self.on_rename_fn.borrow_mut().is_none() {
+//                     return;
+//                 }
+//                 *rename = self.with_selected_item(|item| Some(item.to_string()));
+//                 drop(rename);
+//                 self.on_request_focus_trap_fn.borrow_mut()(true);
+//             }
+//             KeyCode::Char(char) => {
+//                 self.filter_mut(|filter| {
+//                     filter.push(char);
+//                 });
+//             }
+//             KeyCode::Esc => {
+//                 self.filter_mut(|filter| {
+//                     filter.clear();
+//                 });
+//             }
+//             _ => {}
+//         }
+//     }
+// }
 
 fn is_navigation_action_upwards(action: NavigationAction) -> bool {
     action == NavigationAction::Up || action == NavigationAction::Home || action == NavigationAction::PageUp

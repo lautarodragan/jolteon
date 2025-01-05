@@ -1,4 +1,3 @@
-use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Rect},
@@ -8,8 +7,7 @@ use ratatui::{
 
 use crate::{
     config::Theme,
-    structs::{Action, OnActionMut},
-    ui::KeyboardHandlerMut,
+    structs::{Action, NavigationAction, OnActionMut},
 };
 
 pub struct Help<'a> {
@@ -72,19 +70,13 @@ impl Help<'_> {
     }
 }
 
-impl<'a> KeyboardHandlerMut<'a> for Help<'a> {
-    fn on_key(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Down | KeyCode::Char('j') => self.next(),
-            KeyCode::Up | KeyCode::Char('k') => self.previous(),
-            _ => {}
-        }
-    }
-}
-
 impl OnActionMut for Help<'_> {
     fn on_action(&mut self, action: Action) {
-        todo!()
+        match action {
+            Action::Navigation(NavigationAction::Down) => self.next(),
+            Action::Navigation(NavigationAction::Up) => self.previous(),
+            _ => {}
+        }
     }
 }
 

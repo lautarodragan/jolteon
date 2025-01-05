@@ -1,17 +1,8 @@
 use std::sync::atomic::Ordering;
 
-use crossterm::event::KeyEvent;
-
 use crate::structs::{Action, FileBrowserAction, NavigationAction, OnAction};
-use crate::ui::KeyboardHandlerRef;
 
 use super::{AddMode, FileBrowser};
-
-impl<'a> KeyboardHandlerRef<'a> for FileBrowser<'a> {
-    fn on_key(&self, key: KeyEvent) {
-        log::error!("KeyboardHandlerRef called for file_browser!");
-    }
-}
 
 impl OnAction for FileBrowser<'_> {
     fn on_action(&self, action: Action) {

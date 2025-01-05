@@ -1,16 +1,15 @@
-use crossterm::event::{KeyCode, KeyEvent};
-
 use super::Playlists;
-use crate::structs::{Action, NavigationAction, OnAction};
-use crate::{components::playlists::playlists::PlaylistScreenElement, ui::KeyboardHandlerRef};
 
-impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
-    fn on_key(&self, key: KeyEvent) {
-        if let KeyCode::F(8) = key.code {
-            self.show_deleted_playlists.set(!self.show_deleted_playlists.get());
-        }
-    }
-}
+use crate::components::playlists::playlists::PlaylistScreenElement;
+use crate::structs::{Action, NavigationAction, OnAction};
+
+// impl<'a> KeyboardHandlerRef<'a> for Playlists<'a> {
+//     fn on_key(&self, key: KeyEvent) {
+//         if let KeyCode::F(8) = key.code {
+//             self.show_deleted_playlists.set(!self.show_deleted_playlists.get());
+//         }
+//     }
+// }
 
 impl OnAction for Playlists<'_> {
     fn on_action(&self, action: Action) {
