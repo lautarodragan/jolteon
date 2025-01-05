@@ -313,14 +313,8 @@ impl Actions {
                 } else {
                     code = KeyCode::Char(char);
                 }
-            } else if (key.len() == 2 || key.len() == 3) && key.starts_with('F') {
-                if let Ok(num) =  key[1..].parse::<u8>() {
-                    code = KeyCode::F(num);
-                } else {
-                    // Will treat all F[a-zA-Z]{2, 3} as invalid keys. Hacky because `if condition && let something {` isn't supported syntax yet, but I think it's okay.
-                    log::debug!("ignoring invalid line {l} with key={key}");
-                    continue;
-                }
+            } else if (key.len() == 2 || key.len() == 3) && key.starts_with('F') && let Ok(num) =  key[1..].parse::<u8>() {
+                code = KeyCode::F(num);
             } else if key == "Enter" {
                 code = KeyCode::Enter;
             } else if key == "Space" {

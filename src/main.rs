@@ -9,6 +9,7 @@
 #![warn(clippy::assigning_clones)]
 #![warn(clippy::inefficient_to_string)]
 #![allow(clippy::enum_variant_names)]
+#![feature(let_chains)]
 extern crate alloc;
 
 mod app;
