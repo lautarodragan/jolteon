@@ -80,7 +80,10 @@ pub enum ListAction {
     Delete,
     SwapUp,
     SwapDown,
-    Rename,
+    RenameStart,
+    RenameChar(char),
+    RenameDeleteCharBack,
+    RenameClear,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -233,7 +236,9 @@ impl TryFrom<&str> for ListAction {
             "Delete" => Ok(Self::Delete),
             "SwapUp" => Ok(Self::SwapUp),
             "SwapDown" => Ok(Self::SwapDown),
-            "Rename" => Ok(Self::Rename),
+            "RenameStart" => Ok(Self::RenameStart),
+            "RenameDeleteCharBack" => Ok(Self::RenameDeleteCharBack),
+            "RenameClear" => Ok(Self::RenameClear),
             _ => Err(()),
         }
     }
@@ -332,6 +337,8 @@ impl Actions {
                 code = KeyCode::F(num);
             } else if key == "Enter" {
                 code = KeyCode::Enter;
+            } else if key == "Esc" {
+                code = KeyCode::Esc;
             } else if key == "Space" {
                 code = KeyCode::Char(' ');
             } else if key == "Right" {

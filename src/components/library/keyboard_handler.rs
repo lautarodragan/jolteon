@@ -4,7 +4,7 @@ use super::library::Library;
 
 impl OnAction for Library<'_> {
     fn on_action(&self, action: Action) {
-        log::trace!(target: "::library.on_action", "{action:?}");
+        // log::trace!(target: "::library.on_action", "{action:?}");
 
         let i = self.focused_component.get();
 

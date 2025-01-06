@@ -12,25 +12,7 @@ use super::component::{Direction, List};
 //     T: 'a + Clone + std::fmt::Display,
 // {
 //     fn on_key(&self, key: KeyEvent) {
-//         let target = "::List.on_key";
-//         log::trace!(target: target, "{:?}", key);
-//
-//         let mut rename = self.rename.borrow_mut();
-//
-//         if rename.is_some() {
-//             self.on_rename_key(key, rename);
-//             return;
-//         }
-//
 //         match key.code {
-//             KeyCode::Char('r') if key.modifiers == KeyModifiers::CONTROL => {
-//                 if self.on_rename_fn.borrow_mut().is_none() {
-//                     return;
-//                 }
-//                 *rename = self.with_selected_item(|item| Some(item.to_string()));
-//                 drop(rename);
-//                 self.on_request_focus_trap_fn.borrow_mut()(true);
-//             }
 //             KeyCode::Char(char) => {
 //                 self.filter_mut(|filter| {
 //                     filter.push(char);
@@ -120,25 +102,6 @@ where
         self.on_select_fn.borrow_mut()(newly_selected_item);
     }
 
-    fn on_rename_key(&self, key: KeyEvent, mut rename_opt: RefMut<Option<String>>) {
-        let Some(ref mut rename) = *rename_opt else {
-            return;
-        };
-
-        match key.code {
-            KeyCode::Char(char) => {
-                rename.push(char);
-            }
-            KeyCode::Backspace => {
-                if key.modifiers == KeyModifiers::ALT {
-                    rename.clear();
-                } else if !rename.is_empty() {
-                    rename.remove(rename.len().saturating_sub(1));
-                }
-            }
-            _ => {}
-        }
-    }
 }
 
 impl<'a, T> OnAction for List<'a, T>
@@ -237,8 +200,8 @@ where
                     self.set_selected_index(next_i);
                     on_reorder(i, next_i);
                 }
-                ListAction::Rename if self.on_rename_fn.borrow().is_some() => {
-                    *rename_option = Some("".to_string());
+                ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
+                    *rename_option = self.with_selected_item(|item| Some(item.to_string()));
                     self.on_request_focus_trap_fn.borrow_mut()(true);
                 }
                 ListAction::Cancel => {
@@ -267,6 +230,24 @@ where
                 ListAction::Cancel => {
                     *rename_option = None;
                     self.on_request_focus_trap_fn.borrow_mut()(false);
+                }
+                ListAction::RenameChar(c) => {
+                    let Some(ref mut rename) = *rename_option else {
+                        return;
+                    };
+                    rename.push(c);
+                }
+                ListAction::RenameDeleteCharBack => {
+                    let Some(ref mut rename) = *rename_option else {
+                        return;
+                    };
+                    rename.remove(rename.len().saturating_sub(1));
+                }
+                ListAction::RenameClear => {
+                    let Some(ref mut rename) = *rename_option else {
+                        return;
+                    };
+                    rename.clear();
                 }
                 _ => {}
             },
