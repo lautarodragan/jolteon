@@ -100,24 +100,20 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
         let timeout = tick_rate.saturating_sub(last_tick.elapsed());
 
-        if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                if let Some(action) = actions.action_by_key(key) {
-                    if action == Action::Quit {
-                        break;
-                    }
+        if event::poll(timeout)? && let Event::Key(key) = event::read()? && let Some(action) = actions.action_by_key(key) {
+            if action == Action::Quit {
+                break;
+            }
 
-                    match action {
-                        Action::Player(action) => {
-                            player.single_track_player().on_action(action);
-                        }
-                        Action::MainPlayer(action) => {
-                            player.on_action(action);
-                        }
-                        _ => {
-                            root_component.on_action(action);
-                        }
-                    }
+            match action {
+                Action::Player(action) => {
+                    player.single_track_player().on_action(action);
+                }
+                Action::MainPlayer(action) => {
+                    player.on_action(action);
+                }
+                _ => {
+                    root_component.on_action(action);
                 }
             }
         }
