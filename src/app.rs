@@ -104,11 +104,10 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
             && let Event::Key(key) = event::read()?
             && let Some(action) = actions.action_by_key(key)
         {
-            if action == Action::Quit {
-                break;
-            }
-
             match action {
+                Action::Quit => {
+                    break;
+                }
                 Action::Player(action) => {
                     player.single_track_player().on_action(action);
                 }
