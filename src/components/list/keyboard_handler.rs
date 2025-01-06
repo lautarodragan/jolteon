@@ -131,7 +131,7 @@ where
 
                         on_rename_fn(rename_option.take().unwrap());
                     }
-                    ListAction::Cancel => {
+                    ListAction::RenameCancel => {
                         *rename_option = None;
                         self.on_request_focus_trap_fn.borrow_mut()(false);
                     }
@@ -240,7 +240,7 @@ where
                         *rename_option = self.with_selected_item(|item| Some(item.to_string()));
                         self.on_request_focus_trap_fn.borrow_mut()(true);
                     }
-                    ListAction::Cancel => {
+                    ListAction::RenameCancel => {
                         self.filter_mut(|filter| {
                             filter.clear();
                         });

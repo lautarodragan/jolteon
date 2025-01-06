@@ -74,7 +74,7 @@ pub enum NavigationAction {
 pub enum ListAction {
     Primary,
     Secondary,
-    Cancel,
+    RenameCancel,
     Insert,
     Delete,
     SwapUp,
@@ -214,12 +214,12 @@ impl TryFrom<&str> for ListAction {
         match value {
             "Primary" => Ok(Self::Primary),
             "Secondary" => Ok(Self::Secondary),
-            "Cancel" => Ok(Self::Cancel),
             "Insert" => Ok(Self::Insert),
             "Delete" => Ok(Self::Delete),
             "SwapUp" => Ok(Self::SwapUp),
             "SwapDown" => Ok(Self::SwapDown),
             "RenameStart" => Ok(Self::RenameStart),
+            "RenameCancel" => Ok(Self::RenameCancel),
             "RenameDeleteCharBack" => Ok(Self::RenameDeleteCharBack),
             "RenameClear" => Ok(Self::RenameClear),
             _ => Err(()),
@@ -385,6 +385,7 @@ impl Actions {
 
     pub fn action_by_key(&self, key: KeyEvent) -> Option<Action> {
         let sc = Shortcut::from(key);
+        // log::trace!("key {key:?}");
         self.actions.get(&sc).or(DEFAULT_ACTIONS.get(&sc)).cloned()
     }
 
