@@ -168,26 +168,6 @@ where
                     rename.remove(rename.len().saturating_sub(1));
                 }
             }
-            KeyCode::Esc => {
-                *rename_opt = None;
-                self.on_request_focus_trap_fn.borrow_mut()(false);
-            }
-            KeyCode::Enter => {
-                if rename.is_empty() {
-                    return;
-                }
-
-                let on_rename_fn = self.on_rename_fn.borrow_mut();
-
-                let Some(ref on_rename_fn) = *on_rename_fn else {
-                    return;
-                };
-
-                on_rename_fn((*rename).to_string());
-
-                *rename_opt = None;
-                self.on_request_focus_trap_fn.borrow_mut()(false);
-            }
             _ => {}
         }
     }
@@ -200,11 +180,13 @@ where
     fn on_action(&self, action: Action) {
         let target = "::List.on_action";
 
+        let mut rename_option = self.rename.borrow_mut();
+
         match action {
-            Action::Navigation(action) => {
+            Action::Navigation(action) if rename_option.is_none() => {
                 self.on_navigation_action(action);
             }
-            Action::ListAction(action) => match action {
+            Action::ListAction(action) if rename_option.is_none() => match action {
                 ListAction::Primary | ListAction::Secondary => {
                     self.filter_mut(|filter| {
                         filter.clear();
@@ -263,7 +245,6 @@ where
 
                     on_delete(removed_item.inner, i);
                 }
-
                 ListAction::SwapUp | ListAction::SwapDown => {
                     let on_reorder = self.on_reorder_fn.borrow_mut();
 
@@ -274,21 +255,48 @@ where
                     let i = self.selected_item_index.get();
                     let mut items = self.items.borrow_mut();
 
-                    let nexti;
+                    let next_i;
                     if action == ListAction::SwapUp && i > 0 {
-                        nexti = i - 1;
+                        next_i = i - 1;
                     } else if action == ListAction::SwapDown && i < items.len().saturating_sub(1) {
-                        nexti = i + 1;
+                        next_i = i + 1;
                     } else {
                         return;
                     };
 
-                    items.swap(i, nexti);
+                    items.swap(i, next_i);
                     drop(items);
-                    self.set_selected_index(nexti);
-                    on_reorder(i, nexti);
+                    self.set_selected_index(next_i);
+                    on_reorder(i, next_i);
                 }
+                ListAction::Rename if self.on_rename_fn.borrow().is_some() => {
+                    *rename_option = Some("".to_string());
+                    self.on_request_focus_trap_fn.borrow_mut()(true);
+                }
+                _ => {}
             },
+            Action::ListAction(action) if rename_option.is_some() => match action {
+                ListAction::Primary => {
+                    self.on_request_focus_trap_fn.borrow_mut()(false);
+
+                    if rename_option.as_ref().is_none_or(|r| r.is_empty()) {
+                        return;
+                    }
+
+                    let on_rename_fn = self.on_rename_fn.borrow_mut();
+
+                    let Some(ref on_rename_fn) = *on_rename_fn else {
+                        return;
+                    };
+
+                    on_rename_fn(rename_option.take().unwrap());
+                }
+                ListAction::Cancel => {
+                    *rename_option = None;
+                    self.on_request_focus_trap_fn.borrow_mut()(false);
+                }
+                _ => {}
+            }
             _ => {}
         }
     }

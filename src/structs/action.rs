@@ -75,10 +75,12 @@ pub enum NavigationAction {
 pub enum ListAction {
     Primary,
     Secondary,
+    Cancel,
     Insert,
     Delete,
     SwapUp,
     SwapDown,
+    Rename,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -226,10 +228,12 @@ impl TryFrom<&str> for ListAction {
         match value {
             "Primary" => Ok(Self::Primary),
             "Secondary" => Ok(Self::Secondary),
+            "Cancel" => Ok(Self::Cancel),
             "Insert" => Ok(Self::Insert),
             "Delete" => Ok(Self::Delete),
             "SwapUp" => Ok(Self::SwapUp),
             "SwapDown" => Ok(Self::SwapDown),
+            "Rename" => Ok(Self::Rename),
             _ => Err(()),
         }
     }
