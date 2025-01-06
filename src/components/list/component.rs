@@ -287,6 +287,40 @@ where
     pub fn scroll_position(&self) -> usize {
         self.offset.get()
     }
+
+    pub fn set_selected_index(&self, new_i: usize) {
+        let length = self.items.borrow().len() as isize;
+        let current_i = self.selected_item_index.get() as isize;
+        let new_i = new_i as isize;
+        let new_i = new_i.min(length - 1).max(0);
+
+        if new_i == current_i {
+            return;
+        }
+
+        self.selected_item_index.set(new_i as usize);
+
+        let is_down = new_i > current_i;
+        let is_up = new_i < current_i;
+
+        let height = self.height.get() as isize;
+        let offset = self.offset.get() as isize;
+        let padding = self.padding.get() as isize;
+        let padding = if is_down {
+            height - padding - 1
+        } else {
+            padding
+        };
+
+        if (is_up && new_i < offset + padding) || (is_down && new_i > offset + padding) {
+            let offset = if new_i > padding {
+                (new_i - padding).min(length - height).max(0)
+            } else {
+                0
+            };
+            self.offset.set(offset as usize);
+        }
+    }
 }
 
 impl<T: std::fmt::Display> Drop for List<'_, T> {

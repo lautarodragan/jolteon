@@ -77,6 +77,8 @@ pub enum ListAction {
     Secondary,
     Insert,
     Delete,
+    SwapUp,
+    SwapDown,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -226,6 +228,8 @@ impl TryFrom<&str> for ListAction {
             "Secondary" => Ok(Self::Secondary),
             "Insert" => Ok(Self::Insert),
             "Delete" => Ok(Self::Delete),
+            "SwapUp" => Ok(Self::SwapUp),
+            "SwapDown" => Ok(Self::SwapDown),
             _ => Err(()),
         }
     }

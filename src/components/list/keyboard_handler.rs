@@ -73,21 +73,8 @@ where
             return;
         }
 
-        let height = self.height.get() as i32;
-        let padding = self.padding.get() as i32;
-        let page_size = self.page_size.get() as i32;
-
-        let padding = if is_navigation_action_downwards(action) {
-            height.saturating_sub(padding).saturating_sub(1)
-        } else {
-            padding
-        };
-
         let mut i = self.selected_item_index.get() as i32;
         let initial_i = i;
-
-        let on_reorder = self.on_reorder_fn.borrow_mut();
-        let swapped: Option<(usize, usize)> = None;
 
         match action {
             NavigationAction::NextSpecial | NavigationAction::PreviousSpecial => {
@@ -115,31 +102,15 @@ where
                 } else {
                     i += 1;
                 }
-                // TODO: OnAction
-                // } else if on_reorder.is_some() && action.modifiers == KeyModifiers::CONTROL {
-                //     // swap
-                //     let nexti = if action.code == KeyCode::Up && i > 0 {
-                //         i - 1
-                //     } else if action.code == KeyCode::Down && (i as usize) < items.len().saturating_sub(1) {
-                //         i + 1
-                //     } else {
-                //         i
-                //     };
-                //
-                //     if nexti != i {
-                //         items.swap(i as usize, nexti as usize);
-                //         swapped = Some((i as usize, nexti as usize));
-                //         i = nexti;
-                //     }
-                // } else {
-                //     return;
-                // }
             }
-            NavigationAction::PageUp if !is_filtering => {
-                i -= page_size;
-            }
-            NavigationAction::PageDown if !is_filtering => {
-                i += page_size;
+            NavigationAction::PageUp | NavigationAction::PageDown if !is_filtering => {
+                let page_size = self.page_size.get() as i32;
+
+                if action == NavigationAction::PageUp {
+                    i -= page_size;
+                } else {
+                    i += page_size;
+                }
             }
             NavigationAction::Home => {
                 if is_filtering {
@@ -167,32 +138,17 @@ where
         }
 
         i = i.min(length - 1).max(0);
-        self.selected_item_index.set(i as usize);
-
-        let offset = self.offset.get() as i32;
-        if (is_navigation_action_upwards(action) && i < offset + padding)
-            || (is_navigation_action_downwards(action) && i > offset + padding)
-        {
-            let offset = if i > padding {
-                (i - padding).min(length - height).max(0)
-            } else {
-                0
-            };
-            self.offset.set(offset as usize);
-        }
-
-        let newly_selected_item = items[i as usize].inner.clone();
+        let i = i as usize;
 
         drop(items);
+        self.set_selected_index(i);
 
-        if let Some(swapped) = swapped {
-            if let Some(f) = &*on_reorder {
-                f(swapped.0, swapped.1);
-            }
-        } else {
-            drop(on_reorder);
-            self.on_select_fn.borrow_mut()(newly_selected_item);
-        }
+        let newly_selected_item = {
+            let items = self.items.borrow();
+            items[i].inner.clone()
+        };
+
+        self.on_select_fn.borrow_mut()(newly_selected_item);
     }
 
     fn on_rename_key(&self, key: KeyEvent, mut rename_opt: RefMut<Option<String>>) {
@@ -303,6 +259,31 @@ where
                     drop(items);
 
                     on_delete(removed_item.inner, i);
+                }
+
+                ListAction::SwapUp | ListAction::SwapDown => {
+                    let on_reorder = self.on_reorder_fn.borrow_mut();
+
+                    let Some(on_reorder) = &*on_reorder else {
+                        return;
+                    };
+
+                    let i = self.selected_item_index.get();
+                    let mut items = self.items.borrow_mut();
+
+                    let nexti;
+                    if action == ListAction::SwapUp && i > 0 {
+                        nexti = i - 1;
+                    } else if action == ListAction::SwapDown && i < items.len().saturating_sub(1) {
+                        nexti = i + 1;
+                    } else {
+                        return;
+                    };
+
+                    items.swap(i, nexti);
+                    drop(items);
+                    self.set_selected_index(nexti);
+                    on_reorder(i, nexti);
                 }
             },
             _ => {}
