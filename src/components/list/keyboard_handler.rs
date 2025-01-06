@@ -46,20 +46,6 @@ use super::component::{Direction, List};
 //     }
 // }
 
-fn is_navigation_action_upwards(action: NavigationAction) -> bool {
-    action == NavigationAction::Up
-        || action == NavigationAction::Home
-        || action == NavigationAction::PageUp
-        || action == NavigationAction::PreviousSpecial
-}
-
-fn is_navigation_action_downwards(action: NavigationAction) -> bool {
-    action == NavigationAction::Down
-        || action == NavigationAction::End
-        || action == NavigationAction::PageDown
-        || action == NavigationAction::NextSpecial
-}
-
 impl<T> List<'_, T>
 where
     T: std::fmt::Display + Clone,
