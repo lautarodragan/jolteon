@@ -48,8 +48,7 @@ pub enum Action {
     FocusPrevious,
     Screen(ScreenAction),
     Navigation(NavigationAction),
-    Player(SingleTrackPlayerAction),
-    MainPlayer(MainPlayerAction),
+    Player(PlayerAction),
     ListAction(ListAction),
     Playlists(PlaylistsAction),
     FileBrowser(FileBrowserAction),
@@ -96,17 +95,13 @@ pub enum ScreenAction {
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
-pub enum SingleTrackPlayerAction {
+pub enum PlayerAction {
     Stop,
     PlayPause,
     VolumeUp,
     VolumeDown,
     SeekForwards,
     SeekBackwards,
-}
-
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
-pub enum MainPlayerAction {
     RepeatOff,
     RepeatOne,
 }
@@ -140,9 +135,7 @@ impl TryFrom<&str> for Action {
         };
 
         if parent == "Player" {
-            SingleTrackPlayerAction::try_from(child).map(Action::Player)
-        } else if parent == "MainPlayer" {
-            MainPlayerAction::try_from(child).map(Action::MainPlayer)
+            PlayerAction::try_from(child).map(Action::Player)
         } else if parent == "Screen" {
             ScreenAction::try_from(child).map(Action::Screen)
         } else if parent == "Navigation" {
@@ -174,7 +167,7 @@ impl TryFrom<&str> for ScreenAction {
     }
 }
 
-impl TryFrom<&str> for SingleTrackPlayerAction {
+impl TryFrom<&str> for PlayerAction {
     type Error = ();
 
     fn try_from(value: &str) -> Result<Self, ()> {
@@ -185,16 +178,6 @@ impl TryFrom<&str> for SingleTrackPlayerAction {
             "VolumeDown" => Ok(Self::VolumeDown),
             "SeekForwards" => Ok(Self::SeekForwards),
             "SeekBackwards" => Ok(Self::SeekBackwards),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<&str> for MainPlayerAction {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, ()> {
-        match value {
             "RepeatOff" => Ok(Self::RepeatOff),
             "RepeatOne" => Ok(Self::RepeatOne),
             _ => Err(()),

@@ -10,7 +10,7 @@ use rodio::OutputStreamHandle;
 use crate::{
     mpris::Mpris,
     player::SingleTrackPlayer,
-    structs::{MainPlayerAction, OnAction, Queue, Song},
+    structs::{PlayerAction, OnAction, Queue, Song},
 };
 
 #[derive(Debug)]
@@ -26,7 +26,7 @@ enum MainPlayerEvent {
 
 #[derive(Debug)]
 enum MainPlayerMessage {
-    Action(MainPlayerAction),
+    Action(PlayerAction),
     Event(MainPlayerEvent),
     Command(MainPlayerCommand),
 }
@@ -110,13 +110,16 @@ impl MainPlayer {
                                         break;
                                     }
                                 }
-                                MainPlayerMessage::Action(MainPlayerAction::RepeatOne) => {
+                                MainPlayerMessage::Action(PlayerAction::RepeatOne) => {
                                     log::debug!("will repeat one song");
                                     repeat = true;
                                 }
-                                MainPlayerMessage::Action(MainPlayerAction::RepeatOff) => {
+                                MainPlayerMessage::Action(PlayerAction::RepeatOff) => {
                                     log::debug!("will not repeat");
                                     repeat = false;
+                                }
+                                m => {
+                                    log::warn!("MainPlayer received unknown message {m:?}");
                                 }
                             }
                         }
@@ -216,8 +219,30 @@ impl MainPlayer {
     }
 }
 
-impl OnAction<MainPlayerAction> for MainPlayer {
-    fn on_action(&self, action: MainPlayerAction) {
-        self.sender.send(MainPlayerMessage::Action(action)).unwrap();
+impl OnAction<PlayerAction> for MainPlayer {
+    fn on_action(&self, action: PlayerAction) {
+        match action {
+            PlayerAction::RepeatOne | PlayerAction::RepeatOff => {
+                self.sender.send(MainPlayerMessage::Action(action)).unwrap();
+            }
+            PlayerAction::PlayPause => {
+                self.single_track_player().toggle();
+            }
+            PlayerAction::Stop => {
+                self.single_track_player().stop();
+            }
+            PlayerAction::VolumeUp => {
+                self.single_track_player().change_volume(0.05);
+            }
+            PlayerAction::VolumeDown => {
+                self.single_track_player().change_volume(-0.05);
+            }
+            PlayerAction::SeekForwards => {
+                self.single_track_player().seek_forward();
+            }
+            PlayerAction::SeekBackwards => {
+                self.single_track_player().seek_backward();
+            }
+        }
     }
 }

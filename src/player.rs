@@ -14,7 +14,7 @@ use rodio::OutputStreamHandle;
 use crate::{
     mpris::Mpris,
     source::{Controls, Source},
-    structs::{OnAction, SingleTrackPlayerAction, Song},
+    structs::{OnAction, PlayerAction, Song},
 };
 
 pub struct SingleTrackPlayer {
@@ -391,27 +391,28 @@ impl SingleTrackPlayer {
     }
 }
 
-impl OnAction<SingleTrackPlayerAction> for SingleTrackPlayer {
-    fn on_action(&self, action: SingleTrackPlayerAction) {
+impl OnAction<PlayerAction> for SingleTrackPlayer {
+    fn on_action(&self, action: PlayerAction) {
         match action {
-            SingleTrackPlayerAction::PlayPause => {
+            PlayerAction::PlayPause => {
                 self.toggle();
             }
-            SingleTrackPlayerAction::Stop => {
+            PlayerAction::Stop => {
                 self.stop();
             }
-            SingleTrackPlayerAction::VolumeUp => {
+            PlayerAction::VolumeUp => {
                 self.change_volume(0.05);
             }
-            SingleTrackPlayerAction::VolumeDown => {
+            PlayerAction::VolumeDown => {
                 self.change_volume(-0.05);
             }
-            SingleTrackPlayerAction::SeekForwards => {
+            PlayerAction::SeekForwards => {
                 self.seek_forward();
             }
-            SingleTrackPlayerAction::SeekBackwards => {
+            PlayerAction::SeekBackwards => {
                 self.seek_backward();
             }
+            _ => {}
         }
     }
 }

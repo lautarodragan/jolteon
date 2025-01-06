@@ -109,10 +109,8 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
                     break;
                 }
                 Action::Player(action) => {
-                    player.single_track_player().on_action(action);
-                }
-                Action::MainPlayer(action) => {
                     player.on_action(action);
+                    player.single_track_player().on_action(action);
                 }
                 _ => {
                     root_component.on_action(action);
