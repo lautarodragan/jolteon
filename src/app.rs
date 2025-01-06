@@ -100,7 +100,10 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
         let timeout = tick_rate.saturating_sub(last_tick.elapsed());
 
-        if event::poll(timeout)? && let Event::Key(key) = event::read()? && let Some(action) = actions.action_by_key(key) {
+        if event::poll(timeout)?
+            && let Event::Key(key) = event::read()?
+            && let Some(action) = actions.action_by_key(key)
+        {
             if action == Action::Quit {
                 break;
             }

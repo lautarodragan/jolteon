@@ -306,11 +306,7 @@ where
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
         let padding = self.padding.get() as isize;
-        let padding = if is_down {
-            height - padding - 1
-        } else {
-            padding
-        };
+        let padding = if is_down { height - padding - 1 } else { padding };
 
         if (is_up && new_i < offset + padding) || (is_down && new_i > offset + padding) {
             let offset = if new_i > padding {

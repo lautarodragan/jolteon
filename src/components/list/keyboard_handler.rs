@@ -74,12 +74,8 @@ where
 
                 ii
             }
-            NavigationAction::Up if !is_filtering && initial_i > 1 => {
-                initial_i - 1
-            }
-            NavigationAction::Down if !is_filtering => {
-                initial_i + 1
-            }
+            NavigationAction::Up if !is_filtering && initial_i > 1 => initial_i - 1,
+            NavigationAction::Down if !is_filtering => initial_i + 1,
             NavigationAction::Up if is_filtering => {
                 let items = self.items.borrow();
                 let Some(n) = items.iter().take(initial_i).rposition(|item| item.is_match) else {
@@ -94,18 +90,10 @@ where
                 };
                 initial_i + n + 1
             }
-            NavigationAction::PageUp if !is_filtering => {
-                initial_i.saturating_sub(self.page_size.get() as usize)
-            }
-            NavigationAction::PageDown if !is_filtering => {
-                initial_i + self.page_size.get() as usize
-            }
-            NavigationAction::Home if !is_filtering => {
-                0
-            }
-            NavigationAction::End if !is_filtering => {
-                usize::MAX
-            }
+            NavigationAction::PageUp if !is_filtering => initial_i.saturating_sub(self.page_size.get() as usize),
+            NavigationAction::PageDown if !is_filtering => initial_i + self.page_size.get() as usize,
+            NavigationAction::Home if !is_filtering => 0,
+            NavigationAction::End if !is_filtering => usize::MAX,
             NavigationAction::Home if is_filtering => {
                 let items = self.items.borrow();
                 let Some(n) = items.iter().position(|item| item.is_match) else {
@@ -133,7 +121,7 @@ where
 
         self.set_selected_index(i);
 
-        let newly_selected_item =  self.items.borrow()[i].inner.clone();
+        let newly_selected_item = self.items.borrow()[i].inner.clone();
 
         self.on_select_fn.borrow_mut()(newly_selected_item);
     }
@@ -282,7 +270,7 @@ where
                     self.on_request_focus_trap_fn.borrow_mut()(false);
                 }
                 _ => {}
-            }
+            },
             _ => {}
         }
     }
