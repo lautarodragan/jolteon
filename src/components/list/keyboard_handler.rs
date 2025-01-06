@@ -36,12 +36,6 @@ use super::component::{Direction, List};
 //                     filter.push(char);
 //                 });
 //             }
-//             KeyCode::Esc => {
-//                 self.filter_mut(|filter| {
-//                     filter.clear();
-//                 });
-//             }
-//             _ => {}
 //         }
 //     }
 // }
@@ -246,6 +240,11 @@ where
                 ListAction::Rename if self.on_rename_fn.borrow().is_some() => {
                     *rename_option = Some("".to_string());
                     self.on_request_focus_trap_fn.borrow_mut()(true);
+                }
+                ListAction::Cancel => {
+                    self.filter_mut(|filter| {
+                        filter.clear();
+                    });
                 }
                 _ => {}
             },
