@@ -228,7 +228,9 @@ where
                     } else if action == ListAction::Secondary {
                         if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
                             on_enter_alt_fn(item);
-                            self.on_navigation_action(NavigationAction::Down);
+                            if self.auto_select_next.get() {
+                                self.on_navigation_action(NavigationAction::Down);
+                            }
                         }
                     }
                 }
