@@ -64,89 +64,90 @@ impl<T> List<'_, T>
 where
     T: std::fmt::Display + Clone,
 {
-    fn on_directional_action(&self, action: NavigationAction) {
+    fn on_navigation_action(&self, action: NavigationAction) {
         let is_filtering = !self.filter.borrow_mut().is_empty();
-        let items = self.items.borrow_mut();
-        let length = items.len() as i32;
+        let length = self.items.borrow().len();
 
         if length < 2 {
             return;
         }
 
-        let mut i = self.selected_item_index.get() as i32;
-        let initial_i = i;
+        let initial_i = self.selected_item_index.get();
 
-        match action {
+        let i = match action {
             NavigationAction::NextSpecial | NavigationAction::PreviousSpecial => {
-                if let Some(next_item_special) = &*self.find_next_item_by_fn.borrow_mut() {
-                    let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
+                let Some(next_item_special_fn) = &*self.find_next_item_by_fn.borrow_mut() else {
+                    return;
+                };
+                let items = self.items.borrow();
+                let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
 
-                    if let Some(ii) = next_item_special(&inners, i as usize, Direction::from(action)) {
-                        i = ii as i32;
-                    }
-                }
-            }
-            NavigationAction::Up | NavigationAction::Down => {
-                if action == NavigationAction::Up {
-                    if is_filtering {
-                        if let Some(n) = items.iter().take(i as usize).rposition(|item| item.is_match) {
-                            i = n as i32;
-                        }
-                    } else {
-                        i -= 1;
-                    }
-                } else if is_filtering {
-                    if let Some(n) = items.iter().skip(i as usize + 1).position(|item| item.is_match) {
-                        i += n as i32 + 1;
-                    }
-                } else {
-                    i += 1;
-                }
-            }
-            NavigationAction::PageUp | NavigationAction::PageDown if !is_filtering => {
-                let page_size = self.page_size.get() as i32;
+                let Some(ii) = next_item_special_fn(&inners, initial_i, Direction::from(action)) else {
+                    return;
+                };
 
-                if action == NavigationAction::PageUp {
-                    i -= page_size;
-                } else {
-                    i += page_size;
-                }
+                ii
             }
-            NavigationAction::Home => {
-                if is_filtering {
-                    if let Some(n) = items.iter().position(|item| item.is_match) {
-                        i = n as i32;
-                    };
-                } else {
-                    i = 0;
-                }
+            NavigationAction::Up if !is_filtering && initial_i > 1 => {
+                initial_i - 1
             }
-            NavigationAction::End => {
-                if is_filtering {
-                    if let Some(n) = items.iter().rposition(|item| item.is_match) {
-                        i = n as i32;
-                    };
-                } else {
-                    i = length - 1;
-                }
+            NavigationAction::Down if !is_filtering => {
+                initial_i + 1
             }
-            _ => {}
-        }
+            NavigationAction::Up if is_filtering => {
+                let items = self.items.borrow();
+                let Some(n) = items.iter().take(initial_i).rposition(|item| item.is_match) else {
+                    return;
+                };
+                n
+            }
+            NavigationAction::Down if is_filtering => {
+                let items = self.items.borrow();
+                let Some(n) = items.iter().skip(initial_i + 1).position(|item| item.is_match) else {
+                    return;
+                };
+                initial_i + n + 1
+            }
+            NavigationAction::PageUp if !is_filtering => {
+                initial_i.saturating_sub(self.page_size.get() as usize)
+            }
+            NavigationAction::PageDown if !is_filtering => {
+                initial_i + self.page_size.get() as usize
+            }
+            NavigationAction::Home if !is_filtering => {
+                0
+            }
+            NavigationAction::End if !is_filtering => {
+                usize::MAX
+            }
+            NavigationAction::Home if is_filtering => {
+                let items = self.items.borrow();
+                let Some(n) = items.iter().position(|item| item.is_match) else {
+                    return;
+                };
+                n
+            }
+            NavigationAction::End if is_filtering => {
+                let items = self.items.borrow();
+                let Some(n) = items.iter().rposition(|item| item.is_match) else {
+                    return;
+                };
+                n
+            }
+            _ => {
+                return;
+            }
+        };
+
+        let i = i.min(length - 1); // SAFETY: if length < 2, function exits early
 
         if i == initial_i {
             return;
         }
 
-        i = i.min(length - 1).max(0);
-        let i = i as usize;
-
-        drop(items);
         self.set_selected_index(i);
 
-        let newly_selected_item = {
-            let items = self.items.borrow();
-            items[i].inner.clone()
-        };
+        let newly_selected_item =  self.items.borrow()[i].inner.clone();
 
         self.on_select_fn.borrow_mut()(newly_selected_item);
     }
@@ -201,7 +202,7 @@ where
 
         match action {
             Action::Navigation(action) => {
-                self.on_directional_action(action);
+                self.on_navigation_action(action);
             }
             Action::ListAction(action) => match action {
                 ListAction::Primary | ListAction::Secondary => {
@@ -222,12 +223,12 @@ where
                     if action == ListAction::Primary {
                         self.on_enter_fn.borrow_mut()(item);
                         if self.auto_select_next.get() {
-                            self.on_directional_action(NavigationAction::Down);
+                            self.on_navigation_action(NavigationAction::Down);
                         }
                     } else if action == ListAction::Secondary {
                         if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
                             on_enter_alt_fn(item);
-                            self.on_directional_action(NavigationAction::Down);
+                            self.on_navigation_action(NavigationAction::Down);
                         }
                     }
                 }
