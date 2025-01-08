@@ -325,46 +325,8 @@ where
     pub fn exec_action(&self, action: Action) {
         let target = "::List.on_action";
 
-        let mut rename_option = self.rename.borrow_mut();
-
-        if let Some(ref mut rename) = *rename_option {
-            match action {
-                Action::Confirm => {
-                    self.on_request_focus_trap_fn.borrow_mut()(false);
-
-                    if rename.is_empty() {
-                        return;
-                    }
-
-                    let on_rename_fn = self.on_rename_fn.borrow_mut();
-
-                    let Some(ref on_rename_fn) = *on_rename_fn else {
-                        return;
-                    };
-
-                    on_rename_fn(rename_option.take().unwrap());
-                }
-                Action::Cancel => {
-                    *rename_option = None;
-                    self.on_request_focus_trap_fn.borrow_mut()(false);
-                }
-                Action::Text(TextAction::Char(char)) => {
-                    rename.push(char);
-                }
-                Action::Text(TextAction::DeleteBack) => {
-                    rename.remove(rename.len().saturating_sub(1));
-                }
-                Action::Text(TextAction::Delete) => {
-                    rename.remove(rename.len().saturating_sub(1));
-                }
-                Action::ListAction(action) => match action {
-                    ListAction::RenameClear => {
-                        rename.clear();
-                    }
-                    _ => {}
-                },
-                _ => {}
-            }
+        if self.rename.borrow().is_some() {
+            self.exec_rename_action(action);
         } else {
             match action {
                 Action::Navigation(action) => {
@@ -464,7 +426,7 @@ where
                         on_reorder(i, next_i);
                     }
                     ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
-                        *rename_option = self.with_selected_item(|item| Some(item.to_string()));
+                        *self.rename.borrow_mut() = self.with_selected_item(|item| Some(item.to_string()));
                         self.on_request_focus_trap_fn.borrow_mut()(true);
                     }
                     _ => {}
@@ -549,6 +511,50 @@ where
         let newly_selected_item = self.items.borrow()[i].inner.clone();
 
         self.on_select_fn.borrow_mut()(newly_selected_item);
+    }
+
+    fn exec_rename_action(&self, action: Action) {
+        let mut rename_option = self.rename.borrow_mut();
+        let Some(ref mut rename) = *rename_option else {
+            return;
+        };
+        match action {
+            Action::Confirm => {
+                self.on_request_focus_trap_fn.borrow_mut()(false);
+
+                if rename.is_empty() {
+                    return;
+                }
+
+                let on_rename_fn = self.on_rename_fn.borrow_mut();
+
+                let Some(ref on_rename_fn) = *on_rename_fn else {
+                    return;
+                };
+
+                on_rename_fn(rename_option.take().unwrap());
+            }
+            Action::Cancel => {
+                *rename_option = None;
+                self.on_request_focus_trap_fn.borrow_mut()(false);
+            }
+            Action::Text(TextAction::Char(char)) => {
+                rename.push(char);
+            }
+            Action::Text(TextAction::DeleteBack) => {
+                rename.remove(rename.len().saturating_sub(1));
+            }
+            Action::Text(TextAction::Delete) => {
+                rename.remove(rename.len().saturating_sub(1));
+            }
+            Action::ListAction(action) => match action {
+                ListAction::RenameClear => {
+                    rename.clear();
+                }
+                _ => {}
+            },
+            _ => {}
+        }
     }
 }
 
