@@ -281,16 +281,10 @@ impl Actions {
             let keys = keys.split(' ');
 
             for key in keys {
-                let Some((modifiers, key)) = str_to_modifiers(key) else {
+                let Some(binding) = str_to_binding(key) else {
+                    log::debug!("ignoring invalid binding {key}");
                     continue;
                 };
-
-                let Some(code) = str_to_key(key, modifiers) else {
-                    log::debug!("ignoring invalid line {l} with key={key}");
-                    continue;
-                };
-
-                let binding = Shortcut::new(code, modifiers);
                 let Ok(action) = Action::try_from(value) else {
                     log::debug!("ignoring invalid line, unknown shortcut {value} for key {binding}");
                     continue;
@@ -355,6 +349,12 @@ pub trait OnAction<T = Action> {
 
 pub trait OnActionMut<T = Action> {
     fn on_action(&mut self, action: T);
+}
+
+fn str_to_binding(binding: &str) -> Option<Shortcut> {
+    str_to_modifiers(binding).and_then(|(modifiers, key)| {
+        str_to_key(key, modifiers).map(|code| Shortcut::new(code, modifiers))
+    })
 }
 
 fn str_to_modifiers(key: &str) -> Option<(KeyModifiers, &str)> {
