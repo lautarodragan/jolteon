@@ -371,6 +371,11 @@ where
                         filter.push(char);
                     });
                 }
+                Action::Text(TextAction::DeleteBack) => {
+                    self.filter_mut(|filter| {
+                        filter.remove(filter.len().saturating_sub(1));
+                    });
+                }
                 Action::ListAction(action) => match action {
                     ListAction::Insert => {
                         let f = self.on_insert_fn.borrow_mut();
