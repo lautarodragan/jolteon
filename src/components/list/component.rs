@@ -376,67 +376,7 @@ where
                         filter.remove(filter.len().saturating_sub(1));
                     });
                 }
-                Action::ListAction(action) => match action {
-                    ListAction::Insert => {
-                        let f = self.on_insert_fn.borrow_mut();
-                        let Some(f) = &*f else {
-                            return;
-                        };
-                        f();
-                    }
-                    ListAction::Delete => {
-                        let Some(on_delete) = &*self.on_delete_fn.borrow_mut() else {
-                            return;
-                        };
-
-                        let mut items = self.items.borrow_mut();
-
-                        if items.is_empty() {
-                            return;
-                        }
-
-                        let i = self.selected_item_index.get();
-                        let removed_item = items.remove(i);
-
-                        if i >= items.len() {
-                            self.selected_item_index.set(items.len().saturating_sub(1));
-                        }
-
-                        drop(items);
-
-                        on_delete(removed_item.inner, i);
-                    }
-                    ListAction::SwapUp | ListAction::SwapDown => {
-                        let on_reorder = self.on_reorder_fn.borrow_mut();
-
-                        let Some(on_reorder) = &*on_reorder else {
-                            return;
-                        };
-
-                        let i = self.selected_item_index.get();
-                        let mut items = self.items.borrow_mut();
-
-                        let next_i;
-                        if action == ListAction::SwapUp && i > 0 {
-                            next_i = i - 1;
-                        } else if action == ListAction::SwapDown && i < items.len().saturating_sub(1) {
-                            next_i = i + 1;
-                        } else {
-                            return;
-                        };
-
-                        items.swap(i, next_i);
-                        drop(items);
-                        self.set_selected_index(next_i);
-                        on_reorder(i, next_i);
-                    }
-                    ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
-                        *self.rename.borrow_mut() = self.with_selected_item(|item| Some(item.to_string()));
-                        self.on_request_focus_trap_fn.borrow_mut()(true);
-                    }
-                    _ => {}
-                },
-
+                Action::ListAction(action) => self.exec_list_action(action),
                 _ => {}
             }
         };
@@ -558,6 +498,69 @@ where
                 }
                 _ => {}
             },
+            _ => {}
+        }
+    }
+
+    fn exec_list_action(&self, action: ListAction) {
+        match action {
+            ListAction::Insert => {
+                let f = self.on_insert_fn.borrow_mut();
+                let Some(f) = &*f else {
+                    return;
+                };
+                f();
+            }
+            ListAction::Delete => {
+                let Some(on_delete) = &*self.on_delete_fn.borrow_mut() else {
+                    return;
+                };
+
+                let mut items = self.items.borrow_mut();
+
+                if items.is_empty() {
+                    return;
+                }
+
+                let i = self.selected_item_index.get();
+                let removed_item = items.remove(i);
+
+                if i >= items.len() {
+                    self.selected_item_index.set(items.len().saturating_sub(1));
+                }
+
+                drop(items);
+
+                on_delete(removed_item.inner, i);
+            }
+            ListAction::SwapUp | ListAction::SwapDown => {
+                let on_reorder = self.on_reorder_fn.borrow_mut();
+
+                let Some(on_reorder) = &*on_reorder else {
+                    return;
+                };
+
+                let i = self.selected_item_index.get();
+                let mut items = self.items.borrow_mut();
+
+                let next_i;
+                if action == ListAction::SwapUp && i > 0 {
+                    next_i = i - 1;
+                } else if action == ListAction::SwapDown && i < items.len().saturating_sub(1) {
+                    next_i = i + 1;
+                } else {
+                    return;
+                };
+
+                items.swap(i, next_i);
+                drop(items);
+                self.set_selected_index(next_i);
+                on_reorder(i, next_i);
+            }
+            ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
+                *self.rename.borrow_mut() = self.with_selected_item(|item| Some(item.to_string()));
+                self.on_request_focus_trap_fn.borrow_mut()(true);
+            }
             _ => {}
         }
     }
