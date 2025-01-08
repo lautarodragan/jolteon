@@ -332,6 +332,12 @@ where
                 Action::Text(TextAction::Char(char)) => {
                     rename.push(char);
                 }
+                Action::Text(TextAction::DeleteBack) => {
+                    rename.remove(rename.len().saturating_sub(1));
+                }
+                Action::Text(TextAction::Delete) => {
+                    rename.remove(rename.len().saturating_sub(1));
+                }
                 Action::ListAction(action) => match action {
                     ListAction::Primary => {
                         self.on_request_focus_trap_fn.borrow_mut()(false);
@@ -351,9 +357,6 @@ where
                     ListAction::RenameCancel => {
                         *rename_option = None;
                         self.on_request_focus_trap_fn.borrow_mut()(false);
-                    }
-                    ListAction::RenameDeleteCharBack => {
-                        rename.remove(rename.len().saturating_sub(1));
                     }
                     ListAction::RenameClear => {
                         rename.clear();

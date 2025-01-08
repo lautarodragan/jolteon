@@ -88,7 +88,6 @@ pub enum ListAction {
     SwapUp,
     SwapDown,
     RenameStart,
-    RenameDeleteCharBack,
     RenameClear,
 }
 
@@ -147,6 +146,8 @@ impl TryFrom<&str> for Action {
             ScreenAction::try_from(child).map(Action::Screen)
         } else if parent == "Navigation" {
             NavigationAction::try_from(child).map(Action::Navigation)
+        } else if parent == "Text" {
+            TextAction::try_from(child).map(Action::Text)
         } else if parent == "List" {
             ListAction::try_from(child).map(Action::ListAction)
         } else if parent == "Playlists" {
@@ -214,6 +215,18 @@ impl TryFrom<&str> for NavigationAction {
     }
 }
 
+impl TryFrom<&str> for TextAction {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, ()> {
+        match value {
+            "Delete" => Ok(Self::Delete),
+            "DeleteBack" => Ok(Self::DeleteBack),
+            _ => Err(()),
+        }
+    }
+}
+
 impl TryFrom<&str> for ListAction {
     type Error = ();
 
@@ -227,7 +240,6 @@ impl TryFrom<&str> for ListAction {
             "SwapDown" => Ok(Self::SwapDown),
             "RenameStart" => Ok(Self::RenameStart),
             "RenameCancel" => Ok(Self::RenameCancel),
-            "RenameDeleteCharBack" => Ok(Self::RenameDeleteCharBack),
             "RenameClear" => Ok(Self::RenameClear),
             _ => Err(()),
         }
@@ -429,6 +441,8 @@ fn str_to_key(key: &str, modifiers: KeyModifiers) -> Option<KeyCode> {
         code = KeyCode::PageUp;
     } else if key == "PageDown" {
         code = KeyCode::PageDown;
+    } else if key == "Delete" {
+        code = KeyCode::Delete;
     } else if key == "Backspace" {
         code = KeyCode::Backspace;
     } else if key == "Tab" {
@@ -437,8 +451,6 @@ fn str_to_key(key: &str, modifiers: KeyModifiers) -> Option<KeyCode> {
         code = KeyCode::BackTab;
     } else if key == "Insert" {
         code = KeyCode::Insert;
-    } else if key == "Delete" {
-        code = KeyCode::Delete;
     } else {
         return None;
     }
