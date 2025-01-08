@@ -83,7 +83,6 @@ pub enum TextAction {
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
 pub enum ListAction {
-    RenameCancel,
     Insert,
     Delete,
     SwapUp,
@@ -245,7 +244,6 @@ impl TryFrom<&str> for ListAction {
             "SwapUp" => Ok(Self::SwapUp),
             "SwapDown" => Ok(Self::SwapDown),
             "RenameStart" => Ok(Self::RenameStart),
-            "RenameCancel" => Ok(Self::RenameCancel),
             "RenameClear" => Ok(Self::RenameClear),
             "OpenClose" => Ok(Self::OpenClose),
             _ => Err(()),
