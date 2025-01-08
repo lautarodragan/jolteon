@@ -481,11 +481,8 @@ where
             Action::Text(TextAction::Delete) => {
                 rename.remove(rename.len().saturating_sub(1));
             }
-            Action::ListAction(action) => match action {
-                ListAction::RenameClear => {
-                    rename.clear();
-                }
-                _ => {}
+            Action::ListAction(ListAction::RenameClear) => {
+                rename.clear();
             },
             _ => {}
         }
