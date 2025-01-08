@@ -273,8 +273,13 @@ impl Actions {
                 continue;
             }
             let splits: Vec<&str> = l.split('=').collect();
-            let [mut value, keys] = splits[..] else {
+            let [value, keys] = splits[..] else {
                 log::debug!("ignoring invalid line, too few/many splits: {l}");
+                continue;
+            };
+
+            let Ok(action) = Action::try_from(value) else {
+                log::debug!("ignoring invalid line, action {value}");
                 continue;
             };
 
@@ -285,12 +290,11 @@ impl Actions {
                     log::debug!("ignoring invalid binding {key}");
                     continue;
                 };
-                let Ok(action) = Action::try_from(value) else {
-                    log::debug!("ignoring invalid line, unknown shortcut {value} for key {binding}");
-                    continue;
-                };
 
-                actions.entry(binding).and_modify(|actions| actions.push(action)).or_insert(vec![action]);
+                actions
+                    .entry(binding)
+                    .and_modify(|actions| actions.push(action))
+                    .or_insert(vec![action]);
             }
         }
 
@@ -316,14 +320,20 @@ impl Actions {
     pub fn action_by_key(&self, key: KeyEvent) -> Option<Action> {
         let sc = Shortcut::from(key);
         // log::trace!("key {key:?}");
-        self.actions.get(&sc).or(DEFAULT_ACTIONS.get(&sc)).map(|actions| actions[0])
+        self.actions
+            .get(&sc)
+            .or(DEFAULT_ACTIONS.get(&sc))
+            .map(|actions| actions[0])
     }
 
     pub fn key_by_action(&self, action: Action) -> Option<Shortcut> {
-        self.actions
-            .iter()
-            .chain(DEFAULT_ACTIONS.iter())
-            .find_map(|(k, v)| if v.iter().any(|a| *a == action) { Some(*k) } else { None })
+        self.actions.iter().chain(DEFAULT_ACTIONS.iter()).find_map(|(k, v)| {
+            if v.iter().any(|a| *a == action) {
+                Some(*k)
+            } else {
+                None
+            }
+        })
     }
 
     pub fn contains(&self, action: Action) -> bool {
@@ -352,9 +362,8 @@ pub trait OnActionMut<T = Action> {
 }
 
 fn str_to_binding(binding: &str) -> Option<Shortcut> {
-    str_to_modifiers(binding).and_then(|(modifiers, key)| {
-        str_to_key(key, modifiers).map(|code| Shortcut::new(code, modifiers))
-    })
+    str_to_modifiers(binding)
+        .and_then(|(modifiers, key)| str_to_key(key, modifiers).map(|code| Shortcut::new(code, modifiers)))
 }
 
 fn str_to_modifiers(key: &str) -> Option<(KeyModifiers, &str)> {
@@ -385,7 +394,7 @@ fn str_to_key(key: &str, modifiers: KeyModifiers) -> Option<KeyCode> {
     if key.len() == 1 {
         let mut chars = key.chars();
 
-        let Some(char) = chars.nth(0) else {
+        let Some(char) = chars.next() else {
             return None;
         };
 

@@ -2,8 +2,10 @@ use std::cell::{Cell, RefCell};
 
 use crossterm::event::KeyCode;
 
-use crate::{config::Theme, structs::NavigationAction};
-use crate::structs::{Action, ListAction};
+use crate::{
+    structs::{Action, ListAction},
+    {config::Theme, structs::NavigationAction},
+};
 
 #[derive(Eq, PartialEq)]
 pub enum Direction {

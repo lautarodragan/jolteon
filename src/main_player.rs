@@ -10,7 +10,7 @@ use rodio::OutputStreamHandle;
 use crate::{
     mpris::Mpris,
     player::SingleTrackPlayer,
-    structs::{PlayerAction, OnAction, Queue, Song},
+    structs::{OnAction, PlayerAction, Queue, Song},
 };
 
 #[derive(Debug)]
