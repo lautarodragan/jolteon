@@ -268,15 +268,9 @@ impl Actions {
         s.lines()
             .filter(|line| line.len() >= 3 && !line.trim().starts_with('#'))
             .map(|line| line.split('=').collect::<Vec<&str>>())
-            .filter_map(|split| {
-                if let [value, keys] = split[..] && let Ok(action) = Action::try_from(value) {
-                    Some((keys, action))
-                } else {
-                    None
-                }
-            })
-            .for_each(|(keys, action)| {
-                keys.split(' ').filter_map(str_to_binding).for_each(|binding| {
+            .filter_map(str_to_action_keys)
+            .for_each(|(action, bindings)| {
+                bindings.split(' ').filter_map(str_to_binding).for_each(|binding| {
                     actions
                         .entry(binding)
                         .and_modify(|actions| actions.push(action))
@@ -345,6 +339,14 @@ pub trait OnAction<T = Action> {
 
 pub trait OnActionMut<T = Action> {
     fn on_action(&mut self, action: T);
+}
+
+fn str_to_action_keys(split: Vec<&str>) -> Option<(Action, &str)> {
+    if let [value, keys] = split[..] && let Ok(action) = Action::try_from(value) {
+        Some((action, keys))
+    } else {
+        None
+    }
 }
 
 fn str_to_binding(binding: &str) -> Option<KeyBinding> {
