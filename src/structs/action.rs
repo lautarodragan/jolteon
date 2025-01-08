@@ -322,7 +322,10 @@ impl Actions {
     pub fn to_file(&self) {}
 
     pub fn action_by_key(&self, key: KeyEvent) -> Option<Action> {
-        if let KeyCode::Char(c) = key.code && key.modifiers.is_empty() && c.is_alphabetic() {
+        if let KeyCode::Char(c) = key.code
+            && key.modifiers.is_empty()
+            && c.is_alphabetic()
+        {
             return Some(Action::Text(TextAction::Char(c)));
         }
 
@@ -370,7 +373,9 @@ pub trait OnActionMut<T = Action> {
 }
 
 fn str_to_action_keys(split: Vec<&str>) -> Option<(Action, &str)> {
-    if let [value, keys] = split[..] && let Ok(action) = Action::try_from(value) {
+    if let [value, keys] = split[..]
+        && let Ok(action) = Action::try_from(value)
+    {
         Some((action, keys))
     } else {
         None

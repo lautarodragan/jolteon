@@ -3,10 +3,9 @@ use std::cell::{Cell, RefCell};
 use crossterm::event::KeyCode;
 
 use crate::{
-    structs::{Action, ListAction},
+    structs::{Action, ListAction, TextAction},
     {config::Theme, structs::NavigationAction},
 };
-use crate::structs::TextAction;
 
 #[derive(Eq, PartialEq)]
 pub enum Direction {
@@ -483,7 +482,7 @@ where
             }
             Action::ListAction(ListAction::RenameClear) => {
                 rename.clear();
-            },
+            }
             _ => {}
         }
     }
