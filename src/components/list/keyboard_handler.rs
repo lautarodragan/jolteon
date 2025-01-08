@@ -1,8 +1,6 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crate::structs::{Action, OnAction};
 
-use crate::structs::{Action, ListAction, NavigationAction, OnAction};
-
-use super::component::{Direction, List};
+use super::component::List;
 
 // TODO: OnAction
 // impl<'a, T> KeyboardHandlerRef<'a> for List<'a, T>
