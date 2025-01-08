@@ -280,23 +280,10 @@ impl Actions {
 
             let keys = keys.split(' ');
 
-            for mut key in keys {
-                let mut modifiers = KeyModifiers::NONE;
-
-                loop {
-                    if key.starts_with("Ctrl") {
-                        modifiers.toggle(KeyModifiers::CONTROL);
-                        key = &key[4..];
-                    } else if key.starts_with("Alt") {
-                        modifiers.toggle(KeyModifiers::ALT);
-                        key = &key[3..];
-                    } else if key.starts_with("Shift") {
-                        modifiers.toggle(KeyModifiers::SHIFT);
-                        key = &key[5..];
-                    } else {
-                        break;
-                    }
-                }
+            for key in keys {
+                let Some((modifiers, key)) = str_to_modifiers(key) else {
+                    continue;
+                };
 
                 let Some(code) = str_to_key(key, modifiers) else {
                     log::debug!("ignoring invalid line {l} with key={key}");
@@ -368,6 +355,28 @@ pub trait OnAction<T = Action> {
 
 pub trait OnActionMut<T = Action> {
     fn on_action(&mut self, action: T);
+}
+
+fn str_to_modifiers(key: &str) -> Option<(KeyModifiers, &str)> {
+    let mut modifiers = KeyModifiers::NONE;
+    let mut key = key;
+
+    loop {
+        if key.starts_with("Ctrl") {
+            modifiers.toggle(KeyModifiers::CONTROL);
+            key = &key[4..];
+        } else if key.starts_with("Alt") {
+            modifiers.toggle(KeyModifiers::ALT);
+            key = &key[3..];
+        } else if key.starts_with("Shift") {
+            modifiers.toggle(KeyModifiers::SHIFT);
+            key = &key[5..];
+        } else {
+            break;
+        }
+    }
+
+    Some((modifiers, key))
 }
 
 fn str_to_key(key: &str, modifiers: KeyModifiers) -> Option<KeyCode> {
