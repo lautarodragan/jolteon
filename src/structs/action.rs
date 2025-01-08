@@ -298,65 +298,10 @@ impl Actions {
                     }
                 }
 
-                let code: KeyCode;
-
-                if key.len() == 1 {
-                    let mut chars = key.chars();
-
-                    let Some(char) = chars.nth(0) else {
-                        continue;
-                    };
-
-                    if char.is_ascii_alphabetic() {
-                        if modifiers.contains(KeyModifiers::SHIFT) {
-                            code = KeyCode::Char(char);
-                        } else {
-                            code = KeyCode::Char(char.to_ascii_lowercase());
-                        }
-                    } else {
-                        code = KeyCode::Char(char);
-                    }
-                } else if (key.len() == 2 || key.len() == 3)
-                    && key.starts_with('F')
-                    && let Ok(num) = key[1..].parse::<u8>()
-                {
-                    code = KeyCode::F(num);
-                } else if key == "Enter" {
-                    code = KeyCode::Enter;
-                } else if key == "Esc" {
-                    code = KeyCode::Esc;
-                } else if key == "Space" {
-                    code = KeyCode::Char(' ');
-                } else if key == "Right" {
-                    code = KeyCode::Right;
-                } else if key == "Left" {
-                    code = KeyCode::Left;
-                } else if key == "Up" {
-                    code = KeyCode::Up;
-                } else if key == "Down" {
-                    code = KeyCode::Down;
-                } else if key == "Home" {
-                    code = KeyCode::Home;
-                } else if key == "End" {
-                    code = KeyCode::End;
-                } else if key == "PageUp" {
-                    code = KeyCode::PageUp;
-                } else if key == "PageDown" {
-                    code = KeyCode::PageDown;
-                } else if key == "Backspace" {
-                    code = KeyCode::Backspace;
-                } else if key == "Tab" {
-                    code = KeyCode::Tab;
-                } else if key == "BackTab" {
-                    code = KeyCode::BackTab;
-                } else if key == "Insert" {
-                    code = KeyCode::Insert;
-                } else if key == "Delete" {
-                    code = KeyCode::Delete;
-                } else {
+                let Some(code) = str_to_key(key, modifiers) else {
                     log::debug!("ignoring invalid line {l} with key={key}");
                     continue;
-                }
+                };
 
                 let binding = Shortcut::new(code, modifiers);
                 let Ok(action) = Action::try_from(value) else {
@@ -423,4 +368,66 @@ pub trait OnAction<T = Action> {
 
 pub trait OnActionMut<T = Action> {
     fn on_action(&mut self, action: T);
+}
+
+fn str_to_key(key: &str, modifiers: KeyModifiers) -> Option<KeyCode> {
+    let code: KeyCode;
+
+    if key.len() == 1 {
+        let mut chars = key.chars();
+
+        let Some(char) = chars.nth(0) else {
+            return None;
+        };
+
+        if char.is_ascii_alphabetic() {
+            if modifiers.contains(KeyModifiers::SHIFT) {
+                code = KeyCode::Char(char);
+            } else {
+                code = KeyCode::Char(char.to_ascii_lowercase());
+            }
+        } else {
+            code = KeyCode::Char(char);
+        }
+    } else if (key.len() == 2 || key.len() == 3)
+        && key.starts_with('F')
+        && let Ok(num) = key[1..].parse::<u8>()
+    {
+        code = KeyCode::F(num);
+    } else if key == "Enter" {
+        code = KeyCode::Enter;
+    } else if key == "Esc" {
+        code = KeyCode::Esc;
+    } else if key == "Space" {
+        code = KeyCode::Char(' ');
+    } else if key == "Right" {
+        code = KeyCode::Right;
+    } else if key == "Left" {
+        code = KeyCode::Left;
+    } else if key == "Up" {
+        code = KeyCode::Up;
+    } else if key == "Down" {
+        code = KeyCode::Down;
+    } else if key == "Home" {
+        code = KeyCode::Home;
+    } else if key == "End" {
+        code = KeyCode::End;
+    } else if key == "PageUp" {
+        code = KeyCode::PageUp;
+    } else if key == "PageDown" {
+        code = KeyCode::PageDown;
+    } else if key == "Backspace" {
+        code = KeyCode::Backspace;
+    } else if key == "Tab" {
+        code = KeyCode::Tab;
+    } else if key == "BackTab" {
+        code = KeyCode::BackTab;
+    } else if key == "Insert" {
+        code = KeyCode::Insert;
+    } else if key == "Delete" {
+        code = KeyCode::Delete;
+    } else {
+        return None;
+    }
+    Some(code)
 }
