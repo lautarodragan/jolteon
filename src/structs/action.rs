@@ -265,38 +265,24 @@ impl Actions {
 
         let mut actions: HashMap<Shortcut, Vec<Action>> = HashMap::new();
 
-        for l in s.lines() {
-            if l.len() < 3 {
-                continue;
-            }
-            if l.trim().starts_with('#') {
-                continue;
-            }
-            let splits: Vec<&str> = l.split('=').collect();
-            let [value, keys] = splits[..] else {
-                log::debug!("ignoring invalid line, too few/many splits: {l}");
-                continue;
-            };
-
-            let Ok(action) = Action::try_from(value) else {
-                log::debug!("ignoring invalid line, action {value}");
-                continue;
-            };
-
-            let keys = keys.split(' ');
-
-            for key in keys {
-                let Some(binding) = str_to_binding(key) else {
-                    log::debug!("ignoring invalid binding {key}");
-                    continue;
-                };
-
-                actions
-                    .entry(binding)
-                    .and_modify(|actions| actions.push(action))
-                    .or_insert(vec![action]);
-            }
-        }
+        s.lines()
+            .filter(|line| line.len() >= 3 && !line.trim().starts_with('#'))
+            .map(|line| line.split('=').collect::<Vec<&str>>())
+            .filter_map(|split| {
+                if let [value, keys] = split[..] && let Ok(action) = Action::try_from(value) {
+                    Some((keys, action))
+                } else {
+                    None
+                }
+            })
+            .for_each(|(keys, action)| {
+                keys.split(' ').map(str_to_binding).flatten().for_each(|binding| {
+                    actions
+                        .entry(binding)
+                        .and_modify(|actions| actions.push(action))
+                        .or_insert(vec![action]);
+                });
+            });
 
         // log::trace!("actions '{:#?}'", actions);
 
