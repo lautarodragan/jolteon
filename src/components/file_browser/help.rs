@@ -9,7 +9,7 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::WidgetRef};
 use crate::{
     components::file_browser::AddMode,
     config::Theme,
-    structs::{Action, Actions, FileBrowserAction, Shortcut},
+    structs::{Action, Actions, FileBrowserAction, KeyBinding},
 };
 
 impl Display for Action {
@@ -28,7 +28,7 @@ impl Display for Action {
     }
 }
 
-impl Display for Shortcut {
+impl Display for KeyBinding {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self.modifiers() {
             KeyModifiers::ALT => {
@@ -49,7 +49,7 @@ impl Display for Shortcut {
 
 pub struct FileBrowserHelp {
     theme: Theme,
-    pills: Vec<(Shortcut, Cell<Action>)>,
+    pills: Vec<(KeyBinding, Cell<Action>)>,
     actions: Actions,
 }
 
@@ -67,7 +67,7 @@ impl FileBrowserHelp {
                 Cell::new(Action::FileBrowser(FileBrowserAction::AddToLibrary)),
             ),
             (
-                Shortcut::new(KeyCode::Char('g'), KeyModifiers::CONTROL),
+                KeyBinding::new(KeyCode::Char('g'), KeyModifiers::CONTROL),
                 Cell::new(Action::FileBrowser(FileBrowserAction::ToggleMode)),
             ),
             (

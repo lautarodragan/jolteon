@@ -6,16 +6,16 @@ use serde::{Deserialize, Serialize};
 use crate::toml::{get_config_file_path, TomlFileError};
 
 static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.kv");
-static DEFAULT_ACTIONS: LazyLock<HashMap<Shortcut, Vec<Action>>> =
+static DEFAULT_ACTIONS: LazyLock<HashMap<KeyBinding, Vec<Action>>> =
     LazyLock::new(|| Actions::from_str(DEFAULT_ACTIONS_STR).actions);
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize, Hash)]
-pub struct Shortcut {
+pub struct KeyBinding {
     code: KeyCode,
     modifiers: KeyModifiers,
 }
 
-impl Shortcut {
+impl KeyBinding {
     pub fn new(code: KeyCode, modifiers: KeyModifiers) -> Self {
         Self { code, modifiers }
     }
@@ -29,7 +29,7 @@ impl Shortcut {
     }
 }
 
-impl From<KeyEvent> for Shortcut {
+impl From<KeyEvent> for KeyBinding {
     fn from(key: KeyEvent) -> Self {
         Self {
             code: key.code,
@@ -256,14 +256,14 @@ impl TryFrom<&str> for PlaylistsAction {
 
 #[derive(Debug, Default)]
 pub struct Actions {
-    actions: HashMap<Shortcut, Vec<Action>>,
+    actions: HashMap<KeyBinding, Vec<Action>>,
 }
 
 impl Actions {
     fn from_str(s: &str) -> Self {
         // log::trace!("from str {s}");
 
-        let mut actions: HashMap<Shortcut, Vec<Action>> = HashMap::new();
+        let mut actions: HashMap<KeyBinding, Vec<Action>> = HashMap::new();
 
         s.lines()
             .filter(|line| line.len() >= 3 && !line.trim().starts_with('#'))
@@ -304,7 +304,7 @@ impl Actions {
     pub fn to_file(&self) {}
 
     pub fn action_by_key(&self, key: KeyEvent) -> Option<Action> {
-        let sc = Shortcut::from(key);
+        let sc = KeyBinding::from(key);
         // log::trace!("key {key:?}");
         self.actions
             .get(&sc)
@@ -312,7 +312,7 @@ impl Actions {
             .map(|actions| actions[0])
     }
 
-    pub fn key_by_action(&self, action: Action) -> Option<Shortcut> {
+    pub fn key_by_action(&self, action: Action) -> Option<KeyBinding> {
         self.actions.iter().chain(DEFAULT_ACTIONS.iter()).find_map(|(k, v)| {
             if v.iter().any(|a| *a == action) {
                 Some(*k)
@@ -330,11 +330,11 @@ impl Actions {
             .any(|a| *a == action)
     }
 
-    pub fn list_primary(&self) -> Shortcut {
+    pub fn list_primary(&self) -> KeyBinding {
         self.key_by_action(Action::ListAction(ListAction::Primary)).unwrap()
     }
 
-    pub fn list_secondary(&self) -> Shortcut {
+    pub fn list_secondary(&self) -> KeyBinding {
         self.key_by_action(Action::ListAction(ListAction::Secondary)).unwrap()
     }
 }
@@ -347,9 +347,9 @@ pub trait OnActionMut<T = Action> {
     fn on_action(&mut self, action: T);
 }
 
-fn str_to_binding(binding: &str) -> Option<Shortcut> {
+fn str_to_binding(binding: &str) -> Option<KeyBinding> {
     str_to_modifiers(binding)
-        .and_then(|(modifiers, key)| str_to_key(key, modifiers).map(|code| Shortcut::new(code, modifiers)))
+        .and_then(|(modifiers, key)| str_to_key(key, modifiers).map(|code| KeyBinding::new(code, modifiers)))
 }
 
 fn str_to_modifiers(key: &str) -> Option<(KeyModifiers, &str)> {
