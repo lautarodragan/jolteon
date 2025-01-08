@@ -276,7 +276,7 @@ impl Actions {
                 }
             })
             .for_each(|(keys, action)| {
-                keys.split(' ').map(str_to_binding).flatten().for_each(|binding| {
+                keys.split(' ').filter_map(str_to_binding).for_each(|binding| {
                     actions
                         .entry(binding)
                         .and_modify(|actions| actions.push(action))
@@ -378,11 +378,7 @@ fn str_to_key(key: &str, modifiers: KeyModifiers) -> Option<KeyCode> {
     let code: KeyCode;
 
     if key.len() == 1 {
-        let mut chars = key.chars();
-
-        let Some(char) = chars.next() else {
-            return None;
-        };
+        let char = key.chars().next()?;
 
         if char.is_ascii_alphabetic() {
             if modifiers.contains(KeyModifiers::SHIFT) {
