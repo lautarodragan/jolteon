@@ -90,6 +90,7 @@ pub enum ListAction {
     SwapDown,
     RenameStart,
     RenameClear,
+    OpenClose,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
@@ -246,6 +247,7 @@ impl TryFrom<&str> for ListAction {
             "RenameStart" => Ok(Self::RenameStart),
             "RenameCancel" => Ok(Self::RenameCancel),
             "RenameClear" => Ok(Self::RenameClear),
+            "OpenClose" => Ok(Self::OpenClose),
             _ => Err(()),
         }
     }

@@ -2,78 +2,7 @@ use std::sync::atomic::Ordering;
 
 use super::{album_tree_item::AlbumTreeItem, component::AlbumTree};
 
-use crate::structs::{Action, ListAction, NavigationAction, OnAction};
-
-// TODO: OnAction
-// impl<'a> KeyboardHandlerRef<'a> for AlbumTree<'a> {
-//     fn on_key(&self, key: KeyEvent) {
-//         let target = "::ArtistList.on_key";
-//         log::trace!(target: target, "{:?}", key);
-//
-//         match key.code {
-//             KeyCode::Char(' ') => {
-//                 let selected_artist = self.selected_artist.load(Ordering::SeqCst);
-//                 let mut artist_list = self.artist_list.lock().unwrap();
-//                 let selected_artist = &mut artist_list[selected_artist];
-//                 selected_artist.is_open = !selected_artist.is_open;
-//
-//                 self.selected_album.store(0, Ordering::SeqCst);
-//
-//                 if !selected_artist.is_open {
-//                     let item = AlbumTreeItem::Artist(selected_artist.artist.clone());
-//                     self.on_select_fn.lock().unwrap()(item);
-//                 } else {
-//                     let album = selected_artist.albums.first().unwrap();
-//                     let item = AlbumTreeItem::Album(selected_artist.artist.clone(), album.clone());
-//                     self.on_select_fn.lock().unwrap()(item);
-//                 }
-//             }
-//             KeyCode::Char(char) => {
-//                 let item = {
-//                     let mut filter = self.filter.lock().unwrap();
-//                     filter.push(char);
-//
-//                     // todo: also search albums
-//                     let mut artists = self.artist_list.lock().unwrap();
-//
-//                     for i in 0..artists.len() {
-//                         let entry = &mut artists[i];
-//                         entry.is_match = entry.artist.contains(filter.as_str())
-//                             || entry.artist.to_lowercase().contains(filter.to_lowercase().as_str());
-//                     }
-//
-//                     let selected_artist_index = self.selected_artist.load(Ordering::SeqCst);
-//                     let selected_artist = &artists[selected_artist_index];
-//
-//                     if !selected_artist.is_match {
-//                         artists
-//                             .iter()
-//                             .position(|entry| entry.is_match)
-//                             .map(|n| (AlbumTreeItem::Artist(artists[n].artist.clone()), n))
-//                     } else {
-//                         None
-//                     }
-//                 };
-//
-//                 if let Some((item, n)) = item {
-//                     self.selected_artist.store(n, Ordering::SeqCst);
-//                     self.on_select_fn.lock().unwrap()(item);
-//                 }
-//             }
-//             KeyCode::Esc => {
-//                 let mut filter = self.filter.lock().unwrap();
-//                 filter.clear();
-//
-//                 let mut artists = self.artist_list.lock().unwrap();
-//                 for i in 0..artists.len() {
-//                     let entry = &mut artists[i];
-//                     entry.is_match = false;
-//                 }
-//             }
-//             _ => {}
-//         }
-//     }
-// }
+use crate::structs::{Action, ListAction, NavigationAction, OnAction, TextAction};
 
 impl AlbumTree<'_> {
     fn on_artist_list_directional_key(&self, action: NavigationAction) {
@@ -193,6 +122,65 @@ impl OnAction for AlbumTree<'_> {
                     return;
                 };
                 self.on_confirm_fn.lock().unwrap()(item);
+            }
+            Action::Cancel => {
+                let mut filter = self.filter.lock().unwrap();
+                filter.clear();
+
+                let mut artists = self.artist_list.lock().unwrap();
+                for i in 0..artists.len() {
+                    let entry = &mut artists[i];
+                    entry.is_match = false;
+                }
+            }
+            Action::Text(TextAction::Char(char)) => {
+                let item = {
+                    let mut filter = self.filter.lock().unwrap();
+                    filter.push(char);
+
+                    // todo: also search albums
+                    let mut artists = self.artist_list.lock().unwrap();
+
+                    for i in 0..artists.len() {
+                        let entry = &mut artists[i];
+                        entry.is_match = entry.artist.contains(filter.as_str())
+                            || entry.artist.to_lowercase().contains(filter.to_lowercase().as_str());
+                    }
+
+                    let selected_artist_index = self.selected_artist.load(Ordering::SeqCst);
+                    let selected_artist = &artists[selected_artist_index];
+
+                    if !selected_artist.is_match {
+                        artists
+                            .iter()
+                            .position(|entry| entry.is_match)
+                            .map(|n| (AlbumTreeItem::Artist(artists[n].artist.clone()), n))
+                    } else {
+                        None
+                    }
+                };
+
+                if let Some((item, n)) = item {
+                    self.selected_artist.store(n, Ordering::SeqCst);
+                    self.on_select_fn.lock().unwrap()(item);
+                }
+            }
+            Action::ListAction(ListAction::OpenClose) => {
+                let selected_artist = self.selected_artist.load(Ordering::SeqCst);
+                let mut artist_list = self.artist_list.lock().unwrap();
+                let selected_artist = &mut artist_list[selected_artist];
+                selected_artist.is_open = !selected_artist.is_open;
+
+                self.selected_album.store(0, Ordering::SeqCst);
+
+                if !selected_artist.is_open {
+                    let item = AlbumTreeItem::Artist(selected_artist.artist.clone());
+                    self.on_select_fn.lock().unwrap()(item);
+                } else {
+                    let album = selected_artist.albums.first().unwrap(); // TODO(BUG): crashes app in one case...
+                    let item = AlbumTreeItem::Album(selected_artist.artist.clone(), album.clone());
+                    self.on_select_fn.lock().unwrap()(item);
+                }
             }
             Action::ListAction(ListAction::Delete) => {
                 let selected_artist = self.selected_artist.load(Ordering::SeqCst);
