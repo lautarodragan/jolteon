@@ -329,9 +329,7 @@ where
             self.exec_rename_action(action);
         } else {
             match action {
-                Action::Navigation(action) => {
-                    self.exec_navigation_action(action);
-                }
+                Action::Navigation(action) => self.exec_navigation_action(action),
                 Action::Confirm | Action::ConfirmAlt => {
                     self.filter_mut(|filter| {
                         filter.clear();
@@ -366,17 +364,8 @@ where
                         filter.clear();
                     });
                 }
-                Action::Text(TextAction::Char(char)) => {
-                    self.filter_mut(|filter| {
-                        filter.push(char);
-                    });
-                }
-                Action::Text(TextAction::DeleteBack) => {
-                    self.filter_mut(|filter| {
-                        filter.remove(filter.len().saturating_sub(1));
-                    });
-                }
                 Action::ListAction(action) => self.exec_list_action(action),
+                Action::Text(action) => self.exec_text_action(action),
                 _ => {}
             }
         };
@@ -560,6 +549,22 @@ where
             ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
                 *self.rename.borrow_mut() = self.with_selected_item(|item| Some(item.to_string()));
                 self.on_request_focus_trap_fn.borrow_mut()(true);
+            }
+            _ => {}
+        }
+    }
+
+    fn exec_text_action(&self, action: TextAction) {
+        match action {
+            TextAction::Char(char) => {
+                self.filter_mut(|filter| {
+                    filter.push(char);
+                });
+            }
+            TextAction::DeleteBack => {
+                self.filter_mut(|filter| {
+                    filter.remove(filter.len().saturating_sub(1));
+                });
             }
             _ => {}
         }
