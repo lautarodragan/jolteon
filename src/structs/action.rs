@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::toml::{get_config_file_path, TomlFileError};
 
 static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.kv");
-static DEFAULT_ACTIONS: LazyLock<HashMap<Shortcut, Action>> =
+static DEFAULT_ACTIONS: LazyLock<HashMap<Shortcut, Vec<Action>>> =
     LazyLock::new(|| Actions::from_str(DEFAULT_ACTIONS_STR).actions);
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Serialize, Deserialize, Hash)]
@@ -256,14 +256,14 @@ impl TryFrom<&str> for PlaylistsAction {
 
 #[derive(Debug, Default)]
 pub struct Actions {
-    actions: HashMap<Shortcut, Action>,
+    actions: HashMap<Shortcut, Vec<Action>>,
 }
 
 impl Actions {
     fn from_str(s: &str) -> Self {
         // log::trace!("from str {s}");
 
-        let mut actions: HashMap<Shortcut, Action> = HashMap::new();
+        let mut actions: HashMap<Shortcut, Vec<Action>> = HashMap::new();
 
         for l in s.lines() {
             if l.len() < 3 {
@@ -273,95 +273,99 @@ impl Actions {
                 continue;
             }
             let splits: Vec<&str> = l.split('=').collect();
-            let [mut key, value] = splits[..] else {
+            let [mut value, keys] = splits[..] else {
                 log::debug!("ignoring invalid line, too few/many splits: {l}");
                 continue;
             };
 
-            let mut modifiers = KeyModifiers::NONE;
+            let keys = keys.split(' ');
 
-            loop {
-                if key.starts_with("Ctrl") {
-                    modifiers.toggle(KeyModifiers::CONTROL);
-                    key = &key[4..];
-                } else if key.starts_with("Alt") {
-                    modifiers.toggle(KeyModifiers::ALT);
-                    key = &key[3..];
-                } else if key.starts_with("Shift") {
-                    modifiers.toggle(KeyModifiers::SHIFT);
-                    key = &key[5..];
-                } else {
-                    break;
+            for mut key in keys {
+                let mut modifiers = KeyModifiers::NONE;
+
+                loop {
+                    if key.starts_with("Ctrl") {
+                        modifiers.toggle(KeyModifiers::CONTROL);
+                        key = &key[4..];
+                    } else if key.starts_with("Alt") {
+                        modifiers.toggle(KeyModifiers::ALT);
+                        key = &key[3..];
+                    } else if key.starts_with("Shift") {
+                        modifiers.toggle(KeyModifiers::SHIFT);
+                        key = &key[5..];
+                    } else {
+                        break;
+                    }
                 }
-            }
 
-            let code: KeyCode;
+                let code: KeyCode;
 
-            if key.len() == 1 {
-                let mut chars = key.chars();
+                if key.len() == 1 {
+                    let mut chars = key.chars();
 
-                let Some(char) = chars.nth(0) else {
+                    let Some(char) = chars.nth(0) else {
+                        continue;
+                    };
+
+                    if char.is_ascii_alphabetic() {
+                        if modifiers.contains(KeyModifiers::SHIFT) {
+                            code = KeyCode::Char(char);
+                        } else {
+                            code = KeyCode::Char(char.to_ascii_lowercase());
+                        }
+                    } else {
+                        code = KeyCode::Char(char);
+                    }
+                } else if (key.len() == 2 || key.len() == 3)
+                    && key.starts_with('F')
+                    && let Ok(num) = key[1..].parse::<u8>()
+                {
+                    code = KeyCode::F(num);
+                } else if key == "Enter" {
+                    code = KeyCode::Enter;
+                } else if key == "Esc" {
+                    code = KeyCode::Esc;
+                } else if key == "Space" {
+                    code = KeyCode::Char(' ');
+                } else if key == "Right" {
+                    code = KeyCode::Right;
+                } else if key == "Left" {
+                    code = KeyCode::Left;
+                } else if key == "Up" {
+                    code = KeyCode::Up;
+                } else if key == "Down" {
+                    code = KeyCode::Down;
+                } else if key == "Home" {
+                    code = KeyCode::Home;
+                } else if key == "End" {
+                    code = KeyCode::End;
+                } else if key == "PageUp" {
+                    code = KeyCode::PageUp;
+                } else if key == "PageDown" {
+                    code = KeyCode::PageDown;
+                } else if key == "Backspace" {
+                    code = KeyCode::Backspace;
+                } else if key == "Tab" {
+                    code = KeyCode::Tab;
+                } else if key == "BackTab" {
+                    code = KeyCode::BackTab;
+                } else if key == "Insert" {
+                    code = KeyCode::Insert;
+                } else if key == "Delete" {
+                    code = KeyCode::Delete;
+                } else {
+                    log::debug!("ignoring invalid line {l} with key={key}");
+                    continue;
+                }
+
+                let binding = Shortcut::new(code, modifiers);
+                let Ok(action) = Action::try_from(value) else {
+                    log::debug!("ignoring invalid line, unknown shortcut {value} for key {binding}");
                     continue;
                 };
 
-                if char.is_ascii_alphabetic() {
-                    if modifiers.contains(KeyModifiers::SHIFT) {
-                        code = KeyCode::Char(char);
-                    } else {
-                        code = KeyCode::Char(char.to_ascii_lowercase());
-                    }
-                } else {
-                    code = KeyCode::Char(char);
-                }
-            } else if (key.len() == 2 || key.len() == 3)
-                && key.starts_with('F')
-                && let Ok(num) = key[1..].parse::<u8>()
-            {
-                code = KeyCode::F(num);
-            } else if key == "Enter" {
-                code = KeyCode::Enter;
-            } else if key == "Esc" {
-                code = KeyCode::Esc;
-            } else if key == "Space" {
-                code = KeyCode::Char(' ');
-            } else if key == "Right" {
-                code = KeyCode::Right;
-            } else if key == "Left" {
-                code = KeyCode::Left;
-            } else if key == "Up" {
-                code = KeyCode::Up;
-            } else if key == "Down" {
-                code = KeyCode::Down;
-            } else if key == "Home" {
-                code = KeyCode::Home;
-            } else if key == "End" {
-                code = KeyCode::End;
-            } else if key == "PageUp" {
-                code = KeyCode::PageUp;
-            } else if key == "PageDown" {
-                code = KeyCode::PageDown;
-            } else if key == "Backspace" {
-                code = KeyCode::Backspace;
-            } else if key == "Tab" {
-                code = KeyCode::Tab;
-            } else if key == "BackTab" {
-                code = KeyCode::BackTab;
-            } else if key == "Insert" {
-                code = KeyCode::Insert;
-            } else if key == "Delete" {
-                code = KeyCode::Delete;
-            } else {
-                log::debug!("ignoring invalid line {l} with key={key}");
-                continue;
+                actions.entry(binding).and_modify(|actions| actions.push(action)).or_insert(vec![action]);
             }
-
-            let binding = Shortcut::new(code, modifiers);
-            let Ok(action) = Action::try_from(value) else {
-                log::debug!("ignoring invalid line, unknown shortcut {value} for key {binding}");
-                continue;
-            };
-
-            actions.insert(binding, action);
         }
 
         // log::trace!("actions '{:#?}'", actions);
@@ -386,20 +390,21 @@ impl Actions {
     pub fn action_by_key(&self, key: KeyEvent) -> Option<Action> {
         let sc = Shortcut::from(key);
         // log::trace!("key {key:?}");
-        self.actions.get(&sc).or(DEFAULT_ACTIONS.get(&sc)).cloned()
+        self.actions.get(&sc).or(DEFAULT_ACTIONS.get(&sc)).map(|actions| actions[0])
     }
 
     pub fn key_by_action(&self, action: Action) -> Option<Shortcut> {
         self.actions
             .iter()
             .chain(DEFAULT_ACTIONS.iter())
-            .find_map(|(k, v)| if *v == action { Some(*k) } else { None })
+            .find_map(|(k, v)| if v.iter().any(|a| *a == action) { Some(*k) } else { None })
     }
 
     pub fn contains(&self, action: Action) -> bool {
         self.actions
             .values()
             .chain(DEFAULT_ACTIONS.values())
+            .flatten()
             .any(|a| *a == action)
     }
 
