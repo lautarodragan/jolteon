@@ -41,13 +41,14 @@ impl From<KeyEvent> for KeyBinding {
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
 #[allow(dead_code)]
 pub enum Action {
-    Error,
-    Quit,
-    QueueNext,
+    Error, // Unused. Should remove, probably.
+    Quit, // App will assert, on startup, as early as possible, there is at least one key-binding for Quit and crash otherwise.
+    QueueNext, // Unused. Right now, Player.Stop has the same effect.
     FocusNext,
     FocusPrevious,
     Screen(ScreenAction),
     Navigation(NavigationAction),
+    Text(TextAction),
     Player(PlayerAction),
     ListAction(ListAction),
     Playlists(PlaylistsAction),
@@ -71,6 +72,13 @@ pub enum NavigationAction {
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+pub enum TextAction {
+    Char(char),
+    Delete,
+    DeleteBack,
+}
+
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
 pub enum ListAction {
     Primary,
     Secondary,
@@ -80,7 +88,6 @@ pub enum ListAction {
     SwapUp,
     SwapDown,
     RenameStart,
-    RenameChar(char),
     RenameDeleteCharBack,
     RenameClear,
 }
@@ -298,12 +305,16 @@ impl Actions {
     pub fn to_file(&self) {}
 
     pub fn action_by_key(&self, key: KeyEvent) -> Option<Action> {
+        if let KeyCode::Char(c) = key.code && key.modifiers.is_empty() && c.is_alphabetic() {
+            return Some(Action::Text(TextAction::Char(c)));
+        }
+
         let sc = KeyBinding::from(key);
         // log::trace!("key {key:?}");
         self.actions
             .get(&sc)
             .or(DEFAULT_ACTIONS.get(&sc))
-            .map(|actions| actions[0])
+            .map(|actions| actions[0]) // TODO: Return Vec<Action>
     }
 
     pub fn key_by_action(&self, action: Action) -> Option<KeyBinding> {

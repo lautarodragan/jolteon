@@ -6,6 +6,7 @@ use crate::{
     structs::{Action, ListAction},
     {config::Theme, structs::NavigationAction},
 };
+use crate::structs::TextAction;
 
 #[derive(Eq, PartialEq)]
 pub enum Direction {
@@ -328,6 +329,9 @@ where
 
         if let Some(ref mut rename) = *rename_option {
             match action {
+                Action::Text(TextAction::Char(char)) => {
+                    rename.push(char);
+                }
                 Action::ListAction(action) => match action {
                     ListAction::Primary => {
                         self.on_request_focus_trap_fn.borrow_mut()(false);
@@ -348,9 +352,6 @@ where
                         *rename_option = None;
                         self.on_request_focus_trap_fn.borrow_mut()(false);
                     }
-                    ListAction::RenameChar(c) => {
-                        rename.push(c);
-                    }
                     ListAction::RenameDeleteCharBack => {
                         rename.remove(rename.len().saturating_sub(1));
                     }
@@ -365,6 +366,11 @@ where
             match action {
                 Action::Navigation(action) => {
                     self.exec_navigation_action(action);
+                }
+                Action::Text(TextAction::Char(char)) => {
+                    self.filter_mut(|filter| {
+                        filter.push(char);
+                    });
                 }
                 Action::ListAction(action) => match action {
                     ListAction::Primary | ListAction::Secondary => {
