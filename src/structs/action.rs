@@ -46,6 +46,9 @@ pub enum Action {
     QueueNext, // Unused. Right now, Player.Stop has the same effect.
     FocusNext,
     FocusPrevious,
+    Confirm,
+    ConfirmAlt,
+    Cancel,
     Screen(ScreenAction),
     Navigation(NavigationAction),
     Text(TextAction),
@@ -80,8 +83,6 @@ pub enum TextAction {
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
 pub enum ListAction {
-    Primary,
-    Secondary,
     RenameCancel,
     Insert,
     Delete,
@@ -133,6 +134,12 @@ impl TryFrom<&str> for Action {
     fn try_from(value: &str) -> Result<Self, ()> {
         if value == "Quit" {
             return Ok(Self::Quit);
+        } else if value == "Confirm" {
+            return Ok(Self::Confirm);
+        } else if value == "ConfirmAlt" {
+            return Ok(Self::ConfirmAlt);
+        } else if value == "Cancel" {
+            return Ok(Self::Cancel);
         }
 
         let parts: Vec<&str> = value.split('.').collect();
@@ -232,8 +239,6 @@ impl TryFrom<&str> for ListAction {
 
     fn try_from(value: &str) -> Result<Self, ()> {
         match value {
-            "Primary" => Ok(Self::Primary),
-            "Secondary" => Ok(Self::Secondary),
             "Insert" => Ok(Self::Insert),
             "Delete" => Ok(Self::Delete),
             "SwapUp" => Ok(Self::SwapUp),
@@ -348,11 +353,11 @@ impl Actions {
     }
 
     pub fn list_primary(&self) -> KeyBinding {
-        self.key_by_action(Action::ListAction(ListAction::Primary)).unwrap()
+        self.key_by_action(Action::Confirm).unwrap()
     }
 
     pub fn list_secondary(&self) -> KeyBinding {
-        self.key_by_action(Action::ListAction(ListAction::Secondary)).unwrap()
+        self.key_by_action(Action::ConfirmAlt).unwrap()
     }
 }
 

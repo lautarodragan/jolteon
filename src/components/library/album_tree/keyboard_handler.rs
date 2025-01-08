@@ -187,7 +187,7 @@ impl OnAction for AlbumTree<'_> {
                 }
                 _ => {}
             },
-            Action::ListAction(ListAction::Primary) => {
+            Action::Confirm => {
                 let Some(item) = self.selected_item() else {
                     log::warn!(target: target, "No selected item");
                     return;

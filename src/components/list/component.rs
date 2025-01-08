@@ -329,6 +329,25 @@ where
 
         if let Some(ref mut rename) = *rename_option {
             match action {
+                Action::Confirm => {
+                    self.on_request_focus_trap_fn.borrow_mut()(false);
+
+                    if rename.is_empty() {
+                        return;
+                    }
+
+                    let on_rename_fn = self.on_rename_fn.borrow_mut();
+
+                    let Some(ref on_rename_fn) = *on_rename_fn else {
+                        return;
+                    };
+
+                    on_rename_fn(rename_option.take().unwrap());
+                }
+                Action::Cancel => {
+                    *rename_option = None;
+                    self.on_request_focus_trap_fn.borrow_mut()(false);
+                }
                 Action::Text(TextAction::Char(char)) => {
                     rename.push(char);
                 }
@@ -339,25 +358,6 @@ where
                     rename.remove(rename.len().saturating_sub(1));
                 }
                 Action::ListAction(action) => match action {
-                    ListAction::Primary => {
-                        self.on_request_focus_trap_fn.borrow_mut()(false);
-
-                        if rename.is_empty() {
-                            return;
-                        }
-
-                        let on_rename_fn = self.on_rename_fn.borrow_mut();
-
-                        let Some(ref on_rename_fn) = *on_rename_fn else {
-                            return;
-                        };
-
-                        on_rename_fn(rename_option.take().unwrap());
-                    }
-                    ListAction::RenameCancel => {
-                        *rename_option = None;
-                        self.on_request_focus_trap_fn.borrow_mut()(false);
-                    }
                     ListAction::RenameClear => {
                         rename.clear();
                     }
@@ -370,41 +370,46 @@ where
                 Action::Navigation(action) => {
                     self.exec_navigation_action(action);
                 }
+                Action::Confirm | Action::ConfirmAlt => {
+                    self.filter_mut(|filter| {
+                        filter.clear();
+                    });
+
+                    let items = self.items.borrow();
+
+                    let i = self.selected_item_index.get();
+                    if i >= items.len() {
+                        log::error!(target: target, "selected_item_index > items.len");
+                        return;
+                    }
+                    let item = items[i].inner.clone();
+                    drop(items);
+
+                    if action == Action::Confirm {
+                        self.on_enter_fn.borrow_mut()(item);
+                        if self.auto_select_next.get() {
+                            self.exec_navigation_action(NavigationAction::Down);
+                        }
+                    } else if action == Action::ConfirmAlt {
+                        if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
+                            on_enter_alt_fn(item);
+                            if self.auto_select_next.get() {
+                                self.exec_navigation_action(NavigationAction::Down);
+                            }
+                        }
+                    }
+                }
+                Action::Cancel => {
+                    self.filter_mut(|filter| {
+                        filter.clear();
+                    });
+                }
                 Action::Text(TextAction::Char(char)) => {
                     self.filter_mut(|filter| {
                         filter.push(char);
                     });
                 }
                 Action::ListAction(action) => match action {
-                    ListAction::Primary | ListAction::Secondary => {
-                        self.filter_mut(|filter| {
-                            filter.clear();
-                        });
-
-                        let items = self.items.borrow();
-
-                        let i = self.selected_item_index.get();
-                        if i >= items.len() {
-                            log::error!(target: target, "selected_item_index > items.len");
-                            return;
-                        }
-                        let item = items[i].inner.clone();
-                        drop(items);
-
-                        if action == ListAction::Primary {
-                            self.on_enter_fn.borrow_mut()(item);
-                            if self.auto_select_next.get() {
-                                self.exec_navigation_action(NavigationAction::Down);
-                            }
-                        } else if action == ListAction::Secondary {
-                            if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
-                                on_enter_alt_fn(item);
-                                if self.auto_select_next.get() {
-                                    self.exec_navigation_action(NavigationAction::Down);
-                                }
-                            }
-                        }
-                    }
                     ListAction::Insert => {
                         let f = self.on_insert_fn.borrow_mut();
                         let Some(f) = &*f else {
@@ -461,11 +466,6 @@ where
                     ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
                         *rename_option = self.with_selected_item(|item| Some(item.to_string()));
                         self.on_request_focus_trap_fn.borrow_mut()(true);
-                    }
-                    ListAction::RenameCancel => {
-                        self.filter_mut(|filter| {
-                            filter.clear();
-                        });
                     }
                     _ => {}
                 },
