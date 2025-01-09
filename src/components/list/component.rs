@@ -394,7 +394,7 @@ where
 
                 ii
             }
-            NavigationAction::Up if !is_filtering && initial_i > 1 => initial_i - 1,
+            NavigationAction::Up if !is_filtering && initial_i > 0 => initial_i - 1,
             NavigationAction::Down if !is_filtering => initial_i + 1,
             NavigationAction::Up if is_filtering => {
                 let items = self.items.borrow();
