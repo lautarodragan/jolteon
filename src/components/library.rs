@@ -1,7 +1,7 @@
-pub mod keyboard_handler;
-pub mod library;
-pub mod widget;
+mod keyboard_handler;
+mod library;
+mod widget;
 
-mod album_tree;
+mod album_tree_item;
 
 pub use library::*;

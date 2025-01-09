@@ -9,6 +9,16 @@ pub enum AlbumTreeItem {
     Album(String, String),
 }
 
+impl AlbumTreeItem {
+    pub fn is_artist(&self) -> bool {
+        matches!(self, Self::Artist(_))
+    }
+
+    pub fn is_album(&self) -> bool {
+        matches!(self, Self::Album(_, _))
+    }
+}
+
 impl Ord for AlbumTreeItem {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
@@ -28,10 +38,9 @@ impl PartialOrd for AlbumTreeItem {
 
 impl Display for AlbumTreeItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let x = match self {
-            AlbumTreeItem::Artist(s) => s,
-            AlbumTreeItem::Album(_, s) => s,
-        };
-        write!(f, "{x}")
+        match self {
+            AlbumTreeItem::Artist(s) => write!(f, "{s}"),
+            AlbumTreeItem::Album(_, s) => write!(f, "  {s}"),
+        }
     }
 }

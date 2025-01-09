@@ -1,12 +1,13 @@
 use std::{
     cell::Cell,
+    collections::HashSet,
     rc::Rc,
     sync::{Mutex, MutexGuard},
 };
 
 use crate::{components::list::Direction, components::List, config::Theme, structs::Song, ui::Component};
 
-use super::album_tree::{AlbumTree, AlbumTreeItem};
+use super::album_tree_item::AlbumTreeItem;
 
 pub struct Library<'a> {
     #[allow(dead_code)]
@@ -15,7 +16,7 @@ pub struct Library<'a> {
     pub(super) songs_by_artist: Rc<Mutex<crate::files::Library>>,
 
     pub(super) song_list: Rc<List<'a, Song>>,
-    pub(super) album_tree: Rc<AlbumTree<'a>>,
+    pub(super) album_tree: Rc<List<'a, AlbumTreeItem>>,
     pub(super) components: Rc<Vec<Component<'a>>>,
     pub(super) focused_component: Rc<Cell<usize>>,
 
@@ -27,7 +28,7 @@ impl<'a> Library<'a> {
         let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
 
         let songs_by_artist = Rc::new(Mutex::new(crate::files::Library::from_file()));
-        let album_tree = Rc::new(AlbumTree::new(theme));
+        let album_tree = Rc::new(List::new(theme, vec![]));
         let song_list = Rc::new(List::new(theme, vec![]));
 
         album_tree.on_select({
@@ -65,7 +66,7 @@ impl<'a> Library<'a> {
             }
         });
 
-        album_tree.on_confirm({
+        album_tree.on_enter({
             let songs = songs_by_artist.clone();
             let on_select_songs_fn = on_select_songs_fn.clone();
 
@@ -102,7 +103,7 @@ impl<'a> Library<'a> {
         album_tree.on_delete({
             let songs_by_artist = songs_by_artist.clone();
 
-            move |item| {
+            move |item, _index| {
                 log::trace!(target: "::library.album_tree.on_delete", "item deleted {:?}", item);
 
                 let mut songs_by_artist = songs_by_artist.lock().unwrap();
@@ -194,38 +195,53 @@ impl<'a> Library<'a> {
     }
 
     fn refresh_artist_tree(&self, songs_by_artist: &MutexGuard<crate::files::Library>) {
-        for (artist, songs) in &songs_by_artist.songs_by_artist {
+        let mut items = vec![];
+
+        let mut artists: Vec<String> = songs_by_artist.songs_by_artist.keys().cloned().collect();
+        artists.sort();
+
+        for artist in artists {
+            items.push(AlbumTreeItem::Artist(artist.clone()));
+
+            let mut albums = HashSet::new();
+            let songs = songs_by_artist.songs_by_artist.get(artist.as_str()).unwrap();
+
             for song in songs {
                 let album = song.album.clone().unwrap_or("(no album)".to_string());
-                self.album_tree.add_album(artist.clone(), album);
+                albums.insert(album.clone());
+            }
+
+            for album in albums {
+                items.push(AlbumTreeItem::Album(artist.clone(), album));
             }
         }
+
+        self.album_tree.set_items(items);
     }
 
-    fn refresh_song_list(&self, songs_by_artist: &MutexGuard<crate::files::Library>) {
-        let Some(selected_item) = self.album_tree.selected_item() else {
-            return;
-        };
+    fn refresh_song_list(&self, library: &MutexGuard<crate::files::Library>) {
+        let songs = self.album_tree.with_selected_item(|selected_item| {
+            let (selected_artist, selected_album) = match selected_item {
+                AlbumTreeItem::Artist(selected_artist) => (selected_artist.as_str(), None),
+                AlbumTreeItem::Album(selected_artist, selected_album) => (selected_artist.as_str(), Some(selected_album.as_str())),
+            };
 
-        let (selected_artist, selected_album) = match selected_item {
-            AlbumTreeItem::Artist(selected_artist) => (selected_artist, None),
-            AlbumTreeItem::Album(selected_artist, selected_album) => (selected_artist, Some(selected_album)),
-        };
+            let Some(songs) = library.songs_by_artist.get(selected_artist) else {
+                log::error!(target: "::library.add_songs", "This should never happen! There's an error with songs_by_artist/songs_by_artist.");
+                panic!();
+            };
 
-        let Some(songs) = songs_by_artist.songs_by_artist.get(&selected_artist) else {
-            log::error!(target: "::library.add_songs", "This should never happen! There's an error with songs_by_artist/songs_by_artist.");
-            return;
-        };
+            if let Some(selected_album) = selected_album {
+                songs
+                    .iter()
+                    .filter(|s| s.album.as_ref().is_some_and(|sa| *sa == selected_album))
+                    .cloned()
+                    .collect()
+            } else {
+                songs.clone()
+            }
+        });
 
-        let songs = if let Some(selected_album) = selected_album {
-            songs
-                .iter()
-                .filter(|s| s.album.as_ref().is_some_and(|sa| *sa == selected_album))
-                .cloned()
-                .collect()
-        } else {
-            songs.clone()
-        };
         self.song_list.set_items(songs);
     }
 }

@@ -40,15 +40,18 @@ impl From<NavigationAction> for Direction {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ListItem<T> {
     pub inner: T,
-    // pub is_visible: bool,
+    pub is_visible: bool,
     pub is_match: bool,
+    pub is_open: bool,
 }
 
 impl<T> ListItem<T> {
     pub fn new(t: T) -> Self {
         Self {
             inner: t,
+            is_visible: true,
             is_match: false,
+            is_open: true,
         }
     }
 }
@@ -60,6 +63,7 @@ where
     pub(super) theme: Theme,
 
     pub(super) items: RefCell<Vec<ListItem<T>>>,
+    pub(super) visible_items: RefCell<Vec<usize>>,
     pub(super) selected_item_index: Cell<usize>,
 
     pub(super) on_select_fn: RefCell<Box<dyn Fn(T) + 'a>>,
@@ -91,15 +95,9 @@ where
     T: 'a + Clone + std::fmt::Display,
 {
     pub fn new(theme: Theme, items: Vec<T>) -> Self {
-        let items = items
-            .into_iter()
-            .map(|item| ListItem {
-                inner: item,
-                is_match: false,
-            })
-            .collect();
+        let items: Vec<ListItem<T>> = items.into_iter().map(ListItem::new).collect();
 
-        Self {
+        let s = Self {
             theme,
 
             on_select_fn: RefCell::new(Box::new(|_| {}) as _),
@@ -113,6 +111,7 @@ where
             find_next_item_by_fn: RefCell::new(None),
 
             items: RefCell::new(items),
+            visible_items: RefCell::default(),
             selected_item_index: Cell::new(0),
 
             auto_select_next: Cell::new(true),
@@ -127,7 +126,10 @@ where
 
             padding: Cell::new(5),
             page_size: Cell::new(5),
-        }
+        };
+
+        s.refresh_visible_items();
+        s
     }
 
     pub fn focus(&self) {
@@ -175,6 +177,7 @@ where
     pub fn on_enter(&self, cb: impl Fn(T) + 'a) {
         *self.on_enter_fn.borrow_mut() = Box::new(cb);
     }
+
     /// An alternative "on_enter", triggered, by default, with Alt+Enter.
     /// This is somewhat tightly coupled to functionality required by consumers of this List component.
     pub fn on_enter_alt(&self, cb: impl Fn(T) + 'a) {
@@ -227,14 +230,52 @@ where
         }
 
         *items = new_items.into_iter().map(ListItem::new).collect();
+
+        let mut visible_items = self.visible_items.borrow_mut();
+        visible_items.resize(items.len(), 0);
+        for i in 0..visible_items.len() {
+            visible_items[i] = i;
+        }
     }
 
     /// Sets the list of items, selection and scroll
-    pub fn set_items_s(&self, items: Vec<T>, i: usize, o: usize) {
+    pub fn set_items_s(&self, new_items: Vec<T>, i: usize, o: usize) {
         self.selected_item_index.set(i);
         self.offset.set(o);
+        *self.items.borrow_mut() = new_items.into_iter().map(ListItem::new).collect();
+        self.refresh_visible_items();
+    }
 
-        *self.items.borrow_mut() = items.into_iter().map(ListItem::new).collect();
+    fn refresh_visible_items(&self) {
+        let items = self.items.borrow_mut();
+        let mut visible_items = self.visible_items.borrow_mut();
+        visible_items.clear();
+        for i in 0..items.len() {
+            if items[i].is_visible {
+                visible_items.push(i)
+            }
+        }
+    }
+
+    pub fn set_is_visible(&self, i: usize, v: bool) {
+        let mut items = self.items.borrow_mut();
+        items[i].is_visible = v;
+        drop(items);
+        self.refresh_visible_items();
+    }
+
+    #[allow(unused)]
+    pub fn is_visible(&self, i: usize) -> bool {
+        self.items.borrow()[i].is_visible
+    }
+
+    pub fn set_is_open(&self, i: usize, v: bool) {
+        let mut items = self.items.borrow_mut();
+        items[i].is_open = v;
+    }
+
+    pub fn is_open(&self, i: usize) -> bool {
+        self.items.borrow()[i].is_open
     }
 
     pub fn push_item(&self, item: T) {
@@ -283,29 +324,36 @@ where
         }
     }
 
-    pub fn selected_index(&self) -> usize {
-        self.selected_item_index.get()
-    }
-
     pub fn scroll_position(&self) -> usize {
         self.offset.get()
     }
 
+    pub fn selected_index(&self) -> usize {
+        self.selected_item_index.get()
+    }
+
+    pub fn selected_index_true(&self) -> usize {
+        let i = self.selected_item_index.get();
+        self.visible_items.borrow()[i]
+    }
+
     pub fn set_selected_index(&self, new_i: usize) {
-        let length = self.items.borrow().len() as isize;
-        let current_i = self.selected_item_index.get() as isize;
-        let new_i = new_i as isize;
-        let new_i = new_i.min(length - 1).max(0);
+        let current_i = self.selected_item_index.get();
 
         if new_i == current_i {
             return;
         }
 
-        self.selected_item_index.set(new_i as usize);
+        let visible_items = self.visible_items.borrow();
+
+        assert!(new_i < visible_items.len());
+
+        self.selected_item_index.set(new_i);
 
         let is_down = new_i > current_i;
         let is_up = new_i < current_i;
 
+        let new_i = new_i as isize;
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
         let padding = self.padding.get() as isize;
@@ -313,12 +361,21 @@ where
 
         if (is_up && new_i < offset + padding) || (is_down && new_i > offset + padding) {
             let offset = if new_i > padding {
-                (new_i - padding).min(length - height).max(0)
+                (new_i - padding).min(visible_items.len() as isize - height).max(0)
             } else {
                 0
             };
             self.offset.set(offset as usize);
         }
+    }
+
+    pub fn set_selected_index_true(&self, new_i: usize) {
+        let i = {
+            let visible_items = self.visible_items.borrow();
+            visible_items.iter().position(|i| *i == new_i).unwrap()
+        };
+        log::debug!("set_selected_index_true {new_i} -> {i}");
+        self.set_selected_index(i);
     }
 
     pub fn exec_action(&self, action: Action) {
@@ -370,9 +427,46 @@ where
         };
     }
 
+    #[allow(unused)]
+    pub(super) fn next_visible_index(&self, start: usize) -> usize {
+        let items = self.items.borrow();
+        let mut next = start + 1;
+        loop {
+            if let Some(item) = items.get(next)
+                && item.is_visible
+            {
+                return next;
+            } else if next >= items.len() - 1 {
+                return start;
+            } else {
+                next += 1;
+            }
+        }
+    }
+
+    #[allow(unused)]
+    pub(super) fn previous_visible_index(&self, start: usize) -> usize {
+        if start == 0 {
+            return start;
+        }
+        let items = self.items.borrow();
+        let mut next = start - 1;
+        loop {
+            if let Some(item) = items.get(next)
+                && item.is_visible
+            {
+                return next;
+            } else if next == 0 {
+                return start;
+            } else {
+                next -= 1;
+            }
+        }
+    }
+
     fn exec_navigation_action(&self, action: NavigationAction) {
         let is_filtering = !self.filter.borrow_mut().is_empty();
-        let length = self.items.borrow().len();
+        let length = self.visible_items.borrow().len();
 
         if length < 2 {
             return;
@@ -415,15 +509,17 @@ where
             NavigationAction::Home if !is_filtering => 0,
             NavigationAction::End if !is_filtering => usize::MAX,
             NavigationAction::Home if is_filtering => {
+                let v_items = self.visible_items.borrow();
                 let items = self.items.borrow();
-                let Some(n) = items.iter().position(|item| item.is_match) else {
+                let Some(n) = v_items.iter().position(|item| items[*item].is_match) else {
                     return;
                 };
                 n
             }
             NavigationAction::End if is_filtering => {
+                let v_items = self.visible_items.borrow();
                 let items = self.items.borrow();
-                let Some(n) = items.iter().rposition(|item| item.is_match) else {
+                let Some(n) = v_items.iter().rposition(|item| items[*item].is_match) else {
                     return;
                 };
                 n
@@ -441,7 +537,8 @@ where
 
         self.set_selected_index(i);
 
-        let newly_selected_item = self.items.borrow()[i].inner.clone();
+        let item_index = self.visible_items.borrow()[i];
+        let newly_selected_item = self.items.borrow()[item_index].inner.clone();
 
         self.on_select_fn.borrow_mut()(newly_selected_item);
     }
@@ -507,7 +604,7 @@ where
                     return;
                 }
 
-                let i = self.selected_item_index.get();
+                let i = self.selected_index_true();
                 let removed_item = items.remove(i);
 
                 if i >= items.len() {

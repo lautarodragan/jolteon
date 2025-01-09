@@ -64,14 +64,15 @@ impl<'a> Widget for ListLine<'a> {
 
 impl<T> WidgetRef for List<'_, T>
 where
-    T: std::fmt::Display,
+    T: std::fmt::Display + Clone,
 {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.height.set(area.height as usize);
 
         let items = self.items.borrow();
+        let visible_items = self.visible_items.borrow();
 
-        if items.len() < 1 {
+        if visible_items.len() < 1 {
             return;
         }
 
@@ -80,15 +81,19 @@ where
 
         let rename = self.rename.borrow();
 
-        for i in 0..items.len().min(area.height as usize) {
+        for i in 0..visible_items.len().min(area.height as usize) {
             let item_index = i + offset;
 
-            if item_index >= items.len() {
-                log::error!("item index {item_index} > items.len() {} offset={offset}", items.len());
+            if item_index >= visible_items.len() {
+                log::error!(
+                    "item index {item_index} > items.len() {} offset={offset}",
+                    visible_items.len()
+                );
                 break;
             }
 
-            let item = &items[item_index];
+            let true_index = visible_items[item_index];
+            let item = &items[true_index];
             let area = Rect {
                 y: area.y + i as u16,
                 height: 1,
