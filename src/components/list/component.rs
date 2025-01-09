@@ -38,7 +38,7 @@ impl From<NavigationAction> for Direction {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ListItem<T> {
+pub(super) struct ListItem<T> {
     pub inner: T,
     // pub is_visible: bool,
     pub is_match: bool,
