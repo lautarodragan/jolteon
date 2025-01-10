@@ -205,13 +205,20 @@ impl<'a> Library<'a> {
 
             let mut albums = HashSet::new();
             let songs = songs_by_artist.songs_by_artist.get(artist.as_str()).unwrap();
+            let mut year = 0;
 
             for song in songs {
+                if let Some(y) = song.year {
+                    year = year.min(y); // hopefully all songs will have the same year.
+                }
                 let album = song.album.clone().unwrap_or("(no album)".to_string());
-                albums.insert(album.clone());
+                albums.insert((year, album.clone()));
             }
 
-            for album in albums {
+            let mut albums: Vec<(u32, String)> = albums.into_iter().collect();
+            albums.sort_by_key(|i| i.0);
+
+            for (_year, album) in albums {
                 items.push(AlbumTreeItem::Album(artist.clone(), album));
             }
         }
