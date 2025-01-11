@@ -8,11 +8,11 @@ use std::{
 use crate::{
     components::{
         file_browser::{file_meta::FileMeta, help::FileBrowserHelp},
-        List,
+        ChildrenComponents, List,
     },
     config::Theme,
     structs::Song,
-    ui::{ComponentRefFocusable, Focusable},
+    ui::Focusable,
 };
 
 use super::{
@@ -34,8 +34,7 @@ pub struct FileBrowser<'a> {
     pub(super) children_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) file_meta: Rc<FileMeta<'a>>,
     pub(super) help: FileBrowserHelp,
-    pub(super) children_components: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>>,
-    pub(super) focused_child: RefCell<Rc<dyn 'a + ComponentRefFocusable<'a>>>,
+    pub(super) children_components: ChildrenComponents<'a>,
 
     pub(super) current_directory: Rc<CurrentDirectory>,
     pub(super) on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
@@ -224,13 +223,12 @@ impl<'a> FileBrowser<'a> {
             }
         });
 
-        let children_components: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>> =
-            vec![parents_list.clone(), children_list.clone(), file_meta.clone()];
+        let children_components =
+            ChildrenComponents::new(vec![parents_list.clone(), children_list.clone(), file_meta.clone()]);
 
         Self {
             theme,
 
-            focused_child: RefCell::new(parents_list.clone()),
             parents_list,
             children_list,
             file_meta,
