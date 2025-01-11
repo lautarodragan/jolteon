@@ -67,7 +67,7 @@ impl FileBrowserHelp {
                 Cell::new(Action::FileBrowser(FileBrowserAction::AddToLibrary)),
             ),
             (
-                KeyBinding::new(KeyCode::Char('g'), KeyModifiers::CONTROL),
+                actions.key_by_action(Action::FileBrowser(FileBrowserAction::ToggleMode)).unwrap(),
                 Cell::new(Action::FileBrowser(FileBrowserAction::ToggleMode)),
             ),
             (
