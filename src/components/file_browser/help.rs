@@ -67,7 +67,9 @@ impl FileBrowserHelp {
                 Cell::new(Action::FileBrowser(FileBrowserAction::AddToLibrary)),
             ),
             (
-                actions.key_by_action(Action::FileBrowser(FileBrowserAction::ToggleMode)).unwrap(),
+                actions
+                    .key_by_action(Action::FileBrowser(FileBrowserAction::ToggleMode))
+                    .unwrap(),
                 Cell::new(Action::FileBrowser(FileBrowserAction::ToggleMode)),
             ),
             (

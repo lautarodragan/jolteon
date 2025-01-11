@@ -3,7 +3,6 @@ use std::{
     collections::HashMap,
     path::PathBuf,
     rc::Rc,
-    sync::atomic::AtomicUsize,
 };
 
 use crate::{
@@ -13,7 +12,7 @@ use crate::{
     },
     config::Theme,
     structs::Song,
-    ui::{Focusable, Component, ComponentRef, ComponentRefFocusable},
+    ui::{ComponentRefFocusable, Focusable},
 };
 
 use super::{
@@ -225,11 +224,8 @@ impl<'a> FileBrowser<'a> {
             }
         });
 
-        let children_components: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>> = vec![
-            parents_list.clone(),
-            children_list.clone(),
-            file_meta.clone(),
-        ];
+        let children_components: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>> =
+            vec![parents_list.clone(), children_list.clone(), file_meta.clone()];
 
         Self {
             theme,

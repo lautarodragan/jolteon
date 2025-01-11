@@ -4,8 +4,8 @@ use crossterm::event::KeyCode;
 
 use crate::{
     structs::{Action, ListAction, TextAction},
-    {config::Theme, structs::NavigationAction},
     ui::Focusable,
+    {config::Theme, structs::NavigationAction},
 };
 
 #[derive(Eq, PartialEq)]
@@ -57,8 +57,7 @@ impl<T> ListItem<T> {
     }
 }
 
-pub struct List<'a, T: 'a>
-{
+pub struct List<'a, T: 'a> {
     pub(super) theme: Theme,
 
     pub(super) items: RefCell<Vec<ListItem<T>>>,

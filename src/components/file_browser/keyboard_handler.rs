@@ -72,7 +72,7 @@ impl OnAction for FileBrowser<'_> {
                 }
             }
             _ => {
-                let mut current_focus = self.focused_child.borrow_mut();
+                let current_focus = self.focused_child.borrow_mut();
                 current_focus.on_action(action);
             }
         }
