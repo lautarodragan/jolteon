@@ -13,7 +13,7 @@ use crate::{
     },
     config::Theme,
     structs::Song,
-    ui::Focusable,
+    ui::{Focusable, Component, ComponentRef, ComponentRefFocusable},
 };
 
 use super::{
@@ -30,17 +30,20 @@ pub enum AddMode {
 pub struct FileBrowser<'a> {
     #[allow(unused)]
     pub(super) theme: Theme,
+
     pub(super) parents_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) children_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) file_meta: Rc<FileMeta<'a>>,
+    pub(super) help: FileBrowserHelp,
+    pub(super) children_components: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>>,
+    pub(super) focused_child: RefCell<Rc<dyn 'a + ComponentRefFocusable<'a>>>,
+
     pub(super) current_directory: Rc<CurrentDirectory>,
     pub(super) on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) on_add_to_lib_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) on_add_to_playlist_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) history: Rc<RefCell<HashMap<PathBuf, (usize, usize)>>>,
-    pub(super) focus: AtomicUsize,
     pub(super) add_mode: Rc<Cell<AddMode>>,
-    pub(super) help: FileBrowserHelp,
 }
 
 impl<'a> FileBrowser<'a> {
@@ -222,17 +225,26 @@ impl<'a> FileBrowser<'a> {
             }
         });
 
+        let children_components: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>> = vec![
+            parents_list.clone(),
+            children_list.clone(),
+            file_meta.clone(),
+        ];
+
         Self {
             theme,
+
+            focused_child: RefCell::new(parents_list.clone()),
             parents_list,
             children_list,
             file_meta,
+            children_components,
+
             current_directory,
             on_enqueue_fn,
             on_add_to_lib_fn,
             on_add_to_playlist_fn,
             history,
-            focus: AtomicUsize::new(0),
             add_mode,
             help: FileBrowserHelp::new(theme),
         }

@@ -1,4 +1,4 @@
-use std::sync::atomic::Ordering;
+use std::rc::Rc;
 
 use crate::{
     structs::{Action, FileBrowserAction, NavigationAction, OnAction},
@@ -35,7 +35,20 @@ impl OnAction for FileBrowser<'_> {
                 }
             },
             Action::Navigation(NavigationAction::FocusNext) | Action::Navigation(NavigationAction::FocusPrevious) => {
-                let mut focus = self.focus.load(Ordering::Acquire);
+                let children_components = &self.children_components;
+
+                if children_components.len() < 2 {
+                    return;
+                }
+
+                let mut current_focus = self.focused_child.borrow_mut();
+
+                let mut focus = 0;
+                for i in 0..children_components.len() {
+                    if Rc::ptr_eq(&children_components[i], &*current_focus) {
+                        focus = i;
+                    }
+                }
 
                 if action == Action::Navigation(NavigationAction::FocusNext) {
                     if focus > 1 {
@@ -45,37 +58,22 @@ impl OnAction for FileBrowser<'_> {
                     }
                 } else if action == Action::Navigation(NavigationAction::FocusPrevious) {
                     if focus == 0 {
-                        focus = 2
+                        focus = children_components.len() - 1
                     } else {
                         focus -= 1;
                     }
                 }
 
-                self.focus.store(focus, Ordering::Release);
-
-                if focus == 0 {
-                    self.parents_list.set_is_focused(true);
-                    self.children_list.set_is_focused(false);
-                    self.file_meta.set_is_focused(false);
-                } else if focus == 1 {
-                    self.parents_list.set_is_focused(false);
-                    self.children_list.set_is_focused(true);
-                    self.file_meta.set_is_focused(false);
-                } else if focus == 2 {
-                    self.parents_list.set_is_focused(false);
-                    self.children_list.set_is_focused(false);
-                    self.file_meta.set_is_focused(true);
+                for i in 0..children_components.len() {
+                    children_components[i].set_is_focused(i == focus);
+                    if i == focus {
+                        *current_focus = children_components[i].clone()
+                    }
                 }
             }
             _ => {
-                let focus = self.focus.load(Ordering::Acquire);
-                if focus == 0 {
-                    self.parents_list.on_action(action)
-                } else if focus == 1 {
-                    self.children_list.on_action(action);
-                } else if focus == 2 {
-                    self.file_meta.on_action(action);
-                }
+                let mut current_focus = self.focused_child.borrow_mut();
+                current_focus.on_action(action);
             }
         }
     }

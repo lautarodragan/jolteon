@@ -2,12 +2,17 @@ use std::{cell::RefCell, rc::Rc};
 
 use ratatui::widgets::WidgetRef;
 
-use crate::structs::{Action, OnAction, OnActionMut};
+use crate::{
+    structs::{Action, OnAction, OnActionMut},
+    ui::Focusable,
+};
 
 pub trait ComponentRef<'a>: WidgetRef + OnAction {}
+pub trait ComponentRefFocusable<'a>: ComponentRef<'a> + Focusable {}
 pub trait ComponentMut<'a>: WidgetRef + OnActionMut {}
 
 impl<T: OnAction + WidgetRef> ComponentRef<'_> for T {}
+impl<T: OnAction + WidgetRef + Focusable> ComponentRefFocusable<'_> for T {}
 impl<T: OnActionMut + WidgetRef> ComponentMut<'_> for T {}
 
 pub enum Component<'a> {
