@@ -13,6 +13,7 @@ use crate::{
     },
     config::Theme,
     structs::Song,
+    ui::Focusable,
 };
 
 use super::{
@@ -115,7 +116,7 @@ impl<'a> FileBrowser<'a> {
             }
         });
 
-        parents_list.focus();
+        parents_list.set_is_focused(true);
         parents_list.set_auto_select_next(false);
 
         parents_list.on_select({

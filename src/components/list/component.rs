@@ -5,6 +5,7 @@ use crossterm::event::KeyCode;
 use crate::{
     structs::{Action, ListAction, TextAction},
     {config::Theme, structs::NavigationAction},
+    ui::Focusable,
 };
 
 #[derive(Eq, PartialEq)]
@@ -57,8 +58,6 @@ impl<T> ListItem<T> {
 }
 
 pub struct List<'a, T: 'a>
-where
-    T: std::fmt::Display,
 {
     pub(super) theme: Theme,
 
@@ -130,14 +129,6 @@ where
 
         s.refresh_visible_items();
         s
-    }
-
-    pub fn focus(&self) {
-        self.is_focused.set(true);
-    }
-
-    pub fn blur(&self) {
-        self.is_focused.set(false);
     }
 
     pub fn set_auto_select_next(&self, v: bool) {
@@ -664,8 +655,18 @@ where
     }
 }
 
-impl<T: std::fmt::Display> Drop for List<'_, T> {
+impl<T> Drop for List<'_, T> {
     fn drop(&mut self) {
         log::trace!("List.drop()");
+    }
+}
+
+impl<T> Focusable for List<'_, T> {
+    fn set_is_focused(&self, v: bool) {
+        self.is_focused.set(v);
+    }
+
+    fn is_focused(&self) -> bool {
+        self.is_focused.get()
     }
 }

@@ -1,6 +1,9 @@
 use std::sync::atomic::Ordering;
 
-use crate::structs::{Action, FileBrowserAction, NavigationAction, OnAction};
+use crate::{
+    structs::{Action, FileBrowserAction, NavigationAction, OnAction},
+    ui::Focusable,
+};
 
 use super::{AddMode, FileBrowser};
 
@@ -51,17 +54,17 @@ impl OnAction for FileBrowser<'_> {
                 self.focus.store(focus, Ordering::Release);
 
                 if focus == 0 {
-                    self.parents_list.focus();
-                    self.children_list.blur();
-                    self.file_meta.blur();
+                    self.parents_list.set_is_focused(true);
+                    self.children_list.set_is_focused(false);
+                    self.file_meta.set_is_focused(false);
                 } else if focus == 1 {
-                    self.parents_list.blur();
-                    self.children_list.focus();
-                    self.file_meta.blur();
+                    self.parents_list.set_is_focused(false);
+                    self.children_list.set_is_focused(true);
+                    self.file_meta.set_is_focused(false);
                 } else if focus == 2 {
-                    self.parents_list.blur();
-                    self.children_list.blur();
-                    self.file_meta.focus();
+                    self.parents_list.set_is_focused(false);
+                    self.children_list.set_is_focused(false);
+                    self.file_meta.set_is_focused(true);
                 }
             }
             _ => {

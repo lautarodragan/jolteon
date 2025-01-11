@@ -8,6 +8,7 @@ use crate::{
     cue::CueSheet,
     duration::duration_to_string,
     structs::{Action, Jolt, OnAction, Song},
+    ui::Focusable,
 };
 
 pub struct FileMeta<'a> {
@@ -154,14 +155,6 @@ impl FileMeta<'_> {
         let mut s = self.file.borrow_mut();
         *s = None;
     }
-
-    pub fn focus(&self) {
-        self.list.focus();
-    }
-
-    pub fn blur(&self) {
-        self.list.blur();
-    }
 }
 
 impl WidgetRef for FileMeta<'_> {
@@ -173,5 +166,15 @@ impl WidgetRef for FileMeta<'_> {
 impl OnAction for FileMeta<'_> {
     fn on_action(&self, action: Action) {
         self.list.on_action(action);
+    }
+}
+
+impl Focusable for FileMeta<'_> {
+    fn set_is_focused(&self, v: bool) {
+        self.list.set_is_focused(v);
+    }
+
+    fn is_focused(&self) -> bool {
+        self.list.is_focused()
     }
 }
