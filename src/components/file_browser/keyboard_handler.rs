@@ -30,7 +30,7 @@ impl OnAction for FileBrowser<'_> {
                 }
             },
             _ => {
-                self.children_components.on_action(action);
+                self.focus_group.on_action(action);
             }
         }
     }

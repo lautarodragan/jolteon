@@ -6,12 +6,12 @@ use crate::{
     ui::ComponentRefFocusable,
 };
 
-pub struct ChildrenComponents<'a> {
+pub struct FocusGroup<'a> {
     pub(super) children: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>>,
     pub(super) focused: RefCell<Rc<dyn 'a + ComponentRefFocusable<'a>>>,
 }
 
-impl<'a> ChildrenComponents<'a> {
+impl<'a> FocusGroup<'a> {
     pub fn new(children: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>>) -> Self {
         let focused = children[0].clone();
         Self {
@@ -57,7 +57,7 @@ impl<'a> ChildrenComponents<'a> {
     }
 }
 
-impl OnAction for ChildrenComponents<'_> {
+impl OnAction for FocusGroup<'_> {
     fn on_action(&self, action: Action) {
         match action {
             Action::Navigation(NavigationAction::FocusNext) => {

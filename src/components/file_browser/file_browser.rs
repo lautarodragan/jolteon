@@ -8,7 +8,7 @@ use std::{
 use crate::{
     components::{
         file_browser::{file_meta::FileMeta, help::FileBrowserHelp},
-        ChildrenComponents, List,
+        FocusGroup, List,
     },
     config::Theme,
     structs::Song,
@@ -34,7 +34,7 @@ pub struct FileBrowser<'a> {
     pub(super) children_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) file_meta: Rc<FileMeta<'a>>,
     pub(super) help: FileBrowserHelp,
-    pub(super) children_components: ChildrenComponents<'a>,
+    pub(super) focus_group: FocusGroup<'a>,
 
     pub(super) current_directory: Rc<CurrentDirectory>,
     pub(super) on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
@@ -223,8 +223,7 @@ impl<'a> FileBrowser<'a> {
             }
         });
 
-        let children_components =
-            ChildrenComponents::new(vec![parents_list.clone(), children_list.clone(), file_meta.clone()]);
+        let focus_group = FocusGroup::new(vec![parents_list.clone(), children_list.clone(), file_meta.clone()]);
 
         Self {
             theme,
@@ -232,7 +231,7 @@ impl<'a> FileBrowser<'a> {
             parents_list,
             children_list,
             file_meta,
-            children_components,
+            focus_group,
 
             current_directory,
             on_enqueue_fn,
