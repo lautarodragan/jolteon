@@ -1,7 +1,7 @@
 use std::{
+    cell::{RefCell, RefMut},
     collections::HashSet,
     rc::Rc,
-    sync::{Mutex, MutexGuard},
 };
 
 use crate::{
@@ -16,20 +16,21 @@ pub struct Library<'a> {
     #[allow(dead_code)]
     pub(super) theme: Theme,
 
-    pub(super) songs_by_artist: Rc<Mutex<crate::files::Library>>,
+    pub(super) songs_by_artist: Rc<RefCell<crate::files::Library>>,
 
     pub(super) song_list: Rc<List<'a, Song>>,
     pub(super) album_tree: Rc<List<'a, AlbumTreeItem>>,
     pub(super) focus_group: FocusGroup<'a>,
 
-    pub(super) on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>>,
+    pub(super) on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<Song>) + 'a>>>,
 }
 
 impl<'a> Library<'a> {
     pub fn new(theme: Theme) -> Self {
-        let on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>> = Rc::new(Mutex::new(Box::new(|_| {}) as _));
+        let on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<Song>) + 'a>>> =
+            Rc::new(RefCell::new(Box::new(|_| {}) as _));
 
-        let songs_by_artist = Rc::new(Mutex::new(crate::files::Library::from_file()));
+        let songs_by_artist = Rc::new(RefCell::new(crate::files::Library::from_file()));
         let album_tree = Rc::new(List::new(theme, vec![]));
         let song_list = Rc::new(List::new(theme, vec![]));
 
@@ -46,7 +47,7 @@ impl<'a> Library<'a> {
                 };
 
                 let artist_songs = {
-                    let songs = songs.lock().unwrap();
+                    let songs = songs.borrow();
 
                     match songs.songs_by_artist.get(artist.as_str()) {
                         Some(artist_songs) => match album {
@@ -81,7 +82,7 @@ impl<'a> Library<'a> {
                 };
 
                 let songs = {
-                    let songs = songs.lock().unwrap();
+                    let songs = songs.borrow();
                     let Some(songs) = songs.songs_by_artist.get(artist.as_str()) else {
                         log::warn!(target: "::library.album_tree.on_confirm", "no songs for artist {:?}", artist);
                         return;
@@ -98,7 +99,7 @@ impl<'a> Library<'a> {
                     }
                 };
 
-                on_select_songs_fn.lock().unwrap()(songs);
+                on_select_songs_fn.borrow_mut()(songs);
             }
         });
 
@@ -108,7 +109,7 @@ impl<'a> Library<'a> {
             move |item, _index| {
                 log::trace!(target: "::library.album_tree.on_delete", "item deleted {:?}", item);
 
-                let mut songs_by_artist = songs_by_artist.lock().unwrap();
+                let mut songs_by_artist = songs_by_artist.borrow_mut();
                 match item {
                     AlbumTreeItem::Artist(ref artist) => {
                         songs_by_artist.remove_artist(artist);
@@ -175,11 +176,11 @@ impl<'a> Library<'a> {
     }
 
     pub fn on_select_songs_fn(&self, cb: impl FnMut(Vec<Song>) + 'a) {
-        *self.on_select_songs_fn.lock().unwrap() = Box::new(cb);
+        *self.on_select_songs_fn.borrow_mut() = Box::new(cb);
     }
 
     pub fn add_songs(&self, songs_to_add: Vec<Song>) {
-        let mut songs_by_artist = self.songs_by_artist.lock().unwrap();
+        let mut songs_by_artist = self.songs_by_artist.borrow_mut();
         songs_by_artist.add_songs(songs_to_add);
         drop(songs_by_artist);
 
@@ -187,12 +188,12 @@ impl<'a> Library<'a> {
     }
 
     pub fn refresh_components(&self) {
-        let songs_by_artist = self.songs_by_artist.lock().unwrap();
+        let songs_by_artist = self.songs_by_artist.borrow_mut();
         self.refresh_artist_tree(&songs_by_artist);
         self.refresh_song_list(&songs_by_artist);
     }
 
-    fn refresh_artist_tree(&self, songs_by_artist: &MutexGuard<crate::files::Library>) {
+    fn refresh_artist_tree(&self, songs_by_artist: &RefMut<crate::files::Library>) {
         let mut items = vec![];
 
         let mut artists: Vec<String> = songs_by_artist.songs_by_artist.keys().cloned().collect();
@@ -224,7 +225,7 @@ impl<'a> Library<'a> {
         self.album_tree.set_items(items);
     }
 
-    fn refresh_song_list(&self, library: &MutexGuard<crate::files::Library>) {
+    fn refresh_song_list(&self, library: &RefMut<crate::files::Library>) {
         let songs = self.album_tree.with_selected_item(|selected_item| {
             let (selected_artist, selected_album) = match selected_item {
                 AlbumTreeItem::Artist(selected_artist) => (selected_artist.as_str(), None),
