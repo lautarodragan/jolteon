@@ -18,8 +18,8 @@ use crate::{
     config::Theme,
     main_player::MainPlayer,
     state::State,
-    structs::{Action, NavigationAction, OnAction, OnActionMut, ScreenAction, Song},
-    ui::{Component, TopBar},
+    structs::{Action, OnActionMut, ScreenAction, Song},
+    ui::{ComponentMut, TopBar},
 };
 
 #[derive(Debug)]
@@ -52,14 +52,14 @@ pub struct Root<'a> {
     theme: Theme,
     frame: Cell<u64>,
 
-    screens: Vec<(String, Component<'a>)>,
+    screens: Vec<(String, Rc<RefCell<dyn 'a + ComponentMut<'a>>>)>,
     focused_screen: usize,
     is_focus_trapped: Rc<Cell<bool>>,
 
     player: Weak<MainPlayer>,
 
-    queue_screen: Rc<QueueScreen<'a>>,
-    browser_screen: Rc<FileBrowser<'a>>,
+    queue_screen: Rc<RefCell<QueueScreen<'a>>>,
+    browser_screen: Rc<RefCell<FileBrowser<'a>>>,
 
     on_queue_changed_fn: Rc<Callback<'a, QueueChange>>,
 }
@@ -75,108 +75,116 @@ impl<'a> Root<'a> {
 
         let is_focus_trapped = Rc::new(Cell::new(false));
 
-        let queue_screen = Rc::new(QueueScreen::new(state.queue_items.clone(), theme));
-        let library = Rc::new(Library::new(theme));
-        let playlist = Rc::new(Playlists::new(theme));
-        let browser = Rc::new(FileBrowser::new(theme, current_directory));
+        let queue_screen = Rc::new(RefCell::new(QueueScreen::new(state.queue_items.clone(), theme)));
+        let library = Rc::new(RefCell::new(Library::new(theme)));
+        let playlist = Rc::new(RefCell::new(Playlists::new(theme)));
+        let browser = Rc::new(RefCell::new(FileBrowser::new(theme, current_directory)));
 
         let on_queue_changed_fn = Rc::new(Callback::default());
 
-        library.on_enter({
-            let queue_screen = queue_screen.clone();
-            let on_queue_changed_fn = on_queue_changed_fn.clone();
+        {
+            let library = library.borrow_mut();
+            library.on_enter({
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
 
-            move |song| {
-                queue_screen.append(vec![song.clone()]);
-                on_queue_changed_fn.call(QueueChange::AddBack(song));
-            }
-        });
-        library.on_enter_alt({
-            let player = player.clone();
-            move |song| {
-                player.upgrade().inspect(|p| p.play(song));
-            }
-        });
-        library.on_select_songs_fn({
-            // selected artist/album
-            let queue_screen = queue_screen.clone();
-            let library = library.clone();
-            let on_queue_changed_fn = on_queue_changed_fn.clone();
+                move |song| {
+                    queue_screen.borrow_mut().append(vec![song.clone()]);
+                    on_queue_changed_fn.call(QueueChange::AddBack(song));
+                }
+            });
+            library.on_enter_alt({
+                let player = player.clone();
+                move |song| {
+                    player.upgrade().inspect(|p| p.play(song));
+                }
+            });
+            library.on_select_songs_fn({
+                // selected artist/album
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
 
-            move |songs| {
-                log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
-                queue_screen.append(songs.clone());
-                on_queue_changed_fn.call(QueueChange::Append(songs));
-                // hackish way to "select_next()"
-                // TODO: migrate the artist/album tree to List and use list.set_auto_select_next(true)
-                library.on_action(Action::Navigation(NavigationAction::Down));
-            }
-        });
+                move |songs| {
+                    log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
+                    queue_screen.borrow_mut().append(songs.clone());
+                    on_queue_changed_fn.call(QueueChange::Append(songs));
+                }
+            });
+        }
 
-        playlist.on_enter_song({
-            let queue_screen = queue_screen.clone();
-            let on_queue_changed_fn = on_queue_changed_fn.clone();
-            move |song| {
-                queue_screen.append(vec![song.clone()]);
-                on_queue_changed_fn.call(QueueChange::AddBack(song));
-            }
-        });
-        playlist.on_enter_song_alt({
-            let player = player.clone();
-            move |song| {
-                player.upgrade().inspect(|p| p.play(song));
-            }
-        });
-        playlist.on_enter_playlist({
-            let queue_screen = queue_screen.clone();
-            let on_queue_changed_fn = on_queue_changed_fn.clone();
-            move |playlist| {
-                queue_screen.append(playlist.songs.clone());
-                on_queue_changed_fn.call(QueueChange::Append(playlist.songs));
-            }
-        });
-        playlist.on_request_focus_trap_fn({
-            let is_focus_trapped = is_focus_trapped.clone();
-            move |v| {
-                is_focus_trapped.set(v);
-            }
-        });
+        {
+            let playlist = playlist.borrow_mut();
+            playlist.on_enter_song({
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
+                move |song| {
+                    queue_screen.borrow_mut().append(vec![song.clone()]);
+                    on_queue_changed_fn.call(QueueChange::AddBack(song));
+                }
+            });
+            playlist.on_enter_song_alt({
+                let player = player.clone();
+                move |song| {
+                    player.upgrade().inspect(|p| p.play(song));
+                }
+            });
+            playlist.on_enter_playlist({
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
+                move |playlist| {
+                    queue_screen.borrow_mut().append(playlist.songs.clone());
+                    on_queue_changed_fn.call(QueueChange::Append(playlist.songs));
+                }
+            });
+            playlist.on_request_focus_trap_fn({
+                let is_focus_trapped = is_focus_trapped.clone();
+                move |v| {
+                    is_focus_trapped.set(v);
+                }
+            });
+        }
 
-        queue_screen.on_enter({
-            let player = player.clone();
-            move |song| {
-                player.upgrade().inspect(|p| p.play(song));
-            }
-        });
-        queue_screen.on_delete({
-            let on_queue_changed_fn = on_queue_changed_fn.clone();
-            move |_song, index| {
-                on_queue_changed_fn.call(QueueChange::Remove(index));
-            }
-        });
+        {
+            let queue_screen = queue_screen.borrow_mut();
+            queue_screen.on_enter({
+                let player = player.clone();
+                move |song| {
+                    player.upgrade().inspect(|p| p.play(song));
+                }
+            });
+            queue_screen.on_delete({
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
+                move |_song, index| {
+                    on_queue_changed_fn.call(QueueChange::Remove(index));
+                }
+            });
+        }
 
-        browser.on_enqueue({
-            let queue_screen = queue_screen.clone();
-            let on_queue_changed_fn = on_queue_changed_fn.clone();
-            move |songs| {
-                queue_screen.append(songs.clone());
-                on_queue_changed_fn.call(QueueChange::Append(songs));
-            }
-        });
-        browser.on_add_to_lib({
-            let library = library.clone();
+        {
+            let browser = browser.borrow_mut();
+            browser.on_enqueue({
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
+                move |songs| {
+                    queue_screen.borrow_mut().append(songs.clone());
+                    on_queue_changed_fn.call(QueueChange::Append(songs));
+                }
+            });
+            browser.on_add_to_lib({
+                let library = library.clone();
 
-            move |songs| {
-                library.add_songs(songs);
-            }
-        });
-        browser.on_add_to_playlist({
-            let playlist = playlist.clone();
+                move |songs| {
+                    library.borrow_mut().add_songs(songs);
+                }
+            });
+            browser.on_add_to_playlist({
+                let playlist = playlist.clone();
 
-            move |mut songs| {
-                playlist.add_songs(&mut songs);
-            }
-        });
+                move |mut songs| {
+                    playlist.borrow_mut().add_songs(&mut songs);
+                }
+            });
+        }
 
         let help = Rc::new(RefCell::new(Help::new(theme)));
 
@@ -185,11 +193,11 @@ impl<'a> Root<'a> {
             frame: Cell::default(),
 
             screens: vec![
-                ("Library".to_string(), Component::Ref(library.clone())),
-                ("Playlists".to_string(), Component::Ref(playlist.clone())),
-                ("Queue".to_string(), Component::Ref(queue_screen.clone())),
-                ("File Browser".to_string(), Component::Ref(browser.clone())),
-                ("Help".to_string(), Component::Mut(help.clone())),
+                ("Library".to_string(), library.clone()),
+                ("Playlists".to_string(), playlist.clone()),
+                ("Queue".to_string(), queue_screen.clone()),
+                ("File Browser".to_string(), browser.clone()),
+                ("Help".to_string(), help.clone()),
             ],
             focused_screen: 0,
             is_focus_trapped,
@@ -204,7 +212,7 @@ impl<'a> Root<'a> {
     }
 
     pub fn browser_directory(&self) -> PathBuf {
-        self.browser_screen.current_directory()
+        self.browser_screen.borrow().current_directory()
     }
 
     pub fn on_queue_changed(&self, f: impl Fn(QueueChange) + 'a) {
@@ -212,7 +220,7 @@ impl<'a> Root<'a> {
     }
 
     pub fn set_queue(&self, songs: Vec<Song>) {
-        self.queue_screen.set_items(songs);
+        self.queue_screen.borrow_mut().set_items(songs);
     }
 }
 
@@ -230,7 +238,7 @@ impl OnActionMut for Root<'_> {
                 ScreenAction::Help => self.focused_screen = 4,
             },
             _ => {
-                let c = &self.screens[self.focused_screen].1;
+                let mut c = self.screens[self.focused_screen].1.borrow_mut();
                 c.on_action(action);
             }
         }
@@ -261,14 +269,7 @@ impl WidgetRef for &Root<'_> {
             return;
         };
 
-        match component {
-            Component::Ref(ref s) => {
-                s.render_ref(area_center, buf);
-            }
-            Component::Mut(ref s) => {
-                s.borrow().render_ref(area_center, buf);
-            }
-        }
+        component.borrow().render_ref(area_center, buf);
 
         let Some(player) = self.player.upgrade() else {
             return;
@@ -286,8 +287,8 @@ impl WidgetRef for &Root<'_> {
             self.theme,
             player.playing_song(),
             player.playing_position(),
-            self.queue_screen.duration(),
-            self.queue_screen.len(),
+            self.queue_screen.borrow().duration(),
+            self.queue_screen.borrow().len(),
             is_paused,
         )
         .render(area_bottom, buf);

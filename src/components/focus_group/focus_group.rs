@@ -3,16 +3,16 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     components::list::Direction,
     structs::{Action, NavigationAction, OnAction},
-    ui::ComponentRefFocusable,
+    ui::ComponentRef,
 };
 
 pub struct FocusGroup<'a> {
-    pub(super) children: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>>,
-    pub(super) focused: RefCell<Rc<dyn 'a + ComponentRefFocusable<'a>>>,
+    pub(super) children: Vec<Rc<dyn 'a + ComponentRef<'a>>>,
+    pub(super) focused: RefCell<Rc<dyn 'a + ComponentRef<'a>>>,
 }
 
 impl<'a> FocusGroup<'a> {
-    pub fn new(children: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>>) -> Self {
+    pub fn new(children: Vec<Rc<dyn 'a + ComponentRef<'a>>>) -> Self {
         assert!(!children.is_empty(), "FocusGroup children cannot be empty");
         let focused = children[0].clone();
 

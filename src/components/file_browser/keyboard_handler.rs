@@ -1,9 +1,9 @@
-use crate::structs::{Action, FileBrowserAction, OnAction};
+use crate::structs::{Action, FileBrowserAction, OnAction, OnActionMut};
 
 use super::{AddMode, FileBrowser};
 
-impl OnAction for FileBrowser<'_> {
-    fn on_action(&self, action: Action) {
+impl OnActionMut for FileBrowser<'_> {
+    fn on_action(&mut self, action: Action) {
         match action {
             Action::FileBrowser(action) => match action {
                 FileBrowserAction::NavigateUp => {

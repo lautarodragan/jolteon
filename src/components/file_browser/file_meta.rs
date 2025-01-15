@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
 
 use ratatui::{buffer::Buffer, layout::Rect, widgets::WidgetRef};
 
@@ -13,14 +13,14 @@ use crate::{
 
 pub struct FileMeta<'a> {
     file: RefCell<Option<FileBrowserSelection>>,
-    list: Rc<List<'a, String>>,
+    list: List<'a, String>,
 }
 
 impl FileMeta<'_> {
     pub fn new(theme: Theme) -> Self {
         Self {
             file: RefCell::new(None),
-            list: Rc::new(List::new(theme, vec![])),
+            list: List::new(theme, vec![]),
         }
     }
 

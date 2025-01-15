@@ -42,9 +42,7 @@ impl WidgetRef for Playlists<'_> {
         .horizontal_margin(2)
         .areas(area);
 
-        let show_deleted_playlists = self.show_deleted_playlists.get();
-
-        if show_deleted_playlists {
+        if self.show_deleted_playlists {
             let [left_top, _, left_bottom_header, _, left_bottom_list] = Layout::vertical([
                 Constraint::Percentage(50),
                 Constraint::Length(1),

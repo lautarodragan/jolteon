@@ -1,9 +1,9 @@
-use crate::structs::{Action, ListAction, OnAction};
+use crate::structs::{Action, ListAction, OnAction, OnActionMut};
 
 use super::library::Library;
 
-impl OnAction for Library<'_> {
-    fn on_action(&self, action: Action) {
+impl OnActionMut for Library<'_> {
+    fn on_action(&mut self, action: Action) {
         // log::trace!(target: "::library.on_action", "{action:?}");
 
         match action {

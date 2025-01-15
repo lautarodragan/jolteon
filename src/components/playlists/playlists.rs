@@ -1,4 +1,4 @@
-use std::{cell::Cell, rc::Rc};
+use std::rc::Rc;
 
 use chrono::Local;
 
@@ -14,7 +14,7 @@ pub struct Playlists<'a> {
     pub(super) deleted_playlist_list: Rc<List<'a, Playlist>>,
     pub(super) song_list: Rc<List<'a, Song>>,
     pub(super) focus_group: FocusGroup<'a>,
-    pub(super) show_deleted_playlists: Cell<bool>,
+    pub(super) show_deleted_playlists: bool,
 }
 
 impl<'a> Playlists<'a> {
@@ -112,7 +112,7 @@ impl<'a> Playlists<'a> {
             deleted_playlist_list,
             song_list,
             focus_group,
-            show_deleted_playlists: Cell::new(false),
+            show_deleted_playlists: false,
         }
     }
 

@@ -1,9 +1,9 @@
-use crate::structs::{Action, OnAction};
+use crate::structs::{Action, OnAction, OnActionMut};
 
 use super::Queue;
 
-impl OnAction for Queue<'_> {
-    fn on_action(&self, action: Action) {
+impl OnActionMut for Queue<'_> {
+    fn on_action(&mut self, action: Action) {
         self.song_list.on_action(action);
     }
 }
