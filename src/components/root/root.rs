@@ -50,7 +50,7 @@ impl<T> Default for Callback<'_, T> {
 
 pub struct Root<'a> {
     theme: Theme,
-    frame: Cell<u64>,
+    frame: u64,
 
     screens: Vec<(String, Rc<RefCell<dyn 'a + ComponentMut<'a>>>)>,
     focused_screen: usize,
@@ -190,7 +190,7 @@ impl<'a> Root<'a> {
 
         Self {
             theme,
-            frame: Cell::default(),
+            frame: 0,
 
             screens: vec![
                 ("Library".to_string(), library.clone()),
@@ -245,8 +245,8 @@ impl OnActionMut for Root<'_> {
     }
 }
 
-impl WidgetRef for &Root<'_> {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+impl Widget for &mut Root<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         Block::default()
             .style(Style::default().bg(self.theme.background))
             .render(area, buf);
@@ -261,7 +261,7 @@ impl WidgetRef for &Root<'_> {
 
         let screen_titles: Vec<&str> = self.screens.iter().map(|screen| screen.0.as_str()).collect();
 
-        let top_bar = TopBar::new(self.theme, &screen_titles, self.focused_screen, self.frame.get());
+        let top_bar = TopBar::new(self.theme, &screen_titles, self.focused_screen, self.frame);
         top_bar.render(area_top, buf);
 
         let Some((_, component)) = self.screens.get(self.focused_screen) else {
@@ -275,11 +275,9 @@ impl WidgetRef for &Root<'_> {
             return;
         };
 
-        let frame = self.frame.get();
-
         let is_paused = player.is_paused() && {
             const ANIM_LEN: u64 = 6 * 16;
-            let step = frame % ANIM_LEN;
+            let step = self.frame % ANIM_LEN;
             step % 12 < 6 || step >= 6 * 8 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
         };
 
@@ -293,12 +291,12 @@ impl WidgetRef for &Root<'_> {
         )
         .render(area_bottom, buf);
 
-        self.frame.set(frame + 1);
+        self.frame += 1;
     }
 }
 
 impl Drop for Root<'_> {
     fn drop(&mut self) {
-        log::trace!("App.drop");
+        log::trace!("Root.drop");
     }
 }

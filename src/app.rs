@@ -95,7 +95,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
         }
 
         terminal.draw(|frame| {
-            frame.render_widget_ref(&root_component, frame.area());
+            frame.render_widget(&mut root_component, frame.area());
         })?;
 
         let timeout = tick_rate.saturating_sub(last_tick.elapsed());
