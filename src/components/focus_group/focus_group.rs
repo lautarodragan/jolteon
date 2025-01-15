@@ -13,6 +13,7 @@ pub struct FocusGroup<'a> {
 
 impl<'a> FocusGroup<'a> {
     pub fn new(children: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>>) -> Self {
+        assert!(!children.is_empty(), "FocusGroup children cannot be empty");
         let focused = children[0].clone();
         Self {
             children,
@@ -35,7 +36,7 @@ impl<'a> FocusGroup<'a> {
         }
 
         if direction == Direction::Forwards {
-            if focus > 1 {
+            if focus >= self.children.len() - 1 {
                 focus = 0
             } else {
                 focus += 1;
