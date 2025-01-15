@@ -8,12 +8,6 @@ use crate::{
     structs::{Playlist, Song},
 };
 
-#[derive(Eq, PartialEq)]
-pub(super) enum PlaylistScreenElement {
-    PlaylistList,
-    SongList,
-}
-
 pub struct Playlists<'a> {
     pub(super) theme: Theme,
     pub(super) playlist_list: Rc<List<'a, Playlist>>,
