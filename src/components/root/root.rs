@@ -10,7 +10,7 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     prelude::{Style, Widget},
-    widgets::{Block, WidgetRef},
+    widgets::Block,
 };
 
 use crate::{
@@ -226,9 +226,6 @@ impl<'a> Root<'a> {
 
 impl OnActionMut for Root<'_> {
     fn on_action(&mut self, action: Action) {
-        // if self.is_focus_trapped.get() {
-        //     return;
-        // }
         match action {
             Action::Screen(action) if !self.is_focus_trapped.get() => match action {
                 ScreenAction::Library => self.focused_screen = 0,
@@ -278,7 +275,7 @@ impl Widget for &mut Root<'_> {
         let is_paused = player.is_paused() && {
             const ANIM_LEN: u64 = 6 * 16;
             let step = self.frame % ANIM_LEN;
-            step % 12 < 6 || step >= 6 * 8 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
+            step % 12 < 6 || step >= ANIM_LEN / 2 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
         };
 
         crate::ui::CurrentlyPlaying::new(

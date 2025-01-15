@@ -117,7 +117,7 @@ impl<'a> FileBrowser<'a> {
 
         // TODO: duplicated code from parents_list.on_select(...).
         //   Must create a FileList component that wraps a List and has a .set_directory etc.
-        if let Some(first_parent) = items.get(0)
+        if let Some(first_parent) = items.first()
             && let FileBrowserSelection::Directory(path) = first_parent
         {
             let files = directory_to_songs_and_folders(path.as_path());
