@@ -29,7 +29,7 @@ impl<'a> Playlists<'a> {
                 .map(|pl| pl.songs.clone())
                 .unwrap_or_default(),
         ));
-        let playlist_list = Rc::new(List::new(theme, playlists_file.playlists));
+        let mut playlist_list = List::new(theme, playlists_file.playlists);
         let deleted_playlist_list = Rc::new(List::new(theme, playlists_file.deleted));
 
         playlist_list.on_select({
@@ -39,6 +39,7 @@ impl<'a> Playlists<'a> {
             }
         });
 
+        let playlist_list = Rc::new(playlist_list);
         playlist_list.on_rename({
             let playlist_list = playlist_list.clone();
             let deleted_playlist_list = deleted_playlist_list.clone();

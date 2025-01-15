@@ -108,10 +108,7 @@ where
                 _ => item.inner.to_string().into(),
             };
 
-            let style_overrides = {
-                let line_style = self.line_style.borrow_mut();
-                line_style.as_ref().and_then(|ls| ls(&item.inner))
-            };
+            let style_overrides = self.line_style.as_ref().and_then(|ls| ls(&item.inner));
 
             let line = ListLine {
                 theme: &self.theme,

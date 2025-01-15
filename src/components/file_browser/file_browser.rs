@@ -46,7 +46,7 @@ pub struct FileBrowser<'a> {
 impl<'a> FileBrowser<'a> {
     pub fn new(theme: Theme, current_directory: PathBuf) -> Self {
         let items = directory_to_songs_and_folders(&current_directory);
-        let children_list = Rc::new(List::new(theme, vec![]));
+        let mut children_list = List::new(theme, vec![]);
         let file_meta = Rc::new(FileMeta::new(theme));
         let current_directory = Rc::new(CurrentDirectory::new(theme, current_directory));
         let history = Rc::new(RefCell::new(HashMap::new()));
@@ -131,9 +131,10 @@ impl<'a> FileBrowser<'a> {
             children_list.set_items(files);
         }
 
-        let parents_list = Rc::new(List::new(theme, items));
+        let mut parents_list = List::new(theme, items);
         parents_list.set_auto_select_next(false);
 
+        let children_list = Rc::new(children_list);
         parents_list.on_select({
             let children_list = children_list.clone();
             let file_meta = file_meta.clone();
@@ -153,6 +154,9 @@ impl<'a> FileBrowser<'a> {
                 }
             }
         });
+
+        let parents_list = Rc::new(parents_list);
+
         parents_list.on_enter({
             let on_enqueue_fn = Rc::clone(&on_enqueue_fn);
             let current_directory = Rc::clone(&current_directory);

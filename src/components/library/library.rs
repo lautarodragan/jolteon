@@ -31,7 +31,7 @@ impl<'a> Library<'a> {
             Rc::new(RefCell::new(Box::new(|_| {}) as _));
 
         let songs_by_artist = Rc::new(RefCell::new(crate::files::Library::from_file()));
-        let album_tree = Rc::new(List::new(theme, vec![]));
+        let mut album_tree = List::new(theme, vec![]);
         let song_list = Rc::new(List::new(theme, vec![]));
 
         album_tree.on_select({
@@ -150,6 +150,7 @@ impl<'a> Library<'a> {
             }
         });
 
+        let album_tree = Rc::new(album_tree);
         let focus_group = FocusGroup::new(vec![album_tree.clone(), song_list.clone()]);
 
         let lib = Self {

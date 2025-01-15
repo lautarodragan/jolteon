@@ -64,7 +64,7 @@ pub struct List<'a, T: 'a> {
     pub(super) visible_items: RefCell<Vec<usize>>,
     pub(super) selected_item_index: Cell<usize>,
 
-    pub(super) on_select_fn: RefCell<Box<dyn Fn(T) + 'a>>,
+    pub(super) on_select_fn: Box<dyn Fn(T) + 'a>,
     pub(super) on_enter_fn: RefCell<Box<dyn Fn(T) + 'a>>,
     pub(super) on_enter_alt_fn: RefCell<Option<Box<dyn Fn(T) + 'a>>>,
     pub(super) on_reorder_fn: RefCell<Option<Box<dyn Fn(usize, usize) + 'a>>>,
@@ -74,18 +74,18 @@ pub struct List<'a, T: 'a> {
     pub(super) on_request_focus_trap_fn: RefCell<Box<dyn Fn(bool) + 'a>>,
     pub(super) find_next_item_by_fn: RefCell<Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>>,
 
-    pub(super) auto_select_next: Cell<bool>,
+    pub(super) auto_select_next: bool,
 
     pub(super) offset: Cell<usize>,
     pub(super) height: Cell<usize>,
-    pub(super) line_style: RefCell<Option<Box<dyn Fn(&T) -> Option<ratatui::style::Style> + 'a>>>,
+    pub(super) line_style: Option<Box<dyn Fn(&T) -> Option<ratatui::style::Style> + 'a>>,
     pub(super) is_focused: Cell<bool>,
 
     pub(super) filter: RefCell<String>,
     pub(super) rename: RefCell<Option<String>>,
 
-    pub(super) padding: Cell<u8>,
-    pub(super) page_size: Cell<u8>,
+    pub(super) padding: u8,
+    pub(super) page_size: u8,
 }
 
 impl<'a, T> List<'a, T>
@@ -98,7 +98,7 @@ where
         let s = Self {
             theme,
 
-            on_select_fn: RefCell::new(Box::new(|_| {}) as _),
+            on_select_fn: Box::new(|_| {}) as _,
             on_enter_fn: RefCell::new(Box::new(|_| {}) as _),
             on_enter_alt_fn: RefCell::new(None),
             on_reorder_fn: RefCell::new(None),
@@ -112,31 +112,30 @@ where
             visible_items: RefCell::default(),
             selected_item_index: Cell::new(0),
 
-            auto_select_next: Cell::new(true),
+            auto_select_next: true,
 
             offset: Cell::new(0),
             height: Cell::new(0),
-            line_style: RefCell::new(None),
+            line_style: None,
             is_focused: Cell::default(),
 
             filter: RefCell::new("".to_string()),
             rename: RefCell::new(None),
 
-            padding: Cell::new(5),
-            page_size: Cell::new(5),
+            padding: 5,
+            page_size: 5,
         };
 
         s.refresh_visible_items();
         s
     }
 
-    pub fn set_auto_select_next(&self, v: bool) {
-        self.auto_select_next.set(v);
+    pub fn set_auto_select_next(&mut self, v: bool) {
+        self.auto_select_next = v;
     }
 
-    pub fn line_style(&self, cb: impl Fn(&T) -> Option<ratatui::style::Style> + 'a) {
-        let mut line_style = self.line_style.borrow_mut();
-        *line_style = Some(Box::new(cb));
+    pub fn line_style(&mut self, cb: impl Fn(&T) -> Option<ratatui::style::Style> + 'a) {
+        self.line_style = Some(Box::new(cb));
     }
 
     pub fn with_items<R>(&self, cb: impl FnOnce(Vec<&T>) -> R) -> R {
@@ -158,8 +157,8 @@ where
     }
 
     /// Triggered by moving the selection around, with the Up and Down arrow keys by default.
-    pub fn on_select(&self, cb: impl Fn(T) + 'a) {
-        *self.on_select_fn.borrow_mut() = Box::new(cb);
+    pub fn on_select(&mut self, cb: impl Fn(T) + 'a) {
+        self.on_select_fn = Box::new(cb);
     }
 
     /// Triggered, by default, with Enter.
@@ -350,7 +349,7 @@ where
         let new_i = new_i as isize;
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
-        let padding = self.padding.get() as isize;
+        let padding = self.padding as isize;
         let padding = if is_down { height - padding - 1 } else { padding };
 
         if (is_up && new_i < offset + padding) || (is_down && new_i > offset + padding) {
@@ -397,13 +396,13 @@ where
 
                     if action == Action::Confirm {
                         self.on_enter_fn.borrow_mut()(item);
-                        if self.auto_select_next.get() {
+                        if self.auto_select_next {
                             self.exec_navigation_action(NavigationAction::Down);
                         }
                     } else if action == Action::ConfirmAlt {
                         if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
                             on_enter_alt_fn(item);
-                            if self.auto_select_next.get() {
+                            if self.auto_select_next {
                                 self.exec_navigation_action(NavigationAction::Down);
                             }
                         }
@@ -498,8 +497,8 @@ where
                 };
                 initial_i + n + 1
             }
-            NavigationAction::PageUp if !is_filtering => initial_i.saturating_sub(self.page_size.get() as usize),
-            NavigationAction::PageDown if !is_filtering => initial_i + self.page_size.get() as usize,
+            NavigationAction::PageUp if !is_filtering => initial_i.saturating_sub(self.page_size as usize),
+            NavigationAction::PageDown if !is_filtering => initial_i + self.page_size as usize,
             NavigationAction::Home if !is_filtering => 0,
             NavigationAction::End if !is_filtering => usize::MAX,
             NavigationAction::Home if is_filtering => {
@@ -534,7 +533,7 @@ where
         let item_index = self.visible_items.borrow()[i];
         let newly_selected_item = self.items.borrow()[item_index].inner.clone();
 
-        self.on_select_fn.borrow_mut()(newly_selected_item);
+        (self.on_select_fn)(newly_selected_item);
     }
 
     fn exec_rename_action(&self, action: Action) {
@@ -609,7 +608,6 @@ where
                 self.refresh_visible_items();
 
                 on_delete(removed_item.inner, i);
-
             }
             ListAction::SwapUp | ListAction::SwapDown => {
                 let on_reorder = self.on_reorder_fn.borrow_mut();
