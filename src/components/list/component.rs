@@ -281,15 +281,15 @@ where
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
-        let mut filter = self.filter.borrow_mut();
-
-        cb(&mut filter);
-
         let mut items = self.items.borrow_mut();
 
         if items.len() < 2 {
             return;
         }
+
+        let mut filter = self.filter.borrow_mut();
+
+        cb(&mut filter);
 
         for item in items.iter_mut() {
             if filter.is_empty() {
