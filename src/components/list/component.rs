@@ -271,6 +271,8 @@ where
     pub fn push_item(&self, item: T) {
         let mut items = self.items.borrow_mut();
         items.push(ListItem::new(item));
+        drop(items);
+        self.refresh_visible_items();
     }
 
     pub fn append_items(&self, items_to_append: impl IntoIterator<Item = T>) {
@@ -278,6 +280,8 @@ where
         let mut items_to_append: Vec<ListItem<T>> = items_to_append.into_iter().map(ListItem::new).collect();
 
         items.append(&mut items_to_append);
+        drop(items);
+        self.refresh_visible_items();
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
@@ -602,8 +606,10 @@ where
                 }
 
                 drop(items);
+                self.refresh_visible_items();
 
                 on_delete(removed_item.inner, i);
+
             }
             ListAction::SwapUp | ListAction::SwapDown => {
                 let on_reorder = self.on_reorder_fn.borrow_mut();
@@ -626,6 +632,7 @@ where
 
                 items.swap(i, next_i);
                 drop(items);
+                self.refresh_visible_items();
                 self.set_selected_index(next_i);
                 on_reorder(i, next_i);
             }
