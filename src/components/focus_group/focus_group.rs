@@ -15,6 +15,11 @@ impl<'a> FocusGroup<'a> {
     pub fn new(children: Vec<Rc<dyn 'a + ComponentRefFocusable<'a>>>) -> Self {
         assert!(!children.is_empty(), "FocusGroup children cannot be empty");
         let focused = children[0].clone();
+
+        for (e, i) in children.iter().enumerate() {
+            i.set_is_focused(e == 0);
+        }
+
         Self {
             children,
             focused: RefCell::new(focused),
