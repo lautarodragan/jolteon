@@ -1,9 +1,9 @@
-use std::{cell::Cell, rc::Rc, sync::Mutex};
+use std::{cell::Cell, rc::Rc};
 
 use chrono::Local;
 
 use crate::{
-    components::List,
+    components::{FocusGroup, List},
     config::Theme,
     structs::{Playlist, Song},
 };
@@ -19,7 +19,7 @@ pub struct Playlists<'a> {
     pub(super) playlist_list: Rc<List<'a, Playlist>>,
     pub(super) deleted_playlist_list: Rc<List<'a, Playlist>>,
     pub(super) song_list: Rc<List<'a, Song>>,
-    pub(super) focused_element: Mutex<PlaylistScreenElement>,
+    pub(super) focus_group: FocusGroup<'a>,
     pub(super) show_deleted_playlists: Cell<bool>,
 }
 
@@ -104,6 +104,8 @@ impl<'a> Playlists<'a> {
             }
         });
 
+        let focus_group = FocusGroup::new(vec![playlist_list.clone(), song_list.clone()]);
+
         Self {
             // playlists: Mutex::new(vec![
             //     Playlist::new("My first Jolteon playlist".to_string()),
@@ -114,7 +116,7 @@ impl<'a> Playlists<'a> {
             playlist_list,
             deleted_playlist_list,
             song_list,
-            focused_element: Mutex::new(PlaylistScreenElement::PlaylistList),
+            focus_group,
             show_deleted_playlists: Cell::new(false),
         }
     }
