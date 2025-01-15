@@ -46,7 +46,6 @@ pub struct FileBrowser<'a> {
 impl<'a> FileBrowser<'a> {
     pub fn new(theme: Theme, current_directory: PathBuf) -> Self {
         let items = directory_to_songs_and_folders(&current_directory);
-        let parents_list = Rc::new(List::new(theme, items));
         let children_list = Rc::new(List::new(theme, vec![]));
         let file_meta = Rc::new(FileMeta::new(theme));
         let current_directory = Rc::new(CurrentDirectory::new(theme, current_directory));
@@ -116,6 +115,23 @@ impl<'a> FileBrowser<'a> {
             }
         });
 
+        // TODO: duplicated code from parents_list.on_select(...).
+        //   Must create a FileList component that wraps a List and has a .set_directory etc.
+        if let Some(first_parent) = items.get(0)
+            && let FileBrowserSelection::Directory(path) = first_parent
+        {
+            let files = directory_to_songs_and_folders(path.as_path());
+
+            if let Some(f) = files.first() {
+                file_meta.set_file(f.clone());
+            } else {
+                file_meta.clear();
+            }
+
+            children_list.set_items(files);
+        }
+
+        let parents_list = Rc::new(List::new(theme, items));
         parents_list.set_auto_select_next(false);
 
         parents_list.on_select({
