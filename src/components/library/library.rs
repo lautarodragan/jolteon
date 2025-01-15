@@ -1,11 +1,14 @@
 use std::{
-    cell::Cell,
     collections::HashSet,
     rc::Rc,
     sync::{Mutex, MutexGuard},
 };
 
-use crate::{components::list::Direction, components::List, config::Theme, structs::Song, ui::Component};
+use crate::{
+    components::{list::Direction, FocusGroup, List},
+    config::Theme,
+    structs::Song,
+};
 
 use super::album_tree_item::AlbumTreeItem;
 
@@ -17,8 +20,7 @@ pub struct Library<'a> {
 
     pub(super) song_list: Rc<List<'a, Song>>,
     pub(super) album_tree: Rc<List<'a, AlbumTreeItem>>,
-    pub(super) components: Rc<Vec<Component<'a>>>,
-    pub(super) focused_component: Rc<Cell<usize>>,
+    pub(super) focus_group: FocusGroup<'a>,
 
     pub(super) on_select_songs_fn: Rc<Mutex<Box<dyn FnMut(Vec<Song>) + 'a>>>,
 }
@@ -147,21 +149,17 @@ impl<'a> Library<'a> {
             }
         });
 
-        let components: Rc<Vec<Component>> = Rc::new(vec![
-            Component::Ref(album_tree.clone()),
-            Component::Ref(song_list.clone()),
-        ]);
+        let focus_group = FocusGroup::new(vec![album_tree.clone(), song_list.clone()]);
 
         let lib = Self {
             theme,
-            focused_component: Rc::new(Cell::new(0)),
+            focus_group,
 
             on_select_songs_fn,
 
             songs_by_artist,
             song_list,
             album_tree,
-            components,
         };
 
         lib.refresh_components();

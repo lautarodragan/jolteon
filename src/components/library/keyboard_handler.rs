@@ -1,4 +1,4 @@
-use crate::structs::{Action, ListAction, NavigationAction, OnAction};
+use crate::structs::{Action, ListAction, OnAction};
 
 use super::library::Library;
 
@@ -7,16 +7,6 @@ impl OnAction for Library<'_> {
         // log::trace!(target: "::library.on_action", "{action:?}");
 
         match action {
-            Action::Navigation(NavigationAction::FocusNext) => {
-                let focused_component = self.focused_component.get();
-                self.focused_component.set({
-                    if focused_component < self.components.len().saturating_sub(1) {
-                        focused_component + 1
-                    } else {
-                        0
-                    }
-                });
-            }
             Action::ListAction(ListAction::OpenClose) => {
                 // TODO: implement a concept of "children" directly into the List component
                 let (artist_index, artist_album_count) = self.album_tree.with_items(|items| {
@@ -64,9 +54,7 @@ impl OnAction for Library<'_> {
                 }
             }
             _ => {
-                if let Some(a) = self.components.get(self.focused_component.get()) {
-                    a.on_action(action);
-                }
+                self.focus_group.on_action(action);
             }
         }
     }
