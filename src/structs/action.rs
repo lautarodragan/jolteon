@@ -128,6 +128,7 @@ pub enum PlaylistsAction {
     ShowHideGraveyard,
 }
 
+// TODO: https://docs.rs/strum/latest/strum/
 impl TryFrom<&str> for Action {
     type Error = ();
 
