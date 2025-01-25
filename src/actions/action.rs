@@ -2,6 +2,7 @@ use std::{collections::HashMap, fs::read_to_string, hash::Hash, sync::LazyLock};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
+use strum::EnumString;
 
 use crate::toml::{get_config_file_path, TomlFileError};
 
@@ -56,7 +57,7 @@ pub enum Action {
     FileBrowser(FileBrowserAction),
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
 pub enum NavigationAction {
     FocusNext,
     FocusPrevious,
@@ -72,14 +73,14 @@ pub enum NavigationAction {
     PreviousSpecial,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
 pub enum TextAction {
     Char(char),
     Delete,
     DeleteBack,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
 pub enum ListAction {
     Insert,
     Delete,
@@ -90,7 +91,7 @@ pub enum ListAction {
     OpenClose,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
 pub enum ScreenAction {
     Library,
     Playlists,
@@ -99,7 +100,7 @@ pub enum ScreenAction {
     Help,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
 pub enum PlayerAction {
     Stop,
     PlayPause,
@@ -111,7 +112,7 @@ pub enum PlayerAction {
     RepeatOne,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
 pub enum FileBrowserAction {
     AddToQueue,
     AddToLibrary,
@@ -121,16 +122,15 @@ pub enum FileBrowserAction {
     NavigateUp,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
 pub enum PlaylistsAction {
     ShowHideGraveyard,
 }
 
-// TODO: https://docs.rs/strum/latest/strum/
 impl TryFrom<&str> for Action {
-    type Error = ();
+    type Error = strum::ParseError;
 
-    fn try_from(value: &str) -> Result<Self, ()> {
+    fn try_from(value: &str) -> Result<Self, strum::ParseError> {
         if value == "Quit" {
             return Ok(Self::Quit);
         } else if value == "Confirm" {
@@ -143,7 +143,7 @@ impl TryFrom<&str> for Action {
 
         let parts: Vec<&str> = value.split('.').collect();
         let [parent, child]: [&str] = parts[..] else {
-            return Err(());
+            return Err(strum::ParseError::VariantNotFound);
         };
 
         if parent == "Player" {
@@ -161,118 +161,7 @@ impl TryFrom<&str> for Action {
         } else if parent == "FileBrowser" {
             FileBrowserAction::try_from(child).map(Action::FileBrowser)
         } else {
-            Err(())
-        }
-    }
-}
-
-impl TryFrom<&str> for ScreenAction {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, ()> {
-        match value {
-            "Library" => Ok(Self::Library),
-            "Playlists" => Ok(Self::Playlists),
-            "Queue" => Ok(Self::Queue),
-            "FileBrowser" => Ok(Self::FileBrowser),
-            "Help" => Ok(Self::Help),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<&str> for PlayerAction {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, ()> {
-        match value {
-            "PlayPause" => Ok(Self::PlayPause),
-            "Stop" => Ok(Self::Stop),
-            "VolumeUp" => Ok(Self::VolumeUp),
-            "VolumeDown" => Ok(Self::VolumeDown),
-            "SeekForwards" => Ok(Self::SeekForwards),
-            "SeekBackwards" => Ok(Self::SeekBackwards),
-            "RepeatOff" => Ok(Self::RepeatOff),
-            "RepeatOne" => Ok(Self::RepeatOne),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<&str> for NavigationAction {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, ()> {
-        match value {
-            "FocusNext" => Ok(Self::FocusNext),
-            "FocusPrevious" => Ok(Self::FocusPrevious),
-            "Up" => Ok(Self::Up),
-            "Down" => Ok(Self::Down),
-            "Left" => Ok(Self::Left),
-            "Right" => Ok(Self::Right),
-            "Home" => Ok(Self::Home),
-            "End" => Ok(Self::End),
-            "PageUp" => Ok(Self::PageUp),
-            "PageDown" => Ok(Self::PageDown),
-            "NextSpecial" => Ok(Self::NextSpecial),
-            "PreviousSpecial" => Ok(Self::PreviousSpecial),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<&str> for TextAction {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, ()> {
-        match value {
-            "Delete" => Ok(Self::Delete),
-            "DeleteBack" => Ok(Self::DeleteBack),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<&str> for ListAction {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, ()> {
-        match value {
-            "Insert" => Ok(Self::Insert),
-            "Delete" => Ok(Self::Delete),
-            "SwapUp" => Ok(Self::SwapUp),
-            "SwapDown" => Ok(Self::SwapDown),
-            "RenameStart" => Ok(Self::RenameStart),
-            "RenameClear" => Ok(Self::RenameClear),
-            "OpenClose" => Ok(Self::OpenClose),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<&str> for FileBrowserAction {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, ()> {
-        match value {
-            "NavigateUp" => Ok(Self::NavigateUp),
-            "AddToPlaylist" => Ok(Self::AddToPlaylist),
-            "AddToLibrary" => Ok(Self::AddToLibrary),
-            "AddToQueue" => Ok(Self::AddToQueue),
-            "ToggleMode" => Ok(Self::ToggleMode),
-            "OpenTerminal" => Ok(Self::OpenTerminal),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<&str> for PlaylistsAction {
-    type Error = ();
-
-    fn try_from(value: &str) -> Result<Self, ()> {
-        match value {
-            "ShowHideGraveyard" => Ok(Self::ShowHideGraveyard),
-            _ => Err(()),
+            return Err(strum::ParseError::VariantNotFound);
         }
     }
 }

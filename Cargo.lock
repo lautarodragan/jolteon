@@ -1277,6 +1277,7 @@ dependencies = [
  "reqwest",
  "rodio",
  "serde",
+ "strum",
  "toml",
 ]
 
