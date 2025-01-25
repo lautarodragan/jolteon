@@ -226,8 +226,8 @@ impl<'a> Root<'a> {
 }
 
 impl OnActionMut for Root<'_> {
-    fn on_action(&mut self, action: Action) {
-        match action {
+    fn on_action(&mut self, action: Vec<Action>) {
+        match action[0] {
             Action::Screen(action) if !self.is_focus_trapped.get() => match action {
                 ScreenAction::Library => self.focused_screen = 0,
                 ScreenAction::Playlists => self.focused_screen = 1,

@@ -393,8 +393,8 @@ impl SingleTrackPlayer {
 }
 
 impl OnAction<PlayerAction> for SingleTrackPlayer {
-    fn on_action(&self, action: PlayerAction) {
-        match action {
+    fn on_action(&self, action: Vec<PlayerAction>) {
+        match action[0] {
             PlayerAction::PlayPause => {
                 self.toggle();
             }

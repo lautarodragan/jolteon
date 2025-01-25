@@ -3,9 +3,16 @@ use crate::actions::{Action, FileBrowserAction, OnAction, OnActionMut};
 use super::{AddMode, FileBrowser};
 
 impl OnActionMut for FileBrowser<'_> {
-    fn on_action(&mut self, action: Action) {
-        match action {
-            Action::FileBrowser(action) => match action {
+    fn on_action(&mut self, actions: Vec<Action>) {
+        log::debug!("FB action {actions:?}");
+
+        if self.parents_list.filter().is_empty()
+            && let Some(action) = actions.iter().find_map(|action| match action {
+                Action::FileBrowser(a) => Some(a),
+                _ => None,
+            })
+        {
+            match action {
                 FileBrowserAction::NavigateUp => {
                     self.navigate_up();
                 }
@@ -28,10 +35,9 @@ impl OnActionMut for FileBrowser<'_> {
                     });
                     self.help.set_add_mode(self.add_mode.get());
                 }
-            },
-            _ => {
-                self.focus_group.on_action(action);
             }
+        } else {
+            self.focus_group.on_action(actions);
         }
     }
 }

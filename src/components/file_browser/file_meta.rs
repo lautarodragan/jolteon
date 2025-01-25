@@ -165,8 +165,8 @@ impl WidgetRef for FileMeta<'_> {
 }
 
 impl OnAction for FileMeta<'_> {
-    fn on_action(&self, action: Action) {
-        self.list.on_action(action);
+    fn on_action(&self, actions: Vec<Action>) {
+        self.list.on_action(actions);
     }
 }
 

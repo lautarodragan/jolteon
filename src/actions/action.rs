@@ -209,12 +209,12 @@ impl Actions {
     #[allow(dead_code)]
     pub fn to_file(&self) {}
 
-    pub fn action_by_key(&self, key: KeyEvent) -> Option<Action> {
+    pub fn action_by_key(&self, key: KeyEvent) -> Vec<Action> {
         if let KeyCode::Char(c) = key.code
             && key.modifiers.is_empty()
             && c.is_alphabetic()
         {
-            return Some(Action::Text(TextAction::Char(c)));
+            return vec![Action::Text(TextAction::Char(c))];
         }
 
         let sc = KeyBinding::from(key);
@@ -222,7 +222,8 @@ impl Actions {
         self.actions
             .get(&sc)
             .or(DEFAULT_ACTIONS.get(&sc))
-            .map(|actions| actions[0]) // TODO: Return Vec<Action>
+            .cloned()
+            .unwrap_or(vec![])
     }
 
     pub fn key_by_action(&self, action: Action) -> Option<KeyBinding> {
@@ -253,11 +254,11 @@ impl Actions {
 }
 
 pub trait OnAction<T = Action> {
-    fn on_action(&self, action: T);
+    fn on_action(&self, action: Vec<T>);
 }
 
 pub trait OnActionMut<T = Action> {
-    fn on_action(&mut self, action: T);
+    fn on_action(&mut self, action: Vec<T>);
 }
 
 fn str_to_action_keys(split: Vec<&str>) -> Option<(Action, &str)> {

@@ -283,6 +283,10 @@ where
         self.refresh_visible_items();
     }
 
+    pub fn filter(&self) -> String {
+        self.filter.borrow().clone()
+    }
+
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
         let mut items = self.items.borrow_mut();
 

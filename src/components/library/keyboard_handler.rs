@@ -3,10 +3,10 @@ use crate::actions::{Action, ListAction, OnAction, OnActionMut};
 use super::library::Library;
 
 impl OnActionMut for Library<'_> {
-    fn on_action(&mut self, action: Action) {
+    fn on_action(&mut self, actions: Vec<Action>) {
         // log::trace!(target: "::library.on_action", "{action:?}");
 
-        match action {
+        match actions[0] {
             Action::ListAction(ListAction::OpenClose) => {
                 // TODO: implement a concept of "children" directly into the List component
                 let (artist_index, artist_album_count) = self.album_tree.with_items(|items| {
@@ -54,7 +54,7 @@ impl OnActionMut for Library<'_> {
                 }
             }
             _ => {
-                self.focus_group.on_action(action);
+                self.focus_group.on_action(actions);
             }
         }
     }

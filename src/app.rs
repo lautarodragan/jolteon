@@ -102,19 +102,22 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
         if event::poll(timeout)?
             && let Event::Key(key) = event::read()?
-            && let Some(action) = actions.action_by_key(key)
+            && let actions = actions.action_by_key(key)
+            && !actions.is_empty()
         {
-            match action {
-                Action::Quit => {
-                    break;
+            if actions.contains(&Action::Quit) {
+                break;
+            } else if let Some(action) = actions.iter().find_map(|action| {
+                if let Action::Player(action) = action {
+                    Some(action)
+                } else {
+                    None
                 }
-                Action::Player(action) => {
-                    player.on_action(action);
-                    player.single_track_player().on_action(action);
-                }
-                _ => {
-                    root_component.on_action(action);
-                }
+            }) {
+                player.on_action(vec![*action]);
+                player.single_track_player().on_action(vec![*action]);
+            } else {
+                root_component.on_action(actions);
             }
         }
 

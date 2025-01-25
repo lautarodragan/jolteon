@@ -221,29 +221,12 @@ impl MainPlayer {
 }
 
 impl OnAction<PlayerAction> for MainPlayer {
-    fn on_action(&self, action: PlayerAction) {
-        match action {
+    fn on_action(&self, action: Vec<PlayerAction>) {
+        match action[0] {
             PlayerAction::RepeatOne | PlayerAction::RepeatOff => {
-                self.sender.send(MainPlayerMessage::Action(action)).unwrap();
+                self.sender.send(MainPlayerMessage::Action(action[0])).unwrap();
             }
-            PlayerAction::PlayPause => {
-                self.single_track_player().toggle();
-            }
-            PlayerAction::Stop => {
-                self.single_track_player().stop();
-            }
-            PlayerAction::VolumeUp => {
-                self.single_track_player().change_volume(0.05);
-            }
-            PlayerAction::VolumeDown => {
-                self.single_track_player().change_volume(-0.05);
-            }
-            PlayerAction::SeekForwards => {
-                self.single_track_player().seek_forward();
-            }
-            PlayerAction::SeekBackwards => {
-                self.single_track_player().seek_backward();
-            }
+            _ => {}
         }
     }
 }

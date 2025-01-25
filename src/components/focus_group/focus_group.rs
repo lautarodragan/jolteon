@@ -64,8 +64,8 @@ impl<'a> FocusGroup<'a> {
 }
 
 impl OnAction for FocusGroup<'_> {
-    fn on_action(&self, action: Action) {
-        match action {
+    fn on_action(&self, action: Vec<Action>) {
+        match action[0] {
             Action::Navigation(NavigationAction::FocusNext) => {
                 self.focus(Direction::Forwards);
             }

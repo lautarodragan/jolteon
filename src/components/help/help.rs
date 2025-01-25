@@ -71,8 +71,8 @@ impl Help<'_> {
 }
 
 impl OnActionMut for Help<'_> {
-    fn on_action(&mut self, action: Action) {
-        match action {
+    fn on_action(&mut self, action: Vec<Action>) {
+        match action[0] {
             Action::Navigation(NavigationAction::Down) => self.next(),
             Action::Navigation(NavigationAction::Up) => self.previous(),
             _ => {}
