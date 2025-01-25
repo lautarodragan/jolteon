@@ -41,9 +41,7 @@ impl From<KeyEvent> for KeyBinding {
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
 #[allow(dead_code)]
 pub enum Action {
-    Error,     // Unused. Should remove, probably.
     Quit, // App will assert, on startup, as early as possible, there is at least one key-binding for Quit and crash otherwise.
-    QueueNext, // Unused. Right now, Player.Stop has the same effect.
     FocusNext,
     FocusPrevious,
     Confirm,
