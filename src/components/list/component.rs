@@ -651,7 +651,9 @@ where
             }
             TextAction::DeleteBack => {
                 self.filter_mut(|filter| {
-                    filter.remove(filter.len().saturating_sub(1));
+                    if !filter.is_empty() {
+                        filter.remove(filter.len().saturating_sub(1));
+                    }
                 });
             }
             _ => {}
