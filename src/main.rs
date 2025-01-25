@@ -11,6 +11,7 @@
 #![allow(clippy::enum_variant_names)]
 #![feature(let_chains)]
 
+mod actions;
 mod app;
 mod auto_update;
 mod bye;

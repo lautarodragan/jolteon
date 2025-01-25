@@ -6,8 +6,8 @@ use ratatui::{
 };
 
 use crate::{
+    actions::{Action, NavigationAction, OnActionMut},
     config::Theme,
-    structs::{Action, NavigationAction, OnActionMut},
 };
 
 pub struct Help<'a> {

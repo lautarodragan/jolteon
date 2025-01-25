@@ -1,4 +1,4 @@
-use crate::structs::{Action, OnAction};
+use crate::actions::{Action, OnAction};
 
 use super::component::List;
 

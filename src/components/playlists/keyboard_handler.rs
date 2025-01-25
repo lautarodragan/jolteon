@@ -1,6 +1,6 @@
 use super::Playlists;
 
-use crate::structs::{Action, OnAction, OnActionMut, PlaylistsAction};
+use crate::actions::{Action, OnAction, OnActionMut, PlaylistsAction};
 
 impl OnActionMut for Playlists<'_> {
     fn on_action(&mut self, action: Action) {

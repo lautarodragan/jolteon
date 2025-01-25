@@ -1,8 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
+    actions::{Action, NavigationAction, OnAction},
     components::list::Direction,
-    structs::{Action, NavigationAction, OnAction},
     ui::ComponentRef,
 };
 

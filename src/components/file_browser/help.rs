@@ -7,9 +7,9 @@ use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::WidgetRef};
 
 use crate::{
+    actions::{Action, Actions, FileBrowserAction, KeyBinding},
     components::file_browser::AddMode,
     config::Theme,
-    structs::{Action, Actions, FileBrowserAction, KeyBinding},
 };
 
 impl Display for Action {

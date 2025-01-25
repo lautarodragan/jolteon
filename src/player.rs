@@ -12,9 +12,10 @@ use std::{
 use rodio::OutputStreamHandle;
 
 use crate::{
+    actions::{OnAction, PlayerAction},
     mpris::Mpris,
     source::{Controls, Source},
-    structs::{OnAction, PlayerAction, Song},
+    structs::Song,
 };
 
 pub struct SingleTrackPlayer {

@@ -9,12 +9,12 @@ use crossterm::event::Event;
 use rodio::OutputStream;
 
 use crate::{
+    actions::{Action, Actions, OnAction, OnActionMut},
     components::*,
     config::Theme,
     main_player::MainPlayer,
     mpris::Mpris,
     state::State,
-    structs::{Action, Actions, OnAction, OnActionMut},
     term::set_terminal,
 };
 

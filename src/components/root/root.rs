@@ -14,11 +14,12 @@ use ratatui::{
 };
 
 use crate::{
+    actions::{Action, OnActionMut, ScreenAction},
     components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
     config::Theme,
     main_player::MainPlayer,
     state::State,
-    structs::{Action, OnActionMut, ScreenAction, Song},
+    structs::Song,
     ui::{ComponentMut, TopBar},
 };
 

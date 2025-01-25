@@ -1,4 +1,4 @@
-use crate::structs::{Action, OnAction, OnActionMut};
+use crate::actions::{Action, OnAction, OnActionMut};
 
 use super::Queue;
 

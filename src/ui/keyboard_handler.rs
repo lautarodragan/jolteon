@@ -1,7 +1,7 @@
 use ratatui::widgets::WidgetRef;
 
 use crate::{
-    structs::{OnAction, OnActionMut},
+    actions::{OnAction, OnActionMut},
     ui::Focusable,
 };
 

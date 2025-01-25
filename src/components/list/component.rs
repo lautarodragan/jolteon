@@ -3,9 +3,9 @@ use std::cell::{Cell, RefCell};
 use crossterm::event::KeyCode;
 
 use crate::{
-    structs::{Action, ListAction, TextAction},
+    actions::{Action, ListAction, NavigationAction, TextAction},
+    config::Theme,
     ui::Focusable,
-    {config::Theme, structs::NavigationAction},
 };
 
 #[derive(Eq, PartialEq)]

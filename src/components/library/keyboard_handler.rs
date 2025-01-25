@@ -1,4 +1,4 @@
-use crate::structs::{Action, ListAction, OnAction, OnActionMut};
+use crate::actions::{Action, ListAction, OnAction, OnActionMut};
 
 use super::library::Library;
 

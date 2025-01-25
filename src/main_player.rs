@@ -8,9 +8,10 @@ use std::time::Duration;
 use rodio::OutputStreamHandle;
 
 use crate::{
+    actions::{OnAction, PlayerAction},
     mpris::Mpris,
     player::SingleTrackPlayer,
-    structs::{OnAction, PlayerAction, Queue, Song},
+    structs::{Queue, Song},
 };
 
 #[derive(Debug)]

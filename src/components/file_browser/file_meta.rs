@@ -3,11 +3,12 @@ use std::cell::RefCell;
 use ratatui::{buffer::Buffer, layout::Rect, widgets::WidgetRef};
 
 use crate::{
+    actions::{Action, OnAction},
     components::{FileBrowserSelection, List},
     config::Theme,
     cue::CueSheet,
     duration::duration_to_string,
-    structs::{Action, Jolt, OnAction, Song},
+    structs::{Jolt, Song},
     ui::Focusable,
 };
 

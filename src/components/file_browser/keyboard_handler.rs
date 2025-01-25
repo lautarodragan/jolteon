@@ -1,4 +1,4 @@
-use crate::structs::{Action, FileBrowserAction, OnAction, OnActionMut};
+use crate::actions::{Action, FileBrowserAction, OnAction, OnActionMut};
 
 use super::{AddMode, FileBrowser};
 
