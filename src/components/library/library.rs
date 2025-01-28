@@ -46,7 +46,7 @@ fn library_file_to_song_tree(songs_by_artist: crate::files::Library) -> Vec<Arti
                 }
             }
 
-            let mut albums: Vec<Album> = albums.values().cloned().collect();
+            let mut albums: Vec<Album> = albums.into_values().collect();
             albums.sort_by_key(|a| a.year);
 
             Artist {
