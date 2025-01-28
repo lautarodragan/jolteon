@@ -38,7 +38,7 @@ pub struct Tree<'a, T: 'a> {
     pub(super) visible_items: RefCell<Vec<usize>>,
     pub(super) selected_item_index: Cell<usize>,
 
-    pub(super) on_select_fn: Box<dyn Fn(T) + 'a>,
+    pub(super) on_select_fn: Box<dyn Fn(TreeNode<T>) + 'a>,
     pub(super) on_enter_fn: RefCell<Box<dyn Fn(T) + 'a>>,
     pub(super) on_enter_alt_fn: RefCell<Option<Box<dyn Fn(T) + 'a>>>,
     pub(super) on_reorder_fn: RefCell<Option<Box<dyn Fn(usize, usize) + 'a>>>,
@@ -66,9 +66,7 @@ impl<'a, T> Tree<'a, T>
 where
     T: 'a + Clone + Display + Debug,
 {
-    pub fn new(theme: Theme, items: Vec<T>) -> Self {
-        let items: Vec<TreeNode<T>> = items.into_iter().map(TreeNode::new).collect();
-
+    pub fn new(theme: Theme, items: Vec<TreeNode<T>>) -> Self {
         let s = Self {
             theme,
 
@@ -131,7 +129,7 @@ where
     }
 
     /// Triggered by moving the selection around, with the Up and Down arrow keys by default.
-    pub fn on_select(&mut self, cb: impl Fn(T) + 'a) {
+    pub fn on_select(&mut self, cb: impl Fn(TreeNode<T>) + 'a) {
         self.on_select_fn = Box::new(cb);
     }
 
@@ -186,12 +184,12 @@ where
     }
 
     /// Sets the list of items and resets selection and scroll
-    pub fn set_items(&self, items: Vec<T>) {
+    pub fn set_items(&self, items: Vec<TreeNode<T>>) {
         self.set_items_s(items, 0, 0);
     }
 
     /// Sets the list of items but tries to conserve selection and scroll
-    pub fn set_items_k(&self, new_items: Vec<T>) {
+    pub fn set_items_k(&self, new_items: Vec<TreeNode<T>>) {
         let mut items = self.items.borrow_mut();
 
         if new_items.len() < items.len() {
@@ -206,7 +204,7 @@ where
             }
         }
 
-        *items = new_items.into_iter().map(TreeNode::new).collect();
+        *items = new_items;
 
         let mut visible_items = self.visible_items.borrow_mut();
         visible_items.resize(items.len(), 0);
@@ -216,10 +214,10 @@ where
     }
 
     /// Sets the list of items, selection and scroll
-    pub fn set_items_s(&self, new_items: Vec<T>, i: usize, o: usize) {
+    pub fn set_items_s(&self, new_items: Vec<TreeNode<T>>, i: usize, o: usize) {
         self.selected_item_index.set(i);
         self.offset.set(o);
-        *self.items.borrow_mut() = new_items.into_iter().map(TreeNode::new).collect();
+        *self.items.borrow_mut() = new_items;
         self.refresh_visible_items();
     }
 
@@ -287,22 +285,6 @@ where
         for item in &mut *items {
             item.is_open = v;
         }
-    }
-
-    pub fn push_item(&self, item: T) {
-        let mut items = self.items.borrow_mut();
-        items.push(TreeNode::new(item));
-        drop(items);
-        self.refresh_visible_items();
-    }
-
-    pub fn append_items(&self, items_to_append: impl IntoIterator<Item = T>) {
-        let mut items = self.items.borrow_mut();
-        let mut items_to_append: Vec<TreeNode<T>> = items_to_append.into_iter().map(TreeNode::new).collect();
-
-        items.append(&mut items_to_append);
-        drop(items);
-        self.refresh_visible_items();
     }
 
     pub fn filter(&self) -> String {
@@ -443,43 +425,6 @@ where
         };
     }
 
-    #[allow(unused)]
-    pub(super) fn next_visible_index(&self, start: usize) -> usize {
-        let items = self.items.borrow();
-        let mut next = start + 1;
-        loop {
-            if let Some(item) = items.get(next)
-                && item.is_visible
-            {
-                return next;
-            } else if next >= items.len() - 1 {
-                return start;
-            } else {
-                next += 1;
-            }
-        }
-    }
-
-    #[allow(unused)]
-    pub(super) fn previous_visible_index(&self, start: usize) -> usize {
-        if start == 0 {
-            return start;
-        }
-        let items = self.items.borrow();
-        let mut next = start - 1;
-        loop {
-            if let Some(item) = items.get(next)
-                && item.is_visible
-            {
-                return next;
-            } else if next == 0 {
-                return start;
-            } else {
-                next -= 1;
-            }
-        }
-    }
-
     fn exec_navigation_action(&self, action: NavigationAction) {
         let is_filtering = !self.filter.borrow_mut().is_empty();
         let length = self.visible_items.borrow().len();
@@ -554,8 +499,7 @@ where
         self.set_selected_visible_index(i);
 
         let item_index = self.visible_items.borrow()[i];
-        log::error!("whoop {:#?}", self.items.borrow()[item_index]);
-        let newly_selected_item = self.items.borrow()[item_index].inner.clone();
+        let newly_selected_item = self.items.borrow()[item_index].clone();
 
         (self.on_select_fn)(newly_selected_item);
     }
@@ -661,6 +605,12 @@ where
             ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
                 *self.rename.borrow_mut() = self.with_selected_item(|item| Some(item.to_string()));
                 self.on_request_focus_trap_fn.borrow_mut()(true);
+            }
+            ListAction::OpenClose => {
+                let i = self.selected_item_index.get();
+                let mut items = self.items.borrow_mut();
+                log::error!("ListAction::OpenClose {i} {:?}", items[i]);
+                items[i].is_open = !items[i].is_open; // TODO: parent yada yada
             }
             _ => {}
         }

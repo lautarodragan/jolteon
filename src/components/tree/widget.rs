@@ -10,6 +10,12 @@ use ratatui::{
     widgets::{Widget, WidgetRef},
 };
 
+use crate::{
+    components::TreeNode,
+    config::Theme,
+    ui::Focusable,
+};
+
 use super::component::Tree;
 
 pub struct ListLine<'a> {
@@ -70,57 +76,68 @@ where
         self.height.set(area.height as usize);
 
         let items = self.items.borrow();
-        let visible_items = self.visible_items.borrow();
-
-        if visible_items.len() < 1 {
-            return;
-        }
-
         let selected_item_index = self.selected_item_index.get();
         let offset = self.offset.get();
+        let line_style = &self.line_style.as_ref();
 
         let rename = self.rename.borrow();
 
-        for i in 0..visible_items.len().min(area.height as usize) {
-            let item_index = i + offset;
-
-            if item_index >= visible_items.len() {
-                log::error!(
-                    "item index {item_index} > items.len() {} offset={offset}",
-                    visible_items.len()
-                );
-                break;
-            }
-
-            let true_index = visible_items[item_index];
-            let item = &items[true_index];
-            let area = Rect {
-                y: area.y + i as u16,
-                height: 1,
-                ..area
-            };
-
-            let is_selected = item_index == selected_item_index;
-            let is_renaming = is_selected && rename.is_some();
-
-            let text = match *rename {
-                Some(ref rename) if is_selected => rename.as_str().into(),
-                _ => item.inner.to_string().into(),
-            };
-
-            let style_overrides = self.line_style.as_ref().and_then(|ls| ls(&item.inner));
-
-            let line = ListLine {
-                theme: &self.theme,
-                text,
-                list_has_focus: self.is_focused.get(),
-                is_selected,
-                is_match: item.is_match,
-                is_renaming,
-                overrides: style_overrides,
-            };
-
-            line.render(area, buf);
+        let mut y = 0;
+        for node in &*items {
+            render_node(area, buf, &self.theme, &mut y, self.is_focused(), node, &*rename, line_style);
         }
+    }
+}
+
+fn render_node<'a, T>(
+    area: Rect,
+    buf: &mut Buffer,
+    theme: &Theme,
+    y: &mut u16,
+    is_focused: bool,
+    node: &TreeNode<T>,
+    rename: &Option<String>,
+    line_style: &Option<&Box<dyn Fn(&T) -> Option<Style> + 'a>>,
+)
+where
+    T: std::fmt::Display + Clone,
+{
+    // let item_index = i + offset;
+
+    let parent_area = Rect {
+        y: area.y + *y,
+        height: 1,
+        ..area
+    };
+
+    let is_selected = false;
+    let is_renaming = is_selected && rename.is_some();
+
+    let text = match *rename {
+        Some(ref rename) if is_selected => rename.as_str().into(),
+        _ => node.inner.to_string().into(),
+    };
+
+    let style_overrides = line_style.and_then(|ls| ls(&node.inner));
+
+    let line = ListLine {
+        theme: &theme,
+        text,
+        list_has_focus: is_focused,
+        is_selected,
+        is_match: node.is_match,
+        is_renaming,
+        overrides: style_overrides,
+    };
+
+    line.render(parent_area, buf);
+    *y += 1;
+
+    if !node.is_open {
+        return;
+    }
+
+    for child in &*node.children {
+        render_node(area, buf, &theme, y, is_focused, child, rename, line_style);
     }
 }

@@ -36,6 +36,13 @@ impl AlbumTreeItem {
     pub fn is_album(&self) -> bool {
         matches!(self, Self::Album(_))
     }
+
+    pub fn songs(&self) -> Vec<Song> {
+        match self {
+            AlbumTreeItem::Artist(_) => {vec![]}
+            AlbumTreeItem::Album(a) => {a.songs.clone()}
+        }
+    }
 }
 
 impl Display for AlbumTreeItem {
