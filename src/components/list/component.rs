@@ -195,6 +195,20 @@ where
         *self.on_request_focus_trap_fn.borrow_mut() = Box::new(cb);
     }
 
+    /// Function used to select next/previous item by some custom logic.
+    /// Triggered by Alt+Up/Down by default.
+    /// Currently used only to jump to the first song of the next/previous album
+    /// in the Library's song list (right panel).
+    ///
+    /// If the List component was a Tree component, we wouldn't need this "special" behavior.
+    /// We'd be jumping to the first child of the next/previous parent.
+    ///
+    /// If `tree.selected_path` was `Vec<usize>`, we'd do something like the following:
+    ///
+    /// ```
+    /// tree.selected_path[tree.selected_path.len() - 2] += 1;
+    /// tree.selected_path[tree.selected_path.len() - 1] = 0;
+    /// ```
     pub fn find_next_item_by_fn(&self, cb: impl Fn(&[&T], usize, Direction) -> Option<usize> + 'a) {
         *self.find_next_item_by_fn.borrow_mut() = Some(Box::new(cb));
     }
