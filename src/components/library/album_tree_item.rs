@@ -1,8 +1,20 @@
 use std::{
     fmt::{Display, Formatter},
 };
-
+use std::cmp::Ordering;
 use crate::structs::Song;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Artist {
+    pub name: String,
+    pub albums: Vec<Album>,
+}
+
+// impl Ord for Artist {
+//     fn cmp(&self, other: &Self) -> Ordering {
+//         self.name.cmp(&other.name)
+//     }
+// }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Album {
@@ -14,7 +26,7 @@ pub struct Album {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AlbumTreeItem {
-    Artist(String),
+    Artist(Artist),
     Album(Album),
 }
 
@@ -31,7 +43,7 @@ impl AlbumTreeItem {
 impl Display for AlbumTreeItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            AlbumTreeItem::Artist(s) => write!(f, "{s}"),
+            AlbumTreeItem::Artist(s) => write!(f, "{}", s.name),
             AlbumTreeItem::Album(album) => write!(f, "  {} - {}", album.year, album.name),
         }
     }
