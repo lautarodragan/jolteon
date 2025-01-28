@@ -39,7 +39,7 @@ fn library_file_to_song_tree(songs_by_artist: crate::files::Library) -> Vec<Arti
                 albums.insert(album_name.clone(), Album {
                     artist: name.clone(),
                     name: album_name,
-                    year: song.year.unwrap_or_default(), // TODO: accept Option<year>
+                    year: song.year,
                     songs: vec![song],
                 });
             }
