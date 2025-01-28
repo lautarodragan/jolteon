@@ -1,6 +1,4 @@
-use std::{
-    fmt::{Display, Formatter},
-};
+use std::fmt::{Display, Formatter};
 
 use crate::structs::Song;
 

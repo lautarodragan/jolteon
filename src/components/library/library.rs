@@ -1,14 +1,9 @@
-use std::{
-    cell::{RefCell, RefMut},
-    collections::HashMap,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     components::{list::Direction, FocusGroup, List},
     config::Theme,
     structs::Song,
-    actions::Action,
 };
 
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};
@@ -27,29 +22,39 @@ pub struct Library<'a> {
 }
 
 fn library_file_to_song_tree(songs_by_artist: crate::files::Library) -> Vec<Artist> {
-    let mut artists: Vec<Artist> = songs_by_artist.songs_by_artist.into_iter().map(|(name, songs)| {
-        let mut albums: HashMap<String, Album> = HashMap::new();
+    let mut artists: Vec<Artist> = songs_by_artist
+        .songs_by_artist
+        .into_iter()
+        .map(|(name, songs)| {
+            let mut albums: HashMap<String, Album> = HashMap::new();
 
-        for song in songs {
-            let album_name = song.album.clone().unwrap_or("(album name missing)".to_string());
+            for song in songs {
+                let album_name = song.album.clone().unwrap_or("(album name missing)".to_string());
 
-            if let Some(album) = albums.get_mut(album_name.as_str()) {
-                album.songs.push(song)
-            } else {
-                albums.insert(album_name.clone(), Album {
-                    artist: name.clone(),
-                    name: album_name,
-                    year: song.year,
-                    songs: vec![song],
-                });
+                if let Some(album) = albums.get_mut(album_name.as_str()) {
+                    album.songs.push(song)
+                } else {
+                    albums.insert(
+                        album_name.clone(),
+                        Album {
+                            artist: name.clone(),
+                            name: album_name,
+                            year: song.year,
+                            songs: vec![song],
+                        },
+                    );
+                }
             }
-        }
 
-        let mut albums: Vec<Album> = albums.values().cloned().collect();
-        albums.sort_by_key(|a| a.year);
+            let mut albums: Vec<Album> = albums.values().cloned().collect();
+            albums.sort_by_key(|a| a.year);
 
-        Artist { name: name.clone(), albums }
-    }).collect();
+            Artist {
+                name: name.clone(),
+                albums,
+            }
+        })
+        .collect();
 
     artists.sort_by_key(|a| a.name.clone());
     artists
@@ -82,7 +87,10 @@ impl<'a> Library<'a> {
 
         let mut album_tree = List::new(theme, album_tree_items);
 
-        let song_list = Rc::new(List::new(theme, song_tree.get(0).map(|artist| artist.songs()).unwrap_or_default()));
+        let song_list = Rc::new(List::new(
+            theme,
+            song_tree.first().map(|artist| artist.songs()).unwrap_or_default(),
+        ));
         let song_tree = Rc::new(RefCell::new(song_tree));
 
         song_list.find_next_item_by_fn({
@@ -121,12 +129,8 @@ impl<'a> Library<'a> {
                 log::trace!(target: "::library.album_tree.on_select", "selected {:?}", item);
 
                 let songs = match item {
-                    AlbumTreeItem::Artist(artist) => {
-                        artist.songs()
-                    }
-                    AlbumTreeItem::Album(album) => {
-                        album.songs.clone()
-                    }
+                    AlbumTreeItem::Artist(artist) => artist.songs(),
+                    AlbumTreeItem::Album(album) => album.songs.clone(),
                 };
                 song_list.set_items(songs);
             }
@@ -138,7 +142,9 @@ impl<'a> Library<'a> {
                 log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
 
                 let songs = match item {
-                    AlbumTreeItem::Artist(artist) => artist.albums.iter().flat_map(|album| album.songs.clone()).collect(),
+                    AlbumTreeItem::Artist(artist) => {
+                        artist.albums.iter().flat_map(|album| album.songs.clone()).collect()
+                    }
                     AlbumTreeItem::Album(album) => album.songs,
                 };
                 on_select_songs_fn.borrow_mut()(songs);
@@ -164,9 +170,7 @@ impl<'a> Library<'a> {
                             log::error!("Tried to remove an album of an artist that does not exist. {album:?}");
                             return;
                         };
-                        song_tree[i].albums.retain(|a| {
-                            a.name != album.name
-                        });
+                        song_tree[i].albums.retain(|a| a.name != album.name);
                     }
                 };
             }
