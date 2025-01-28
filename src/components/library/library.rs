@@ -132,9 +132,7 @@ impl<'a> Library<'a> {
                 }
             }
         });
-        song_list.on_select(|song| {
-            log::debug!("library: selected song {song:#?}")
-        });
+        song_list.on_select(|song| log::debug!("library: selected song {song:#?}"));
 
         let song_list = Rc::new(song_list);
 
@@ -231,7 +229,9 @@ impl<'a> Library<'a> {
         let mut song_tree = self.song_tree.borrow_mut();
 
         for song in songs {
-            if let Some(ref artist) = song.artist && let Some(ref album) = song.album {
+            if let Some(ref artist) = song.artist
+                && let Some(ref album) = song.album
+            {
                 if let Some(artist) = song_tree.iter_mut().find(|i| i.name == *artist) {
                     if let Some(album) = artist.albums.iter_mut().find(|i| i.name == *album) {
                         if !album.songs.contains(&song) {

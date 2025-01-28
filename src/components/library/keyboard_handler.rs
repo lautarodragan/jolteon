@@ -42,7 +42,8 @@ impl OnActionMut for Library<'_> {
                 });
 
                 let is_open = self.album_tree.toggle_is_open(artist_index);
-                self.album_tree.set_is_visible_range(artist_index + 1, artist_album_count, is_open);
+                self.album_tree
+                    .set_is_visible_range(artist_index + 1, artist_album_count, is_open);
 
                 if !is_open {
                     self.album_tree.set_selected_index(artist_index);
