@@ -1,9 +1,9 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    components::{list::Direction, FocusGroup, List},
+    components::{FocusGroup, List},
     config::Theme,
-    structs::Song,
+    structs::{Direction, Song},
 };
 use crate::components::Tree;
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};

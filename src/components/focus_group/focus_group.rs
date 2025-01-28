@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     actions::{Action, NavigationAction, OnAction},
-    components::list::Direction,
+    structs::Direction,
     ui::ComponentRef,
 };
 
