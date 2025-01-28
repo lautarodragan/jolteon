@@ -80,11 +80,9 @@ impl<'a> Library<'a> {
         let song_tree = library_file_to_song_tree(crate::files::Library::from_file());
         let album_tree_items = song_tree_to_album_tree_item_vec(song_tree.clone());
 
-        let songs: Vec<Song> = song_tree.get(0).map(|artist| artist.albums.iter().flat_map(|album| album.songs.clone()).collect()).unwrap_or_default();
-
         let mut album_tree = List::new(theme, album_tree_items);
 
-        let song_list = Rc::new(List::new(theme, songs));
+        let song_list = Rc::new(List::new(theme, song_tree.get(0).map(|artist| artist.songs()).unwrap_or_default()));
         let song_tree = Rc::new(RefCell::new(song_tree));
 
         song_list.find_next_item_by_fn({
@@ -124,7 +122,7 @@ impl<'a> Library<'a> {
 
                 let songs = match item {
                     AlbumTreeItem::Artist(artist) => {
-                        artist.albums.iter().flat_map(|album| album.songs.clone()).collect()
+                        artist.songs()
                     }
                     AlbumTreeItem::Album(album) => {
                         album.songs.clone()

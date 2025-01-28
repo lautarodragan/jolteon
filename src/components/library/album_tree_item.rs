@@ -10,6 +10,12 @@ pub struct Artist {
     pub albums: Vec<Album>,
 }
 
+impl Artist {
+    pub fn songs(&self) -> Vec<Song> {
+        self.albums.iter().flat_map(|album| album.songs.clone()).collect()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Album {
     pub artist: String,
