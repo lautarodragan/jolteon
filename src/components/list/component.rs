@@ -76,7 +76,7 @@ pub struct List<'a, T: 'a> {
     pub(super) on_request_focus_trap_fn: RefCell<Box<dyn Fn(bool) + 'a>>,
     pub(super) find_next_item_by_fn: RefCell<Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>>,
 
-    pub(super) auto_select_next: bool,
+    pub(super) auto_select_next: Cell<bool>,
 
     pub(super) offset: Cell<usize>,
     pub(super) height: Cell<usize>,
@@ -114,7 +114,7 @@ where
             visible_items: RefCell::default(),
             selected_item_index: Cell::new(0),
 
-            auto_select_next: true,
+            auto_select_next: Cell::new(true),
 
             offset: Cell::new(0),
             height: Cell::new(0),
@@ -132,8 +132,8 @@ where
         s
     }
 
-    pub fn set_auto_select_next(&mut self, v: bool) {
-        self.auto_select_next = v;
+    pub fn set_auto_select_next(&self, v: bool) {
+        self.auto_select_next.set(v)
     }
 
     pub fn line_style(&mut self, cb: impl Fn(&T) -> Option<ratatui::style::Style> + 'a) {
@@ -402,13 +402,13 @@ where
 
                     if action == Action::Confirm {
                         self.on_enter_fn.borrow_mut()(item);
-                        if self.auto_select_next {
+                        if self.auto_select_next.get() {
                             self.exec_navigation_action(NavigationAction::Down);
                         }
                     } else if action == Action::ConfirmAlt {
                         if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
                             on_enter_alt_fn(item);
-                            if self.auto_select_next {
+                            if self.auto_select_next.get() {
                                 self.exec_navigation_action(NavigationAction::Down);
                             }
                         }

@@ -8,6 +8,7 @@ use crate::{
     components::{list::Direction, FocusGroup, List},
     config::Theme,
     structs::Song,
+    actions::Action,
 };
 
 use super::album_tree_item::{Album, AlbumTreeItem};
@@ -174,7 +175,7 @@ impl<'a> Library<'a> {
         *self.on_select_songs_fn.borrow_mut() = Box::new(cb);
     }
 
-    /// TODO: drop the songs_by_artist and mutate the album tree view component directly
+    /// TODO: drop the songs_by_artist and mutate the album tree view component directly?
     pub fn add_songs(&self, songs_to_add: Vec<Song>) {
         let mut songs_by_artist = self.songs_by_artist.borrow_mut();
         songs_by_artist.add_songs(songs_to_add);
@@ -186,7 +187,11 @@ impl<'a> Library<'a> {
     pub fn refresh_components(&self) {
         let songs_by_artist = self.songs_by_artist.borrow_mut();
         self.refresh_artist_tree(&songs_by_artist);
-        self.refresh_song_list(&songs_by_artist);
+        drop(songs_by_artist);
+
+        self.album_tree.set_auto_select_next(false);
+        self.album_tree.exec_action(Action::Confirm);
+        self.album_tree.set_auto_select_next(true);
     }
 
     /// TODO: store the song library as Vec<Artist> -> Vec<Album> -> Vec<Song>
@@ -229,31 +234,6 @@ impl<'a> Library<'a> {
         self.album_tree.set_items(items);
     }
 
-    fn refresh_song_list(&self, library: &RefMut<crate::files::Library>) {
-        let songs = self.album_tree.with_selected_item(|selected_item| {
-            let (selected_artist, selected_album) = match selected_item {
-                AlbumTreeItem::Artist(selected_artist) => (selected_artist.as_str(), None),
-                AlbumTreeItem::Album(album) => (album.artist.as_str(), Some(album.name.as_str())),
-            };
-
-            let Some(songs) = library.songs_by_artist.get(selected_artist) else {
-                log::error!(target: "::library.add_songs", "This should never happen! There's an error with songs_by_artist/songs_by_artist.");
-                panic!();
-            };
-
-            if let Some(selected_album) = selected_album {
-                songs
-                    .iter()
-                    .filter(|s| s.album.as_ref().is_some_and(|sa| *sa == selected_album))
-                    .cloned()
-                    .collect()
-            } else {
-                songs.clone()
-            }
-        });
-
-        self.song_list.set_items(songs);
-    }
 }
 
 impl Drop for Library<'_> {
