@@ -95,7 +95,8 @@ impl<'a> Library<'a> {
 
         let mut album_tree = List::new(theme, album_tree_items);
 
-        // TODO: Action::ListAction(ListAction::OpenClose) all albums.
+        album_tree.set_is_visible_magic(|item| item.is_artist());
+        album_tree.set_is_open_all(false);
 
         let mut song_list = List::new(
             theme,

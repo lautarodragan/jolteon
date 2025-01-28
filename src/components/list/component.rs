@@ -274,9 +274,28 @@ where
         self.items.borrow()[i].is_visible
     }
 
+    pub fn set_is_visible_magic(&self, cb: impl Fn(&T) -> bool) {
+        let mut items = self.items.borrow_mut();
+
+        for item in &mut *items {
+            item.is_visible = cb(&item.inner);
+        }
+
+        drop(items);
+        self.refresh_visible_items();
+    }
+
     pub fn set_is_open(&self, i: usize, v: bool) {
         let mut items = self.items.borrow_mut();
         items[i].is_open = v;
+    }
+
+    pub fn set_is_open_all(&self, v: bool) {
+        let mut items = self.items.borrow_mut();
+
+        for item in &mut *items {
+            item.is_open = v;
+        }
     }
 
     pub fn is_open(&self, i: usize) -> bool {
