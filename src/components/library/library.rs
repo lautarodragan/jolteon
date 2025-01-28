@@ -79,70 +79,13 @@ impl<'a> Library<'a> {
 
         let song_tree = library_file_to_song_tree(crate::files::Library::from_file());
         let album_tree_items = song_tree_to_album_tree_item_vec(song_tree.clone());
+
+        let songs: Vec<Song> = song_tree.get(0).map(|artist| artist.albums.iter().flat_map(|album| album.songs.clone()).collect()).unwrap_or_default();
+
         let mut album_tree = List::new(theme, album_tree_items);
 
-        let song_list = Rc::new(List::new(theme, vec![]));
+        let song_list = Rc::new(List::new(theme, songs));
         let song_tree = Rc::new(RefCell::new(song_tree));
-
-        album_tree.on_select({
-            let song_list = song_list.clone();
-
-            move |item| {
-                log::trace!(target: "::library.album_tree.on_select", "selected {:?}", item);
-
-                let songs = match item {
-                    AlbumTreeItem::Artist(artist) => {
-                        artist.albums.iter().flat_map(|album| album.songs.clone()).collect()
-                    }
-                    AlbumTreeItem::Album(album) => {
-                        album.songs.clone()
-                    }
-                };
-                song_list.set_items(songs);
-            }
-        });
-
-        album_tree.on_enter({
-            let on_select_songs_fn = on_select_songs_fn.clone();
-
-            move |item| {
-                log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
-
-                let songs = match item {
-                    AlbumTreeItem::Artist(artist) => artist.albums.iter().flat_map(|album| album.songs.clone()).collect(),
-                    AlbumTreeItem::Album(album) => album.songs,
-                };
-                on_select_songs_fn.borrow_mut()(songs);
-            }
-        });
-
-        album_tree.on_delete({
-            let song_tree = song_tree.clone();
-
-            move |item, _index| {
-                log::trace!(target: "::library.album_tree.on_delete", "item deleted {:?}", item);
-
-                let mut song_tree = song_tree.borrow_mut();
-                match item {
-                    AlbumTreeItem::Artist(ref artist) => {
-                        let Some(i) = song_tree.iter().position(|a| a.name == artist.name) else {
-                            log::error!("Tried to remove an artist that does not exist. {artist:?}");
-                            return;
-                        };
-                        song_tree.remove(i);
-                    }
-                    AlbumTreeItem::Album(album) => {
-                        let Some(i) = song_tree.iter().position(|a| a.name == album.artist) else {
-                            log::error!("Tried to remove an album of an artist that does not exist. {album:?}");
-                            return;
-                        };
-                        song_tree[i].albums.retain(|a| {
-                            a.name != album.name
-                        });
-                    }
-                };
-            }
-        });
 
         song_list.find_next_item_by_fn({
             |songs, i, direction| {
@@ -173,9 +116,63 @@ impl<'a> Library<'a> {
             }
         });
 
-        album_tree.set_auto_select_next(false);
-        album_tree.exec_action(Action::Confirm);
-        album_tree.set_auto_select_next(true);
+        album_tree.on_select({
+            let song_list = song_list.clone();
+
+            move |item| {
+                log::trace!(target: "::library.album_tree.on_select", "selected {:?}", item);
+
+                let songs = match item {
+                    AlbumTreeItem::Artist(artist) => {
+                        artist.albums.iter().flat_map(|album| album.songs.clone()).collect()
+                    }
+                    AlbumTreeItem::Album(album) => {
+                        album.songs.clone()
+                    }
+                };
+                song_list.set_items(songs);
+            }
+        });
+        album_tree.on_enter({
+            let on_select_songs_fn = on_select_songs_fn.clone();
+
+            move |item| {
+                log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
+
+                let songs = match item {
+                    AlbumTreeItem::Artist(artist) => artist.albums.iter().flat_map(|album| album.songs.clone()).collect(),
+                    AlbumTreeItem::Album(album) => album.songs,
+                };
+                on_select_songs_fn.borrow_mut()(songs);
+            }
+        });
+        album_tree.on_delete({
+            let song_tree = song_tree.clone();
+
+            move |item, _index| {
+                log::trace!(target: "::library.album_tree.on_delete", "item deleted {:?}", item);
+
+                let mut song_tree = song_tree.borrow_mut();
+                match item {
+                    AlbumTreeItem::Artist(ref artist) => {
+                        let Some(i) = song_tree.iter().position(|a| a.name == artist.name) else {
+                            log::error!("Tried to remove an artist that does not exist. {artist:?}");
+                            return;
+                        };
+                        song_tree.remove(i);
+                    }
+                    AlbumTreeItem::Album(album) => {
+                        let Some(i) = song_tree.iter().position(|a| a.name == album.artist) else {
+                            log::error!("Tried to remove an album of an artist that does not exist. {album:?}");
+                            return;
+                        };
+                        song_tree[i].albums.retain(|a| {
+                            a.name != album.name
+                        });
+                    }
+                };
+            }
+        });
 
         let album_tree = Rc::new(album_tree);
         let focus_group = FocusGroup::new(vec![album_tree.clone(), song_list.clone()]);
