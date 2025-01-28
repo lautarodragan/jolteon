@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::components::list::Children;
+
 use crate::structs::Song;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -43,18 +43,6 @@ impl Display for AlbumTreeItem {
         match self {
             AlbumTreeItem::Artist(s) => write!(f, "{}", s.name),
             AlbumTreeItem::Album(album) => write!(f, "  {} - {}", album.year.unwrap_or_default(), album.name),
-        }
-    }
-}
-
-impl Children for AlbumTreeItem {
-    fn children(&mut self) -> Vec<Self> {
-        match self {
-            AlbumTreeItem::Artist(a) => {
-                let albums = std::mem::take(&mut a.albums);
-                albums.into_iter().map(AlbumTreeItem::Album).collect()
-            }
-            AlbumTreeItem::Album(_) => vec![],
         }
     }
 }

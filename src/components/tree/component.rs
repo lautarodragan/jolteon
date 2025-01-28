@@ -40,26 +40,30 @@ impl From<NavigationAction> for Direction {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct ListItem<T> {
+pub struct TreeNode<T> {
     pub inner: T,
     pub is_visible: bool,
     pub is_match: bool,
+    pub is_open: bool,
+    pub children: Vec<Self>,
 }
 
-impl<T> ListItem<T> {
+impl<T> TreeNode<T> {
     pub fn new(t: T) -> Self {
         Self {
             inner: t,
             is_visible: true,
             is_match: false,
+            is_open: true,
+            children: vec![],
         }
     }
 }
 
-pub struct List<'a, T: 'a> {
+pub struct Tree<'a, T: 'a> {
     pub(super) theme: Theme,
 
-    pub(super) items: RefCell<Vec<ListItem<T>>>,
+    pub(super) items: RefCell<Vec<TreeNode<T>>>,
     pub(super) visible_items: RefCell<Vec<usize>>,
     pub(super) selected_item_index: Cell<usize>,
 
@@ -87,12 +91,12 @@ pub struct List<'a, T: 'a> {
     pub(super) page_size: u8,
 }
 
-impl<'a, T> List<'a, T>
+impl<'a, T> Tree<'a, T>
 where
-    T: 'a + Clone + Display
+    T: 'a + Clone + Display + Debug,
 {
     pub fn new(theme: Theme, items: Vec<T>) -> Self {
-        let items: Vec<ListItem<T>> = items.into_iter().map(ListItem::new).collect();
+        let items: Vec<TreeNode<T>> = items.into_iter().map(TreeNode::new).collect();
 
         let s = Self {
             theme,
@@ -231,7 +235,7 @@ where
             }
         }
 
-        *items = new_items.into_iter().map(ListItem::new).collect();
+        *items = new_items.into_iter().map(TreeNode::new).collect();
 
         let mut visible_items = self.visible_items.borrow_mut();
         visible_items.resize(items.len(), 0);
@@ -244,7 +248,7 @@ where
     pub fn set_items_s(&self, new_items: Vec<T>, i: usize, o: usize) {
         self.selected_item_index.set(i);
         self.offset.set(o);
-        *self.items.borrow_mut() = new_items.into_iter().map(ListItem::new).collect();
+        *self.items.borrow_mut() = new_items.into_iter().map(TreeNode::new).collect();
         self.refresh_visible_items();
     }
 
@@ -259,16 +263,71 @@ where
         }
     }
 
+    pub fn set_is_visible(&self, i: usize, v: bool) {
+        let mut items = self.items.borrow_mut();
+        items[i].is_visible = v;
+        drop(items);
+        self.refresh_visible_items();
+    }
+
+    pub fn set_is_visible_range(&self, start: usize, len: usize, v: bool) {
+        let mut items = self.items.borrow_mut();
+        for i in start..start + len {
+            items[i].is_visible = v;
+        }
+        drop(items);
+        self.refresh_visible_items();
+    }
+
+    #[allow(unused)]
+    pub fn is_visible(&self, i: usize) -> bool {
+        self.items.borrow()[i].is_visible
+    }
+
+    pub fn set_is_visible_magic(&self, cb: impl Fn(&T) -> bool) {
+        let mut items = self.items.borrow_mut();
+
+        for item in &mut *items {
+            item.is_visible = cb(&item.inner);
+        }
+
+        drop(items);
+        self.refresh_visible_items();
+    }
+
+    pub fn is_open(&self, i: usize) -> bool {
+        self.items.borrow()[i].is_open
+    }
+
+    pub fn set_is_open(&self, i: usize, v: bool) {
+        let mut items = self.items.borrow_mut();
+        items[i].is_open = v;
+    }
+
+    pub fn toggle_is_open(&self, i: usize) -> bool {
+        let is_open = !self.is_open(i);
+        self.set_is_open(i, is_open);
+        is_open
+    }
+
+    pub fn set_is_open_all(&self, v: bool) {
+        let mut items = self.items.borrow_mut();
+
+        for item in &mut *items {
+            item.is_open = v;
+        }
+    }
+
     pub fn push_item(&self, item: T) {
         let mut items = self.items.borrow_mut();
-        items.push(ListItem::new(item));
+        items.push(TreeNode::new(item));
         drop(items);
         self.refresh_visible_items();
     }
 
     pub fn append_items(&self, items_to_append: impl IntoIterator<Item = T>) {
         let mut items = self.items.borrow_mut();
-        let mut items_to_append: Vec<ListItem<T>> = items_to_append.into_iter().map(ListItem::new).collect();
+        let mut items_to_append: Vec<TreeNode<T>> = items_to_append.into_iter().map(TreeNode::new).collect();
 
         items.append(&mut items_to_append);
         drop(items);
@@ -353,6 +412,15 @@ where
     pub fn selected_index(&self) -> usize {
         let i = self.selected_item_index.get();
         self.visible_items.borrow()[i]
+    }
+
+    pub fn set_selected_index(&self, new_i: usize) {
+        let i = {
+            let visible_items = self.visible_items.borrow();
+            visible_items.iter().position(|i| *i == new_i).unwrap()
+        };
+        log::debug!("set_selected_index {new_i} -> {i}");
+        self.set_selected_visible_index(i);
     }
 
     pub fn exec_action(&self, action: Action) {
@@ -515,6 +583,7 @@ where
         self.set_selected_visible_index(i);
 
         let item_index = self.visible_items.borrow()[i];
+        log::error!("whoop {:#?}", self.items.borrow()[item_index]);
         let newly_selected_item = self.items.borrow()[item_index].inner.clone();
 
         (self.on_select_fn)(newly_selected_item);
@@ -645,13 +714,13 @@ where
     }
 }
 
-impl<T> Drop for List<'_, T> {
+impl<T> Drop for Tree<'_, T> {
     fn drop(&mut self) {
-        log::trace!("List.drop()");
+        log::trace!("Tree.drop()");
     }
 }
 
-impl<T> Focusable for List<'_, T> {
+impl<T> Focusable for Tree<'_, T> {
     fn set_is_focused(&self, v: bool) {
         self.is_focused.set(v);
     }

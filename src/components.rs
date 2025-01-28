@@ -7,6 +7,7 @@ mod playlists;
 mod queue;
 mod rendering_error;
 mod root;
+mod tree;
 
 pub use file_browser::{directory_to_songs_and_folders, FileBrowser, FileBrowserSelection};
 pub use focus_group::*;
@@ -16,3 +17,4 @@ pub use list::List;
 pub use playlists::Playlists;
 pub use queue::Queue;
 pub use root::*;
+pub use tree::*;

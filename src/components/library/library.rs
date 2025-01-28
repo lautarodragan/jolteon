@@ -5,7 +5,7 @@ use crate::{
     config::Theme,
     structs::Song,
 };
-
+use crate::components::Tree;
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};
 
 pub struct Library<'a> {
@@ -15,7 +15,7 @@ pub struct Library<'a> {
     pub(super) song_tree: Rc<RefCell<Vec<Artist>>>,
 
     pub(super) song_list: Rc<List<'a, Song>>,
-    pub(super) album_tree: Rc<List<'a, AlbumTreeItem>>,
+    pub(super) album_tree: Rc<Tree<'a, AlbumTreeItem>>,
     pub(super) focus_group: FocusGroup<'a>,
 
     pub(super) on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<Song>) + 'a>>>,
@@ -93,7 +93,7 @@ impl<'a> Library<'a> {
         let song_tree = library_file_to_song_tree(crate::files::Library::from_file());
         let album_tree_items = song_tree_to_album_tree_item_vec(song_tree.clone());
 
-        let mut album_tree = List::new_with_children(theme, album_tree_items);
+        let mut album_tree = Tree::new(theme, album_tree_items);
 
         album_tree.set_is_visible_magic(|item| item.is_artist());
         album_tree.set_is_open_all(false);
