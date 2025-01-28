@@ -8,7 +8,6 @@ impl OnActionMut for Library<'_> {
 
         match actions[0] {
             Action::ListAction(ListAction::OpenClose) => {
-                // TODO: implement a concept of "children" directly into the List component
                 let (artist_index, artist_album_count) = self.album_tree.with_items(|items| {
                     let artist_index = {
                         let mut artist_index = self.album_tree.selected_index_true();
@@ -45,6 +44,7 @@ impl OnActionMut for Library<'_> {
                 let is_open = !self.album_tree.is_open(artist_index);
                 self.album_tree.set_is_open(artist_index, is_open);
 
+                // TODO: set_is_visible_range()
                 for i in artist_index + 1..artist_index + 1 + artist_album_count {
                     self.album_tree.set_is_visible(i, is_open);
                 }

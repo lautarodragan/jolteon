@@ -1,12 +1,21 @@
 use std::{
-    cmp::Ordering,
     fmt::{Display, Formatter},
 };
+
+use crate::structs::Song;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Album {
+    pub artist: String,
+    pub name: String,
+    pub year: u32,
+    pub songs: Vec<Song>,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AlbumTreeItem {
     Artist(String),
-    Album(String, String),
+    Album(Album),
 }
 
 impl AlbumTreeItem {
@@ -15,24 +24,7 @@ impl AlbumTreeItem {
     }
 
     pub fn is_album(&self) -> bool {
-        matches!(self, Self::Album(_, _))
-    }
-}
-
-impl Ord for AlbumTreeItem {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match (self, other) {
-            (AlbumTreeItem::Artist(a), AlbumTreeItem::Artist(b)) => a.cmp(b),
-            (AlbumTreeItem::Artist(_), AlbumTreeItem::Album(_, _)) => Ordering::Greater,
-            (AlbumTreeItem::Album(_, _), AlbumTreeItem::Artist(_)) => Ordering::Less,
-            (AlbumTreeItem::Album(_, ref a), AlbumTreeItem::Album(_, ref b)) => a.cmp(b),
-        }
-    }
-}
-
-impl PartialOrd for AlbumTreeItem {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+        matches!(self, Self::Album(_))
     }
 }
 
@@ -40,7 +32,7 @@ impl Display for AlbumTreeItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             AlbumTreeItem::Artist(s) => write!(f, "{s}"),
-            AlbumTreeItem::Album(_, s) => write!(f, "  {s}"),
+            AlbumTreeItem::Album(album) => write!(f, "  {} - {}", album.year, album.name),
         }
     }
 }

@@ -44,6 +44,7 @@ pub(super) struct ListItem<T> {
     pub is_visible: bool,
     pub is_match: bool,
     pub is_open: bool,
+    pub children: Vec<RefCell<Self>>,
 }
 
 impl<T> ListItem<T> {
@@ -53,6 +54,7 @@ impl<T> ListItem<T> {
             is_visible: true,
             is_match: false,
             is_open: true,
+            children: vec![],
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::{
     cell::{RefCell, RefMut},
-    collections::HashSet,
+    collections::HashMap,
     rc::Rc,
 };
 
@@ -10,7 +10,7 @@ use crate::{
     structs::Song,
 };
 
-use super::album_tree_item::AlbumTreeItem;
+use super::album_tree_item::{Album, AlbumTreeItem};
 
 pub struct Library<'a> {
     #[allow(dead_code)]
@@ -35,37 +35,31 @@ impl<'a> Library<'a> {
         let song_list = Rc::new(List::new(theme, vec![]));
 
         album_tree.on_select({
-            let songs = songs_by_artist.clone();
+            let songs_by_artist = songs_by_artist.clone();
             let song_list = song_list.clone();
 
             move |item| {
                 log::trace!(target: "::library.album_tree.on_select", "selected {:?}", item);
 
-                let (artist, album) = match item {
-                    AlbumTreeItem::Artist(artist) => (artist, None),
-                    AlbumTreeItem::Album(artist, album) => (artist, Some(album)),
-                };
+                let songs = match item {
+                    AlbumTreeItem::Artist(artist) => {
+                        let library = songs_by_artist.borrow();
 
-                let artist_songs = {
-                    let songs = songs.borrow();
-
-                    match songs.songs_by_artist.get(artist.as_str()) {
-                        Some(artist_songs) => match album {
-                            Some(album) => artist_songs
-                                .iter()
-                                .filter(|s| s.album.as_ref().is_some_and(|a| *a == album))
-                                .cloned()
-                                .collect(),
-                            None => artist_songs.clone(),
-                        },
-                        None => {
-                            log::error!(target: "::library.album_tree.on_select", "artist with no songs {artist}");
-                            vec![]
+                        match library.songs_by_artist.get(artist.as_str()) {
+                            Some(artist_songs) => {
+                                artist_songs.clone()
+                            },
+                            None => {
+                                log::error!(target: "::library.album_tree.on_select", "artist with no songs {artist}");
+                                vec![]
+                            }
                         }
                     }
+                    AlbumTreeItem::Album(album) => {
+                        album.songs.clone()
+                    }
                 };
-
-                song_list.set_items(artist_songs);
+                song_list.set_items(songs);
             }
         });
 
@@ -78,7 +72,7 @@ impl<'a> Library<'a> {
 
                 let (artist, album) = match item {
                     AlbumTreeItem::Artist(artist) => (artist, None),
-                    AlbumTreeItem::Album(artist, album) => (artist, Some(album)),
+                    AlbumTreeItem::Album(album) => (album.artist, Some(album.name)),
                 };
 
                 let songs = {
@@ -114,8 +108,8 @@ impl<'a> Library<'a> {
                     AlbumTreeItem::Artist(ref artist) => {
                         songs_by_artist.remove_artist(artist);
                     }
-                    AlbumTreeItem::Album(ref artist, ref album) => {
-                        songs_by_artist.remove_album(artist, album);
+                    AlbumTreeItem::Album(album) => {
+                        songs_by_artist.remove_album(album.artist.as_str(), album.name.as_str());
                     }
                 };
             }
@@ -164,7 +158,7 @@ impl<'a> Library<'a> {
             album_tree,
         };
 
-        lib.refresh_components();
+        lib.refresh_components(); // TODO: album_tree = library_to_tree_view
         lib
     }
 
@@ -180,6 +174,7 @@ impl<'a> Library<'a> {
         *self.on_select_songs_fn.borrow_mut() = Box::new(cb);
     }
 
+    /// TODO: drop the songs_by_artist and mutate the album tree view component directly
     pub fn add_songs(&self, songs_to_add: Vec<Song>) {
         let mut songs_by_artist = self.songs_by_artist.borrow_mut();
         songs_by_artist.add_songs(songs_to_add);
@@ -194,6 +189,8 @@ impl<'a> Library<'a> {
         self.refresh_song_list(&songs_by_artist);
     }
 
+    /// TODO: store the song library as Vec<Artist> -> Vec<Album> -> Vec<Song>
+    /// and call this "library file to tree view component" or something like that
     fn refresh_artist_tree(&self, songs_by_artist: &RefMut<crate::files::Library>) {
         let mut items = vec![];
 
@@ -203,23 +200,29 @@ impl<'a> Library<'a> {
         for artist in artists {
             items.push(AlbumTreeItem::Artist(artist.clone()));
 
-            let mut albums = HashSet::new();
+            let mut albums: HashMap<String, Album> = HashMap::new();
             let songs = songs_by_artist.songs_by_artist.get(artist.as_str()).unwrap();
-            let mut year = 0;
 
             for song in songs {
-                if let Some(y) = song.year {
-                    year = year.min(y); // hopefully all songs will have the same year.
-                }
-                let album = song.album.clone().unwrap_or("(no album)".to_string());
-                albums.insert((year, album.clone()));
+                let album_name = song.album.clone().unwrap_or("(album name missing)".to_string());
+                albums.entry(album_name.clone())
+                    .and_modify(|album| {
+                        album.songs.push(song.clone())
+                    })
+                    .or_insert(Album {
+                        artist: artist.clone(),
+                        name: album_name,
+                        year: song.year.unwrap_or_default(), // TODO: accept Option<year>
+                        songs: vec![song.clone()],
+                    });
             }
 
-            let mut albums: Vec<(u32, String)> = albums.into_iter().collect();
-            albums.sort_by_key(|i| i.0);
+            let mut albums: Vec<Album> = albums.values().cloned().collect();
 
-            for (_year, album) in albums {
-                items.push(AlbumTreeItem::Album(artist.clone(), album));
+            albums.sort_by_key(|a| a.year);
+
+            for album in albums {
+                items.push(AlbumTreeItem::Album(album));
             }
         }
 
@@ -230,7 +233,7 @@ impl<'a> Library<'a> {
         let songs = self.album_tree.with_selected_item(|selected_item| {
             let (selected_artist, selected_album) = match selected_item {
                 AlbumTreeItem::Artist(selected_artist) => (selected_artist.as_str(), None),
-                AlbumTreeItem::Album(selected_artist, selected_album) => (selected_artist.as_str(), Some(selected_album.as_str())),
+                AlbumTreeItem::Album(album) => (album.artist.as_str(), Some(album.name.as_str())),
             };
 
             let Some(songs) = library.songs_by_artist.get(selected_artist) else {
