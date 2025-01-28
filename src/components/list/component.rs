@@ -269,6 +269,15 @@ where
         self.refresh_visible_items();
     }
 
+    pub fn set_is_visible_range(&self, start: usize, len: usize, v: bool) {
+        let mut items = self.items.borrow_mut();
+        for i in start..start + len {
+            items[i].is_visible = v;
+        }
+        drop(items);
+        self.refresh_visible_items();
+    }
+
     #[allow(unused)]
     pub fn is_visible(&self, i: usize) -> bool {
         self.items.borrow()[i].is_visible
@@ -285,9 +294,19 @@ where
         self.refresh_visible_items();
     }
 
+    pub fn is_open(&self, i: usize) -> bool {
+        self.items.borrow()[i].is_open
+    }
+
     pub fn set_is_open(&self, i: usize, v: bool) {
         let mut items = self.items.borrow_mut();
         items[i].is_open = v;
+    }
+
+    pub fn toggle_is_open(&self, i: usize) -> bool {
+        let is_open = !self.is_open(i);
+        self.set_is_open(i, is_open);
+        is_open
     }
 
     pub fn set_is_open_all(&self, v: bool) {
@@ -296,10 +315,6 @@ where
         for item in &mut *items {
             item.is_open = v;
         }
-    }
-
-    pub fn is_open(&self, i: usize) -> bool {
-        self.items.borrow()[i].is_open
     }
 
     pub fn push_item(&self, item: T) {
@@ -360,16 +375,8 @@ where
         self.offset.get()
     }
 
-    pub fn selected_index(&self) -> usize {
-        self.selected_item_index.get()
-    }
-
-    pub fn selected_index_true(&self) -> usize {
-        let i = self.selected_item_index.get();
-        self.visible_items.borrow()[i]
-    }
-
-    pub fn set_selected_index(&self, new_i: usize) {
+    /// Index of the selected item in the visible set list.
+    fn set_selected_visible_index(&self, new_i: usize) {
         let current_i = self.selected_item_index.get();
 
         if new_i == current_i {
@@ -401,13 +408,18 @@ where
         }
     }
 
-    pub fn set_selected_index_true(&self, new_i: usize) {
+    pub fn selected_index(&self) -> usize {
+        let i = self.selected_item_index.get();
+        self.visible_items.borrow()[i]
+    }
+
+    pub fn set_selected_index(&self, new_i: usize) {
         let i = {
             let visible_items = self.visible_items.borrow();
             visible_items.iter().position(|i| *i == new_i).unwrap()
         };
-        log::debug!("set_selected_index_true {new_i} -> {i}");
-        self.set_selected_index(i);
+        log::debug!("set_selected_index {new_i} -> {i}");
+        self.set_selected_visible_index(i);
     }
 
     pub fn exec_action(&self, action: Action) {
@@ -567,7 +579,7 @@ where
             return;
         }
 
-        self.set_selected_index(i);
+        self.set_selected_visible_index(i);
 
         let item_index = self.visible_items.borrow()[i];
         let newly_selected_item = self.items.borrow()[item_index].inner.clone();
@@ -636,7 +648,7 @@ where
                     return;
                 }
 
-                let i = self.selected_index_true();
+                let i = self.selected_index();
                 let removed_item = items.remove(i);
 
                 if i >= items.len() {
@@ -670,7 +682,7 @@ where
                 items.swap(i, next_i);
                 drop(items);
                 self.refresh_visible_items();
-                self.set_selected_index(next_i);
+                self.set_selected_visible_index(next_i);
                 on_reorder(i, next_i);
             }
             ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {

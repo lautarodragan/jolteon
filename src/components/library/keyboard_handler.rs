@@ -10,7 +10,7 @@ impl OnActionMut for Library<'_> {
             Action::ListAction(ListAction::OpenClose) => {
                 let (artist_index, artist_album_count) = self.album_tree.with_items(|items| {
                     let artist_index = {
-                        let mut artist_index = self.album_tree.selected_index_true();
+                        let mut artist_index = self.album_tree.selected_index();
 
                         loop {
                             if items[artist_index].is_artist() {
@@ -41,16 +41,11 @@ impl OnActionMut for Library<'_> {
                     (artist_index, artist_album_count)
                 });
 
-                let is_open = !self.album_tree.is_open(artist_index);
-                self.album_tree.set_is_open(artist_index, is_open);
-
-                // TODO: set_is_visible_range()
-                for i in artist_index + 1..artist_index + 1 + artist_album_count {
-                    self.album_tree.set_is_visible(i, is_open);
-                }
+                let is_open = self.album_tree.toggle_is_open(artist_index);
+                self.album_tree.set_is_visible_range(artist_index + 1, artist_album_count, is_open);
 
                 if !is_open {
-                    self.album_tree.set_selected_index_true(artist_index);
+                    self.album_tree.set_selected_index(artist_index);
                 }
             }
             _ => {
