@@ -93,7 +93,7 @@ impl<'a> Library<'a> {
         let song_tree = library_file_to_song_tree(crate::files::Library::from_file());
         let album_tree_items = song_tree_to_album_tree_item_vec(song_tree.clone());
 
-        let mut album_tree = List::new(theme, album_tree_items);
+        let mut album_tree = List::new_with_children(theme, album_tree_items);
 
         album_tree.set_is_visible_magic(|item| item.is_artist());
         album_tree.set_is_open_all(false);

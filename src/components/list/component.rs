@@ -1,4 +1,5 @@
 use std::cell::{Cell, RefCell};
+use std::fmt::Debug;
 
 use crossterm::event::KeyCode;
 
@@ -44,7 +45,7 @@ pub(super) struct ListItem<T> {
     pub is_visible: bool,
     pub is_match: bool,
     pub is_open: bool,
-    pub children: Vec<RefCell<Self>>,
+    pub children: Vec<Self>,
 }
 
 impl<T> ListItem<T> {
@@ -55,6 +56,29 @@ impl<T> ListItem<T> {
             is_match: false,
             is_open: true,
             children: vec![],
+        }
+    }
+}
+
+pub trait Children
+where Self: Sized + Clone,
+{
+    fn children(&mut self) -> Vec<Self>;
+}
+
+impl<T> ListItem<T>
+where
+    T: Children,
+{
+    pub fn new_with_children(mut t: T) -> Self {
+        let children = t.children().into_iter().map(ListItem::new_with_children).collect();
+
+        Self {
+            children,
+            inner: t,
+            is_visible: true,
+            is_match: false,
+            is_open: true,
         }
     }
 }
@@ -92,7 +116,7 @@ pub struct List<'a, T: 'a> {
 
 impl<'a, T> List<'a, T>
 where
-    T: 'a + Clone + std::fmt::Display,
+    T: 'a + Clone + std::fmt::Display + Debug,
 {
     pub fn new(theme: Theme, items: Vec<T>) -> Self {
         let items: Vec<ListItem<T>> = items.into_iter().map(ListItem::new).collect();
@@ -582,6 +606,7 @@ where
         self.set_selected_visible_index(i);
 
         let item_index = self.visible_items.borrow()[i];
+        log::error!("whoop {:#?}", self.items.borrow()[item_index]);
         let newly_selected_item = self.items.borrow()[item_index].inner.clone();
 
         (self.on_select_fn)(newly_selected_item);
@@ -725,5 +750,48 @@ impl<T> Focusable for List<'_, T> {
 
     fn is_focused(&self) -> bool {
         self.is_focused.get()
+    }
+}
+
+impl<'a, T> List<'a, T>
+where
+    T: 'a + Clone + std::fmt::Display + Debug + Children,
+{
+    pub fn new_with_children(theme: Theme, items: Vec<T>) -> Self {
+        let items: Vec<ListItem<T>> = items.into_iter().map(ListItem::new_with_children).collect();
+
+        let s = Self {
+            theme,
+
+            on_select_fn: Box::new(|_| {}) as _,
+            on_enter_fn: RefCell::new(Box::new(|_| {}) as _),
+            on_enter_alt_fn: RefCell::new(None),
+            on_reorder_fn: RefCell::new(None),
+            on_insert_fn: RefCell::new(None),
+            on_delete_fn: RefCell::new(None),
+            on_rename_fn: RefCell::new(None),
+            on_request_focus_trap_fn: RefCell::new(Box::new(|_| {}) as _),
+            find_next_item_by_fn: RefCell::new(None),
+
+            items: RefCell::new(items),
+            visible_items: RefCell::default(),
+            selected_item_index: Cell::new(0),
+
+            auto_select_next: Cell::new(true),
+
+            offset: Cell::new(0),
+            height: Cell::new(0),
+            line_style: None,
+            is_focused: Cell::default(),
+
+            filter: RefCell::new("".to_string()),
+            rename: RefCell::new(None),
+
+            padding: 5,
+            page_size: 5,
+        };
+
+        s.refresh_visible_items();
+        s
     }
 }
