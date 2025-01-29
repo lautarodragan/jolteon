@@ -1,4 +1,5 @@
 use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 use std::fmt::{Debug, Display};
 
 use crossterm::event::KeyCode;
@@ -31,12 +32,36 @@ impl<T> TreeNode<T> {
     }
 }
 
+fn get_node_at_path<T>(mut path: VecDeque<usize>, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+    let Some(next_level) = path.pop_front() else {
+        panic!("get_node_at_path panic");
+    };
+
+    if path.is_empty() {
+        &nodes[next_level]
+    } else {
+        get_node_at_path(path, &nodes[next_level].children)
+    }
+}
+
+
+fn get_node_at_path_mut<T>(mut path: VecDeque<usize>, nodes: &mut[TreeNode<T>]) -> &mut TreeNode<T> {
+    let Some(next_level) = path.pop_front() else {
+        panic!("get_node_at_path_mut panic");
+    };
+
+    if path.is_empty() {
+        &mut nodes[next_level]
+    } else {
+        get_node_at_path_mut(path, &mut nodes[next_level].children)
+    }
+}
+
 pub struct Tree<'a, T: 'a> {
     pub(super) theme: Theme,
 
     pub(super) items: RefCell<Vec<TreeNode<T>>>,
-    pub(super) visible_items: RefCell<Vec<usize>>,
-    pub(super) selected_item_index: RefCell<Vec<usize>>,
+    pub(super) selected_item_path: RefCell<Vec<usize>>,
 
     pub(super) on_select_fn: Box<dyn Fn(TreeNode<T>) + 'a>,
     pub(super) on_enter_fn: RefCell<Box<dyn Fn(T) + 'a>>,
@@ -67,7 +92,7 @@ where
     T: 'a + Clone + Display + Debug,
 {
     pub fn new(theme: Theme, items: Vec<TreeNode<T>>) -> Self {
-        let s = Self {
+        Self {
             theme,
 
             on_select_fn: Box::new(|_| {}) as _,
@@ -81,8 +106,7 @@ where
             find_next_item_by_fn: RefCell::new(None),
 
             items: RefCell::new(items),
-            visible_items: RefCell::default(),
-            selected_item_index: RefCell::new(vec![0]),
+            selected_item_path: RefCell::new(vec![0]),
 
             auto_select_next: Cell::new(true),
 
@@ -96,10 +120,7 @@ where
 
             padding: 5,
             page_size: 5,
-        };
-
-        s.refresh_visible_items();
-        s
+        }
     }
 
     pub fn set_auto_select_next(&self, v: bool) {
@@ -110,42 +131,24 @@ where
         self.line_style = Some(Box::new(cb));
     }
 
-    pub fn with_items<R>(&self, cb: impl FnOnce(Vec<&T>) -> R) -> R {
+    pub fn with_node_at_path<R>(&self, path: VecDeque<usize>, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
         let items = self.items.borrow();
-        let items_inner = (*items).iter().map(|a| &a.inner).collect();
-        cb(items_inner)
+        let node = get_node_at_path(path, &*items);
+        cb(node)
     }
 
-    pub fn with_selected_item<R>(&self, cb: impl FnOnce(&T) -> R) -> R {
-        let items = self.items.borrow();
-        let i = self.selected_item_index.borrow();
-
-        if i.len() == 1 {
-            cb(&items[i[0]].inner)
-        } else if i.len() == 2 {
-            cb(&items[i[0]].children[i[1]].inner)
-        } else if i.len() == 3 {
-            cb(&items[i[0]].children[i[1]].children[i[2]].inner)
-        } else {
-            panic!()
-        }
-
-
-    }
-
-    pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut T)) {
+    pub fn with_node_at_path_mut<R>(&self, path: VecDeque<usize>, cb: impl FnOnce(&mut TreeNode<T>) -> R) -> R {
         let mut items = self.items.borrow_mut();
-        let i = self.selected_item_index.borrow();
+        let node = &mut get_node_at_path_mut(path, &mut *items);
+        cb(node)
+    }
 
-        if i.len() == 1 {
-            cb(&mut items[i[0]].inner)
-        } else if i.len() == 2 {
-            cb(&mut items[i[0]].children[i[1]].inner)
-        } else if i.len() == 3 {
-            cb(&mut items[i[0]].children[i[1]].children[i[2]].inner)
-        } else {
-            panic!()
-        }
+    pub fn with_selected_node<R>(&self, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
+        self.with_node_at_path((*self.selected_item_path.borrow()).clone().into(), cb)
+    }
+
+    pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut TreeNode<T>)) {
+        self.with_node_at_path_mut((*self.selected_item_path.borrow()).clone().into(), cb)
     }
 
     /// Triggered by moving the selection around, with the Up and Down arrow keys by default.
@@ -205,90 +208,40 @@ where
 
     /// Sets the list of items and resets selection and scroll
     pub fn set_items(&self, items: Vec<TreeNode<T>>) {
-        self.set_items_s(items, 0, 0);
+        self.set_items_s(items, vec![0], 0);
     }
 
-    /// Sets the list of items but tries to conserve selection and scroll
-    pub fn set_items_k(&self, new_items: Vec<TreeNode<T>>) {
-        let mut items = self.items.borrow_mut();
-
-        if new_items.len() < items.len() {
-            let difference = items.len().saturating_sub(new_items.len());
-            // let selected_item_index = self.selected_item_index.get();
-            // let new_selected_item_index = selected_item_index.saturating_sub(difference).min(new_items.len());
-            // self.selected_item_index.set(new_selected_item_index);
-
-            let current_offset = self.offset.get();
-            if current_offset > new_items.len().saturating_sub(self.height.get()) {
-                self.offset.set(current_offset.saturating_sub(difference));
-            }
-        }
-
-        *items = new_items;
-
-        let mut visible_items = self.visible_items.borrow_mut();
-        visible_items.resize(items.len(), 0);
-        for i in 0..visible_items.len() {
-            visible_items[i] = i;
-        }
-    }
+    // /// Sets the list of items but tries to conserve selection and scroll
+    // pub fn set_items_k(&self, new_items: Vec<TreeNode<T>>) {
+    //     let mut items = self.items.borrow_mut();
+    //
+    //     if new_items.len() < items.len() {
+    //         let difference = items.len().saturating_sub(new_items.len());
+    //         // let selected_item_index = self.selected_item_index.get();
+    //         // let new_selected_item_index = selected_item_index.saturating_sub(difference).min(new_items.len());
+    //         // self.selected_item_index.set(new_selected_item_index);
+    //
+    //         let current_offset = self.offset.get();
+    //         if current_offset > new_items.len().saturating_sub(self.height.get()) {
+    //             self.offset.set(current_offset.saturating_sub(difference));
+    //         }
+    //     }
+    //
+    //     *items = new_items;
+    // }
 
     /// Sets the list of items, selection and scroll
-    pub fn set_items_s(&self, new_items: Vec<TreeNode<T>>, i: usize, o: usize) {
-        // self.selected_item_index.set(i);
+    fn set_items_s(&self, new_items: Vec<TreeNode<T>>, i: Vec<usize>, o: usize) {
+        *self.selected_item_path.borrow_mut() = i;
         self.offset.set(o);
         *self.items.borrow_mut() = new_items;
-        self.refresh_visible_items();
     }
 
-    fn refresh_visible_items(&self) {
-        let items = self.items.borrow_mut();
-        let mut visible_items = self.visible_items.borrow_mut();
-        visible_items.clear();
-        for i in 0..items.len() {
-            if items[i].is_visible {
-                visible_items.push(i)
-            }
-        }
-    }
-
-    pub fn set_is_visible(&self, i: usize, v: bool) {
-        let mut items = self.items.borrow_mut();
-        items[i].is_visible = v;
-        drop(items);
-        self.refresh_visible_items();
-    }
-
-    pub fn set_is_visible_range(&self, start: usize, len: usize, v: bool) {
-        let mut items = self.items.borrow_mut();
-        for i in start..start + len {
-            items[i].is_visible = v;
-        }
-        drop(items);
-        self.refresh_visible_items();
-    }
-
-    #[allow(unused)]
-    pub fn is_visible(&self, i: usize) -> bool {
-        self.items.borrow()[i].is_visible
-    }
-
-    pub fn set_is_visible_magic(&self, cb: impl Fn(&T) -> bool) {
-        let mut items = self.items.borrow_mut();
-
-        for item in &mut *items {
-            item.is_visible = cb(&item.inner);
-        }
-
-        drop(items);
-        self.refresh_visible_items();
-    }
-
-    pub fn is_open(&self, i: usize) -> bool {
+    fn is_open(&self, i: usize) -> bool {
         self.items.borrow()[i].is_open
     }
 
-    pub fn set_is_open(&self, i: usize, v: bool) {
+    fn set_is_open(&self, i: usize, v: bool) {
         let mut items = self.items.borrow_mut();
         items[i].is_open = v;
     }
@@ -312,27 +265,27 @@ where
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
-        let mut items = self.items.borrow_mut();
-
-        if items.len() < 2 {
-            return;
-        }
-
-        let mut filter = self.filter.borrow_mut();
-
-        cb(&mut filter);
-
-        for item in items.iter_mut() {
-            if filter.is_empty() {
-                item.is_match = false;
-            } else {
-                item.is_match = item
-                    .inner
-                    .to_string()
-                    .to_lowercase()
-                    .contains(filter.to_lowercase().as_str());
-            }
-        }
+        // let mut items = self.items.borrow_mut();
+        //
+        // if items.len() < 2 {
+        //     return;
+        // }
+        //
+        // let mut filter = self.filter.borrow_mut();
+        //
+        // cb(&mut filter);
+        //
+        // for item in items.iter_mut() {
+        //     if filter.is_empty() {
+        //         item.is_match = false;
+        //     } else {
+        //         item.is_match = item
+        //             .inner
+        //             .to_string()
+        //             .to_lowercase()
+        //             .contains(filter.to_lowercase().as_str());
+        //     }
+        // }
 
         // let selected_item_index = self.selected_item_index.get();
         // if !items[selected_item_index].is_match {
@@ -355,7 +308,7 @@ where
 
     pub fn set_selected_index(&self, new_i: Vec<usize>) {
         log::debug!("set_selected_index {new_i:?}");
-        *self.selected_item_index.borrow_mut() = new_i;
+        *self.selected_item_path.borrow_mut() = new_i;
     }
 
     pub fn exec_action(&self, action: Action) {
@@ -371,17 +324,9 @@ where
                         filter.clear();
                     });
 
-                    fn get_selected_node<'a, T>(i: &Vec<usize>, d: usize, nodes: &'a [TreeNode<T>]) -> &'a TreeNode<T> {
-                        if d == i.len() - 1 {
-                            &nodes[i[d]]
-                        } else {
-                            get_selected_node(i, d + 1, nodes)
-                        }
-                    }
-
                     let items = self.items.borrow();
-                    let i = self.selected_item_index.borrow();
-                    let node = get_selected_node(&*i, 0, &*items);
+                    let i = self.selected_item_path.borrow().clone();
+                    let node = get_node_at_path(i.into(), &*items);
                     let item = node.inner.clone();
                     drop(items);
 
@@ -413,35 +358,99 @@ where
 
     fn exec_navigation_action(&self, action: NavigationAction) {
         let is_filtering = !self.filter.borrow_mut().is_empty();
-        let length = self.visible_items.borrow().len();
+        let nodes = self.items.borrow();
+        let mut initial_i = self.selected_item_path.borrow_mut();
 
-        if length < 2 {
-            return;
+        if initial_i.is_empty() {
+            log::error!("exec_navigation_action: self.selected_item_path was empty.");
+            *initial_i = vec![0];
         }
 
-        let mut initial_i = self.selected_item_index.borrow_mut();
-
         let i = match action {
-            // NavigationAction::NextSpecial | NavigationAction::PreviousSpecial => {
-            //     let Some(next_item_special_fn) = &*self.find_next_item_by_fn.borrow_mut() else {
-            //         return;
-            //     };
-            //     let items = self.items.borrow();
-            //     let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
-            //
-            //     let Some(ii) = next_item_special_fn(&inners, initial_i, Direction::from(action)) else {
-            //         return;
-            //     };
-            //
-            //     ii
-            // }
-            // NavigationAction::Up if !is_filtering && initial_i > 0 => initial_i - 1,
-            // NavigationAction::Down if !is_filtering => initial_i + 1,
+            NavigationAction::PreviousSpecial => {
+                let mut new_i = initial_i.clone();
+                if initial_i.len() > 1 {
+                    new_i.truncate(initial_i.len() - 1);
+                } else if new_i[0] > 0{
+                    new_i[0] -= 1;
+                }
+                new_i
+            }
+            NavigationAction::NextSpecial => {
+                // TODO: maybe define these as "next / previous node with children"? (and implement them so)
+                let mut new_i = initial_i.clone();
+                if initial_i.len() > 1 {
+                    let new_len = initial_i.len() - 1;
+                    new_i.truncate(new_len);
+
+                    let sibling_count = {
+                        if new_i.len() == 1 {
+                            nodes.len()
+                        } else {
+                            let parent_path = new_i[..new_i.len() - 1].to_vec();
+                            let node = get_node_at_path(parent_path.into(), &*nodes);
+                            node.children.len()
+                        }
+                    };
+
+                    if new_i[new_len - 1] + 1 < sibling_count {
+                        new_i[new_len - 1] += 1;
+                    }
+                } else if new_i[0] + 1 < nodes.len() {
+                    new_i[0] += 1;
+                }
+                new_i
+            }
             NavigationAction::Up if !is_filtering => {
-                initial_i.clone()
+                if initial_i[initial_i.len() - 1] > 0 {
+                    let mut new_i = initial_i.clone();
+                    new_i[initial_i.len() - 1] -= 1;
+
+                    let node = get_node_at_path(new_i.clone().into(), &*nodes);
+
+                    if node.is_open && !node.children.is_empty() {
+                        new_i.push(node.children.len() - 1)
+                    }
+
+                    new_i
+                } else if initial_i.len() > 1 {
+                    let mut new_i = initial_i.clone();
+                    new_i.truncate(initial_i.len() - 1);
+                    new_i
+                } else {
+                    initial_i.clone()
+                }
             },
             NavigationAction::Down if !is_filtering => {
-                initial_i.clone()
+                let node = get_node_at_path(initial_i.clone().into(), &*nodes);
+
+                if node.is_open && !node.children.is_empty() {
+                    // Walk down / into
+                    let mut new_path = initial_i.clone();
+                    new_path.push(0);
+                    new_path
+                } else {
+                    // Walk next/up/next
+                    let mut dynamic_path: VecDeque<usize> = initial_i.clone().into();
+
+                    loop {
+                        let Some(discarded) = dynamic_path.pop_back() else {
+                            log::error!("NavigationAction::Down: dynamic_path is empty already! {initial_i:?}");
+                            break initial_i.clone();
+                        };
+
+                        if dynamic_path.is_empty() {
+                            break vec![(discarded + 1).min(nodes.len().saturating_sub(1))];
+                        }
+
+                        let parent_node = get_node_at_path(dynamic_path.clone(), &*nodes); // TODO: get_node_at_path -> Option<...>
+
+                        if parent_node.children.len() > discarded + 1 {
+                            dynamic_path.push_back(discarded + 1);
+                            break dynamic_path.into();
+                        }
+                    }
+                }
             },
             // NavigationAction::Up if is_filtering => {
             //     let items = self.items.borrow();
@@ -457,9 +466,14 @@ where
             //     };
             //     initial_i + n + 1
             // }
-            // NavigationAction::PageUp if !is_filtering => initial_i.saturating_sub(self.page_size as usize),
-            // NavigationAction::PageDown if !is_filtering => initial_i + self.page_size as usize,
-            // NavigationAction::Home if !is_filtering => 0,
+            NavigationAction::PageUp if !is_filtering => {
+                // NOTE: PageUp MUST result in the same as pressing Up `page_size` times.
+                initial_i.clone()
+            },
+            NavigationAction::PageDown if !is_filtering => {
+                initial_i.clone()
+            },
+            NavigationAction::Home if !is_filtering => vec![0],
             // NavigationAction::End if !is_filtering => usize::MAX,
             // NavigationAction::Home if is_filtering => {
             //     let v_items = self.visible_items.borrow();
@@ -482,19 +496,18 @@ where
             }
         };
 
-        // let i = i.min(length - 1); // SAFETY: if length < 2, function exits early
-
-        if i.len() == initial_i.len() && i.iter().zip(initial_i.iter()).any(|(a, b)| *a != *b) {
+        log::debug!("NavigationAction: new selection path {i:?}");
+        if i.len() == initial_i.len() && i.iter().zip(initial_i.iter()).all(|(a, b)| *a == *b) {
+            log::debug!("NavigationAction: new selection path did not change");
             return;
         }
 
-
         *initial_i = i;
-        // self.set_selected_index(i);
 
-        // let newly_selected_item = self.items.borrow()[item_index].clone();
-
-        // (self.on_select_fn)(newly_selected_item);
+        let newly_selected_item = get_node_at_path(initial_i.clone().into(), &*nodes);
+        let inner_clone = newly_selected_item.clone();
+        drop(nodes);
+        (self.on_select_fn)(inner_clone);
     }
 
     fn exec_rename_action(&self, action: Action) {
@@ -595,14 +608,25 @@ where
             //     on_reorder(i, next_i);
             }
             ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
-                *self.rename.borrow_mut() = self.with_selected_item(|item| Some(item.to_string()));
+                *self.rename.borrow_mut() = self.with_selected_node(|item| Some(item.inner.to_string()));
                 self.on_request_focus_trap_fn.borrow_mut()(true);
             }
             ListAction::OpenClose => {
-                // let i = self.selected_item_index.borrow();
-                // let mut items = self.items.borrow_mut();
-                // log::error!("ListAction::OpenClose {i} {:?}", items[i]);
-                // items[i].is_open = !items[i].is_open; // TODO: parent yada yada
+                let mut path = self.selected_item_path.borrow_mut();
+                let mut items = self.items.borrow_mut();
+                let node = get_node_at_path_mut(path.clone().into(), &mut *items);
+                log::debug!("ListAction::OpenClose {path:?} {}", node.inner);
+
+                if !node.children.is_empty() {
+                    node.is_open = !node.is_open;
+                } else if path.len() > 1 {
+                    let parent_path: Vec<usize> = path[..path.len() - 1].into();
+                    log::debug!("ListAction::OpenClose {parent_path:?} (parent of {path:?})");
+                    let node = get_node_at_path_mut(parent_path.into(), &mut *items);
+                    node.is_open = false;
+                    let new_len = path.len().saturating_sub(1);
+                    path.truncate(new_len);
+                }
             }
             _ => {}
         }

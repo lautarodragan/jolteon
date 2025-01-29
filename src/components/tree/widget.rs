@@ -76,15 +76,16 @@ where
         self.height.set(area.height as usize);
 
         let items = self.items.borrow();
-        let selected_item_index = self.selected_item_index.borrow();
+        let selected_item_path = self.selected_item_path.borrow();
         let offset = self.offset.get();
         let line_style = &self.line_style.as_ref();
 
         let rename = self.rename.borrow();
 
         let mut y = 0;
-        for node in &*items {
-            render_node(area, buf, &self.theme, &mut y, self.is_focused(), node, &*rename, line_style, &*selected_item_index, 0);
+
+        for (i, node) in items.iter().enumerate() {
+            render_node(area, buf, &self.theme, &mut y, self.is_focused(), node, &*rename, line_style, &*selected_item_path, vec![i]);
         }
     }
 }
@@ -98,8 +99,8 @@ fn render_node<'a, T>(
     node: &TreeNode<T>,
     rename: &Option<String>,
     line_style: &Option<&Box<dyn Fn(&T) -> Option<Style> + 'a>>,
-    selected_item_index: &Vec<usize>,
-    depth: usize,
+    selected_item_path: &Vec<usize>,
+    path: Vec<usize>,
 )
 where
     T: std::fmt::Display + Clone,
@@ -112,7 +113,7 @@ where
         ..area
     };
 
-    let is_selected = false;
+    let is_selected = selected_item_path.len() == path.len() && selected_item_path.iter().zip(path.iter()).all(|(a, b)| *a == *b);
     let is_renaming = is_selected && rename.is_some();
 
     let text = match *rename {
@@ -139,7 +140,9 @@ where
         return;
     }
 
-    for child in &*node.children {
-        render_node(area, buf, &theme, y, is_focused, child, rename, line_style, selected_item_index, depth + 1);
+    for (i, node) in node.children.iter().enumerate() {
+        let mut new_path = path.clone();
+        new_path.push(i);
+        render_node(area, buf, &theme, y, is_focused, node, rename, line_style, selected_item_path, new_path);
     }
 }

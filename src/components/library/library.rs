@@ -104,7 +104,7 @@ impl<'a> Library<'a> {
         }).collect();
         let mut album_tree = Tree::new(theme, album_tree_items);
 
-        album_tree.set_is_visible_magic(|item| item.is_artist());
+        // album_tree.set_is_visible_magic(|item| item.is_artist());
         album_tree.set_is_open_all(false);
 
         let mut song_list = List::new(
