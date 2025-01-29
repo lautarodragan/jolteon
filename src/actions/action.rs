@@ -89,6 +89,8 @@ pub enum ListAction {
     RenameStart,
     RenameClear,
     OpenClose,
+    CollapseAll,
+    ExpandAll,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]

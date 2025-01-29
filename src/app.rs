@@ -117,6 +117,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
                 player.on_action(vec![*action]);
                 player.single_track_player().on_action(vec![*action]);
             } else {
+                log::debug!("app actions {actions:?}");
                 root_component.on_action(actions);
             }
         }

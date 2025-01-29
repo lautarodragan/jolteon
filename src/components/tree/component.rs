@@ -468,6 +468,8 @@ where
             // }
             NavigationAction::PageUp if !is_filtering => {
                 // NOTE: PageUp MUST result in the same as pressing Up `page_size` times.
+                // It'll make more sense to implement the logic here, and have the "normal" Up/Down
+                // call this code with a page_size of 1.
                 initial_i.clone()
             },
             NavigationAction::PageDown if !is_filtering => {
@@ -626,6 +628,20 @@ where
                     node.is_open = false;
                     let new_len = path.len().saturating_sub(1);
                     path.truncate(new_len);
+                }
+            }
+            ListAction::ExpandAll => {
+                let mut nodes = self.items.borrow_mut();
+
+                for node in &mut *nodes {
+                    node.is_open = true;
+                }
+            }
+            ListAction::CollapseAll => {
+                let mut nodes = self.items.borrow_mut();
+
+                for node in &mut *nodes {
+                    node.is_open = false;
                 }
             }
             _ => {}
