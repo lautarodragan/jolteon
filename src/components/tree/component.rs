@@ -36,14 +36,14 @@ pub struct Tree<'a, T: 'a> {
 
     pub(super) items: RefCell<Vec<TreeNode<T>>>,
     pub(super) visible_items: RefCell<Vec<usize>>,
-    pub(super) selected_item_index: Cell<usize>,
+    pub(super) selected_item_index: RefCell<Vec<usize>>,
 
     pub(super) on_select_fn: Box<dyn Fn(TreeNode<T>) + 'a>,
     pub(super) on_enter_fn: RefCell<Box<dyn Fn(T) + 'a>>,
     pub(super) on_enter_alt_fn: RefCell<Option<Box<dyn Fn(T) + 'a>>>,
     pub(super) on_reorder_fn: RefCell<Option<Box<dyn Fn(usize, usize) + 'a>>>,
     pub(super) on_insert_fn: RefCell<Option<Box<dyn Fn() + 'a>>>,
-    pub(super) on_delete_fn: RefCell<Option<Box<dyn Fn(T, usize) + 'a>>>,
+    pub(super) on_delete_fn: RefCell<Option<Box<dyn Fn(T, Vec<usize>) + 'a>>>,
     pub(super) on_rename_fn: RefCell<Option<Box<dyn Fn(String) + 'a>>>,
     pub(super) on_request_focus_trap_fn: RefCell<Box<dyn Fn(bool) + 'a>>,
     pub(super) find_next_item_by_fn: RefCell<Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>>,
@@ -82,7 +82,7 @@ where
 
             items: RefCell::new(items),
             visible_items: RefCell::default(),
-            selected_item_index: Cell::new(0),
+            selected_item_index: RefCell::new(vec![0]),
 
             auto_select_next: Cell::new(true),
 
@@ -118,14 +118,34 @@ where
 
     pub fn with_selected_item<R>(&self, cb: impl FnOnce(&T) -> R) -> R {
         let items = self.items.borrow();
-        let i = self.selected_item_index.get();
-        cb(&items[i].inner)
+        let i = self.selected_item_index.borrow();
+
+        if i.len() == 1 {
+            cb(&items[i[0]].inner)
+        } else if i.len() == 2 {
+            cb(&items[i[0]].children[i[1]].inner)
+        } else if i.len() == 3 {
+            cb(&items[i[0]].children[i[1]].children[i[2]].inner)
+        } else {
+            panic!()
+        }
+
+
     }
 
     pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut T)) {
         let mut items = self.items.borrow_mut();
-        let i = self.selected_item_index.get();
-        cb(&mut items[i].inner);
+        let i = self.selected_item_index.borrow();
+
+        if i.len() == 1 {
+            cb(&mut items[i[0]].inner)
+        } else if i.len() == 2 {
+            cb(&mut items[i[0]].children[i[1]].inner)
+        } else if i.len() == 3 {
+            cb(&mut items[i[0]].children[i[1]].children[i[2]].inner)
+        } else {
+            panic!()
+        }
     }
 
     /// Triggered by moving the selection around, with the Up and Down arrow keys by default.
@@ -153,7 +173,7 @@ where
         *self.on_insert_fn.borrow_mut() = Some(Box::new(cb));
     }
 
-    pub fn on_delete(&self, cb: impl Fn(T, usize) + 'a) {
+    pub fn on_delete(&self, cb: impl Fn(T, Vec<usize>) + 'a) {
         *self.on_delete_fn.borrow_mut() = Some(Box::new(cb));
     }
 
@@ -194,9 +214,9 @@ where
 
         if new_items.len() < items.len() {
             let difference = items.len().saturating_sub(new_items.len());
-            let selected_item_index = self.selected_item_index.get();
-            let new_selected_item_index = selected_item_index.saturating_sub(difference).min(new_items.len());
-            self.selected_item_index.set(new_selected_item_index);
+            // let selected_item_index = self.selected_item_index.get();
+            // let new_selected_item_index = selected_item_index.saturating_sub(difference).min(new_items.len());
+            // self.selected_item_index.set(new_selected_item_index);
 
             let current_offset = self.offset.get();
             if current_offset > new_items.len().saturating_sub(self.height.get()) {
@@ -215,7 +235,7 @@ where
 
     /// Sets the list of items, selection and scroll
     pub fn set_items_s(&self, new_items: Vec<TreeNode<T>>, i: usize, o: usize) {
-        self.selected_item_index.set(i);
+        // self.selected_item_index.set(i);
         self.offset.set(o);
         *self.items.borrow_mut() = new_items;
         self.refresh_visible_items();
@@ -314,66 +334,28 @@ where
             }
         }
 
-        let selected_item_index = self.selected_item_index.get();
-        if !items[selected_item_index].is_match {
-            if let Some(i) = items.iter().skip(selected_item_index).position(|item| item.is_match) {
-                let i = i + selected_item_index;
-                self.selected_item_index.set(i);
-            } else if let Some(i) = items.iter().position(|item| item.is_match) {
-                self.selected_item_index.set(i);
-            }
-        }
+        // let selected_item_index = self.selected_item_index.get();
+        // if !items[selected_item_index].is_match {
+        //     if let Some(i) = items.iter().skip(selected_item_index).position(|item| item.is_match) {
+        //         let i = i + selected_item_index;
+        //         self.selected_item_index.set(i);
+        //     } else if let Some(i) = items.iter().position(|item| item.is_match) {
+        //         self.selected_item_index.set(i);
+        //     }
+        // }
     }
 
     pub fn scroll_position(&self) -> usize {
         self.offset.get()
     }
 
-    /// Index of the selected item in the visible set list.
-    fn set_selected_visible_index(&self, new_i: usize) {
-        let current_i = self.selected_item_index.get();
+    // pub fn selected_index(&self) -> Vec<usize> {
+    //     self.selected_item_index.borrow()
+    // }
 
-        if new_i == current_i {
-            return;
-        }
-
-        let visible_items = self.visible_items.borrow();
-
-        assert!(new_i < visible_items.len());
-
-        self.selected_item_index.set(new_i);
-
-        let is_down = new_i > current_i;
-        let is_up = new_i < current_i;
-
-        let new_i = new_i as isize;
-        let height = self.height.get() as isize;
-        let offset = self.offset.get() as isize;
-        let padding = self.padding as isize;
-        let padding = if is_down { height - padding - 1 } else { padding };
-
-        if (is_up && new_i < offset + padding) || (is_down && new_i > offset + padding) {
-            let offset = if new_i > padding {
-                (new_i - padding).min(visible_items.len() as isize - height).max(0)
-            } else {
-                0
-            };
-            self.offset.set(offset as usize);
-        }
-    }
-
-    pub fn selected_index(&self) -> usize {
-        let i = self.selected_item_index.get();
-        self.visible_items.borrow()[i]
-    }
-
-    pub fn set_selected_index(&self, new_i: usize) {
-        let i = {
-            let visible_items = self.visible_items.borrow();
-            visible_items.iter().position(|i| *i == new_i).unwrap()
-        };
-        log::debug!("set_selected_index {new_i} -> {i}");
-        self.set_selected_visible_index(i);
+    pub fn set_selected_index(&self, new_i: Vec<usize>) {
+        log::debug!("set_selected_index {new_i:?}");
+        *self.selected_item_index.borrow_mut() = new_i;
     }
 
     pub fn exec_action(&self, action: Action) {
@@ -389,14 +371,18 @@ where
                         filter.clear();
                     });
 
-                    let items = self.items.borrow();
-
-                    let i = self.selected_item_index.get();
-                    if i >= items.len() {
-                        log::error!(target: target, "selected_item_index > items.len");
-                        return;
+                    fn get_selected_node<'a, T>(i: &Vec<usize>, d: usize, nodes: &'a [TreeNode<T>]) -> &'a TreeNode<T> {
+                        if d == i.len() - 1 {
+                            &nodes[i[d]]
+                        } else {
+                            get_selected_node(i, d + 1, nodes)
+                        }
                     }
-                    let item = items[i].inner.clone();
+
+                    let items = self.items.borrow();
+                    let i = self.selected_item_index.borrow();
+                    let node = get_selected_node(&*i, 0, &*items);
+                    let item = node.inner.clone();
                     drop(items);
 
                     if action == Action::Confirm {
@@ -433,75 +419,82 @@ where
             return;
         }
 
-        let initial_i = self.selected_item_index.get();
+        let mut initial_i = self.selected_item_index.borrow_mut();
 
         let i = match action {
-            NavigationAction::NextSpecial | NavigationAction::PreviousSpecial => {
-                let Some(next_item_special_fn) = &*self.find_next_item_by_fn.borrow_mut() else {
-                    return;
-                };
-                let items = self.items.borrow();
-                let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
-
-                let Some(ii) = next_item_special_fn(&inners, initial_i, Direction::from(action)) else {
-                    return;
-                };
-
-                ii
-            }
-            NavigationAction::Up if !is_filtering && initial_i > 0 => initial_i - 1,
-            NavigationAction::Down if !is_filtering => initial_i + 1,
-            NavigationAction::Up if is_filtering => {
-                let items = self.items.borrow();
-                let Some(n) = items.iter().take(initial_i).rposition(|item| item.is_match) else {
-                    return;
-                };
-                n
-            }
-            NavigationAction::Down if is_filtering => {
-                let items = self.items.borrow();
-                let Some(n) = items.iter().skip(initial_i + 1).position(|item| item.is_match) else {
-                    return;
-                };
-                initial_i + n + 1
-            }
-            NavigationAction::PageUp if !is_filtering => initial_i.saturating_sub(self.page_size as usize),
-            NavigationAction::PageDown if !is_filtering => initial_i + self.page_size as usize,
-            NavigationAction::Home if !is_filtering => 0,
-            NavigationAction::End if !is_filtering => usize::MAX,
-            NavigationAction::Home if is_filtering => {
-                let v_items = self.visible_items.borrow();
-                let items = self.items.borrow();
-                let Some(n) = v_items.iter().position(|item| items[*item].is_match) else {
-                    return;
-                };
-                n
-            }
-            NavigationAction::End if is_filtering => {
-                let v_items = self.visible_items.borrow();
-                let items = self.items.borrow();
-                let Some(n) = v_items.iter().rposition(|item| items[*item].is_match) else {
-                    return;
-                };
-                n
-            }
+            // NavigationAction::NextSpecial | NavigationAction::PreviousSpecial => {
+            //     let Some(next_item_special_fn) = &*self.find_next_item_by_fn.borrow_mut() else {
+            //         return;
+            //     };
+            //     let items = self.items.borrow();
+            //     let inners: Vec<&T> = items.iter().map(|i| &i.inner).collect();
+            //
+            //     let Some(ii) = next_item_special_fn(&inners, initial_i, Direction::from(action)) else {
+            //         return;
+            //     };
+            //
+            //     ii
+            // }
+            // NavigationAction::Up if !is_filtering && initial_i > 0 => initial_i - 1,
+            // NavigationAction::Down if !is_filtering => initial_i + 1,
+            NavigationAction::Up if !is_filtering => {
+                initial_i.clone()
+            },
+            NavigationAction::Down if !is_filtering => {
+                initial_i.clone()
+            },
+            // NavigationAction::Up if is_filtering => {
+            //     let items = self.items.borrow();
+            //     let Some(n) = items.iter().take(initial_i).rposition(|item| item.is_match) else {
+            //         return;
+            //     };
+            //     n
+            // }
+            // NavigationAction::Down if is_filtering => {
+            //     let items = self.items.borrow();
+            //     let Some(n) = items.iter().skip(initial_i + 1).position(|item| item.is_match) else {
+            //         return;
+            //     };
+            //     initial_i + n + 1
+            // }
+            // NavigationAction::PageUp if !is_filtering => initial_i.saturating_sub(self.page_size as usize),
+            // NavigationAction::PageDown if !is_filtering => initial_i + self.page_size as usize,
+            // NavigationAction::Home if !is_filtering => 0,
+            // NavigationAction::End if !is_filtering => usize::MAX,
+            // NavigationAction::Home if is_filtering => {
+            //     let v_items = self.visible_items.borrow();
+            //     let items = self.items.borrow();
+            //     let Some(n) = v_items.iter().position(|item| items[*item].is_match) else {
+            //         return;
+            //     };
+            //     n
+            // }
+            // NavigationAction::End if is_filtering => {
+            //     let v_items = self.visible_items.borrow();
+            //     let items = self.items.borrow();
+            //     let Some(n) = v_items.iter().rposition(|item| items[*item].is_match) else {
+            //         return;
+            //     };
+            //     n
+            // }
             _ => {
                 return;
             }
         };
 
-        let i = i.min(length - 1); // SAFETY: if length < 2, function exits early
+        // let i = i.min(length - 1); // SAFETY: if length < 2, function exits early
 
-        if i == initial_i {
+        if i.len() == initial_i.len() && i.iter().zip(initial_i.iter()).any(|(a, b)| *a != *b) {
             return;
         }
 
-        self.set_selected_visible_index(i);
 
-        let item_index = self.visible_items.borrow()[i];
-        let newly_selected_item = self.items.borrow()[item_index].clone();
+        *initial_i = i;
+        // self.set_selected_index(i);
 
-        (self.on_select_fn)(newly_selected_item);
+        // let newly_selected_item = self.items.borrow()[item_index].clone();
+
+        // (self.on_select_fn)(newly_selected_item);
     }
 
     fn exec_rename_action(&self, action: Action) {
@@ -565,52 +558,51 @@ where
                     return;
                 }
 
-                let i = self.selected_index();
-                let removed_item = items.remove(i);
-
-                if i >= items.len() {
-                    self.selected_item_index.set(items.len().saturating_sub(1));
-                }
-
-                drop(items);
-                self.refresh_visible_items();
-
-                on_delete(removed_item.inner, i);
+                // let i = self.selected_item_index.borrow();
+                // let removed_item = items.remove(i);
+                //
+                // if i >= items.len() {
+                //     // self.selected_item_index.set(items.len().saturating_sub(1));
+                // }
+                //
+                // drop(items);
+                //
+                // on_delete(removed_item.inner, i.clone());
             }
             ListAction::SwapUp | ListAction::SwapDown => {
-                let on_reorder = self.on_reorder_fn.borrow_mut();
-
-                let Some(on_reorder) = &*on_reorder else {
-                    return;
-                };
-
-                let i = self.selected_item_index.get();
-                let mut items = self.items.borrow_mut();
-
-                let next_i;
-                if action == ListAction::SwapUp && i > 0 {
-                    next_i = i - 1;
-                } else if action == ListAction::SwapDown && i < items.len().saturating_sub(1) {
-                    next_i = i + 1;
-                } else {
-                    return;
-                };
-
-                items.swap(i, next_i);
-                drop(items);
-                self.refresh_visible_items();
-                self.set_selected_visible_index(next_i);
-                on_reorder(i, next_i);
+            //     let on_reorder = self.on_reorder_fn.borrow_mut();
+            //
+            //     let Some(on_reorder) = &*on_reorder else {
+            //         return;
+            //     };
+            //
+            //     let i = self.selected_item_index.get();
+            //     let mut items = self.items.borrow_mut();
+            //
+            //     let next_i;
+            //     if action == ListAction::SwapUp && i > 0 {
+            //         next_i = i - 1;
+            //     } else if action == ListAction::SwapDown && i < items.len().saturating_sub(1) {
+            //         next_i = i + 1;
+            //     } else {
+            //         return;
+            //     };
+            //
+            //     items.swap(i, next_i);
+            //     drop(items);
+            //     self.refresh_visible_items();
+            //     self.set_selected_visible_index(next_i);
+            //     on_reorder(i, next_i);
             }
             ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
                 *self.rename.borrow_mut() = self.with_selected_item(|item| Some(item.to_string()));
                 self.on_request_focus_trap_fn.borrow_mut()(true);
             }
             ListAction::OpenClose => {
-                let i = self.selected_item_index.get();
-                let mut items = self.items.borrow_mut();
-                log::error!("ListAction::OpenClose {i} {:?}", items[i]);
-                items[i].is_open = !items[i].is_open; // TODO: parent yada yada
+                // let i = self.selected_item_index.borrow();
+                // let mut items = self.items.borrow_mut();
+                // log::error!("ListAction::OpenClose {i} {:?}", items[i]);
+                // items[i].is_open = !items[i].is_open; // TODO: parent yada yada
             }
             _ => {}
         }

@@ -76,7 +76,7 @@ where
         self.height.set(area.height as usize);
 
         let items = self.items.borrow();
-        let selected_item_index = self.selected_item_index.get();
+        let selected_item_index = self.selected_item_index.borrow();
         let offset = self.offset.get();
         let line_style = &self.line_style.as_ref();
 
@@ -84,7 +84,7 @@ where
 
         let mut y = 0;
         for node in &*items {
-            render_node(area, buf, &self.theme, &mut y, self.is_focused(), node, &*rename, line_style);
+            render_node(area, buf, &self.theme, &mut y, self.is_focused(), node, &*rename, line_style, &*selected_item_index, 0);
         }
     }
 }
@@ -98,6 +98,8 @@ fn render_node<'a, T>(
     node: &TreeNode<T>,
     rename: &Option<String>,
     line_style: &Option<&Box<dyn Fn(&T) -> Option<Style> + 'a>>,
+    selected_item_index: &Vec<usize>,
+    depth: usize,
 )
 where
     T: std::fmt::Display + Clone,
@@ -138,6 +140,6 @@ where
     }
 
     for child in &*node.children {
-        render_node(area, buf, &theme, y, is_focused, child, rename, line_style);
+        render_node(area, buf, &theme, y, is_focused, child, rename, line_style, selected_item_index, depth + 1);
     }
 }
