@@ -206,7 +206,11 @@ impl<'a> Library<'a> {
                 };
             }
         });
-
+        album_tree.on_reorder({
+           move |parent_path, old_index, new_index| {
+               log::debug!("album_tree.on_reorder({parent_path}, {old_index}, {new_index})")
+           }
+        });
         let album_tree = Rc::new(album_tree);
         let focus_group = FocusGroup::new(vec![album_tree.clone(), song_list.clone()]);
 

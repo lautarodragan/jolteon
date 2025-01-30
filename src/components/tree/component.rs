@@ -1,7 +1,7 @@
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::VecDeque;
-use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::ops::{Deref, DerefMut};
 
 use crossterm::event::KeyCode;
@@ -19,6 +19,23 @@ pub struct TreeNodePath(Vec<usize>);
 impl TreeNodePath {
     fn new() -> Self {
         Self(vec![])
+    }
+
+    fn parent(&self) -> Self {
+        let mut parent = self.clone();
+        let new_len = parent.len().saturating_sub(1);
+        parent.truncate(new_len);
+        parent
+    }
+
+    fn deepest(&self) -> usize {
+        self[self.len().saturating_sub(1)]
+    }
+
+    fn with_child(&self, i: usize) -> Self {
+        let mut path = self.clone();
+        path.push(i);
+        path
     }
 }
 
@@ -52,6 +69,15 @@ impl Ord for TreeNodePath {
 
             j += 1;
         }
+    }
+}
+
+impl Display for TreeNodePath {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for i in &self.0 {
+            write!(f, "/{i}")?;
+        }
+        Ok(())
     }
 }
 
@@ -165,7 +191,7 @@ pub struct Tree<'a, T: 'a> {
     pub(super) on_select_fn: Box<dyn Fn(TreeNode<T>) + 'a>,
     pub(super) on_enter_fn: RefCell<Box<dyn Fn(T) + 'a>>,
     pub(super) on_enter_alt_fn: RefCell<Option<Box<dyn Fn(T) + 'a>>>,
-    pub(super) on_reorder_fn: RefCell<Option<Box<dyn Fn(usize, usize) + 'a>>>,
+    pub(super) on_reorder_fn: RefCell<Option<Box<dyn Fn(TreeNodePath, usize, usize) + 'a>>>,
     pub(super) on_insert_fn: RefCell<Option<Box<dyn Fn() + 'a>>>,
     pub(super) on_delete_fn: RefCell<Option<Box<dyn Fn(T, Vec<usize>) + 'a>>>,
     pub(super) on_rename_fn: RefCell<Option<Box<dyn Fn(String) + 'a>>>,
@@ -267,7 +293,8 @@ where
         *self.on_enter_alt_fn.borrow_mut() = Some(Box::new(cb));
     }
 
-    pub fn on_reorder(&self, cb: impl Fn(usize, usize) + 'a) {
+    /// Callback will be called with (parent's path, old index, new index).
+    pub fn on_reorder(&self, cb: impl Fn(TreeNodePath, usize, usize) + 'a) {
         *self.on_reorder_fn.borrow_mut() = Some(Box::new(cb));
     }
 
@@ -718,29 +745,44 @@ where
                 // on_delete(removed_item.inner, i.clone());
             }
             ListAction::SwapUp | ListAction::SwapDown => {
-            //     let on_reorder = self.on_reorder_fn.borrow_mut();
-            //
-            //     let Some(on_reorder) = &*on_reorder else {
-            //         return;
-            //     };
-            //
-            //     let i = self.selected_item_index.get();
-            //     let mut items = self.items.borrow_mut();
-            //
-            //     let next_i;
-            //     if action == ListAction::SwapUp && i > 0 {
-            //         next_i = i - 1;
-            //     } else if action == ListAction::SwapDown && i < items.len().saturating_sub(1) {
-            //         next_i = i + 1;
-            //     } else {
-            //         return;
-            //     };
-            //
-            //     items.swap(i, next_i);
-            //     drop(items);
-            //     self.refresh_visible_items();
-            //     self.set_selected_visible_index(next_i);
-            //     on_reorder(i, next_i);
+                let on_reorder = self.on_reorder_fn.borrow_mut();
+
+                let Some(on_reorder) = &*on_reorder else {
+                    return;
+                };
+
+                let mut nodes = self.items.borrow_mut();
+                let mut selected_item_path = self.selected_item_path.borrow_mut();
+                let path_p = TreeNodePath(selected_item_path.clone());
+                let path_parent = path_p.parent();
+                let selected_node_index = path_p.deepest();
+
+                let mut siblings = if path_parent.is_empty() {
+                    &mut *nodes
+                } else {
+                    &mut get_node_at_path_mut((&*path_parent).clone().into(), &mut *nodes).children
+                };
+
+                if siblings.len() < 2 {
+                    return;
+                }
+
+                let next_i;
+                if action == ListAction::SwapUp && selected_node_index > 0 {
+                    next_i = selected_node_index - 1;
+                } else if action == ListAction::SwapDown && selected_node_index < siblings.len().saturating_sub(1) {
+                    next_i = selected_node_index + 1;
+                } else {
+                    return;
+                };
+
+                siblings.swap(selected_node_index, next_i);
+                *selected_item_path = path_parent.with_child(next_i).0;
+
+                drop(nodes);
+                drop(selected_item_path);
+
+                on_reorder(path_parent, selected_node_index, next_i);
             }
             ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
                 *self.rename.borrow_mut() = self.with_selected_node(|item| Some(item.inner.to_string()));
