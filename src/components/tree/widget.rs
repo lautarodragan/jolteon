@@ -157,8 +157,6 @@ fn render_node<'a, T>(
     }
 
     for (i, node) in node.children.iter().enumerate() {
-        let mut new_path = path.clone();
-        new_path.push(i);
         render_node(
             area,
             buf,
@@ -170,7 +168,7 @@ fn render_node<'a, T>(
             rename,
             line_style,
             selected_item_path,
-            new_path,
+            path.with_child(i),
         );
     }
 }

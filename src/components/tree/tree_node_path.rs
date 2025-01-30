@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, Index};
 
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 pub struct TreeNodePath(pub Vec<usize>);
@@ -14,10 +14,18 @@ impl TreeNodePath {
         Self(vec![0])
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub fn parent(&self) -> Self {
         let mut parent = self.clone();
         let new_len = parent.len().saturating_sub(1);
-        parent.truncate(new_len);
+        parent.0.truncate(new_len);
         parent
     }
 
@@ -27,22 +35,22 @@ impl TreeNodePath {
 
     pub fn with_child(&self, i: usize) -> Self {
         let mut path = self.clone();
-        path.push(i);
+        path.0.push(i);
         path
     }
-}
 
-impl Deref for TreeNodePath {
-    type Target = Vec<usize>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    pub fn with_value(&self, index: usize, value: usize) -> Self {
+        let mut new = self.clone();
+        new.0[index] = value;
+        new
     }
 }
 
-impl DerefMut for TreeNodePath {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+impl Index<usize> for TreeNodePath {
+    type Output = usize;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
     }
 }
 

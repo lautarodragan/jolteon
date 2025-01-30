@@ -331,19 +331,18 @@ where
 
         let i = match action {
             NavigationAction::PreviousSpecial => {
-                let mut new_i = initial_i.clone();
                 if initial_i.len() > 1 {
-                    new_i.truncate(initial_i.len() - 1);
-                } else if new_i[0] > 0 {
-                    new_i[0] -= 1;
+                    initial_i.parent()
+                } else if initial_i[0] > 0 {
+                    TreeNodePath(vec![initial_i[0] - 1])
+                } else {
+                    initial_i.clone()
                 }
-                new_i
             }
             NavigationAction::NextSpecial => {
                 // TODO: maybe define these as "next / previous node with children"? (and implement them so)
-                let mut new_i;
                 if initial_i.len() > 1 {
-                    new_i = initial_i.parent();
+                    let new_i = initial_i.parent();
 
                     let sibling_count = {
                         if new_i.len() == 1 {
@@ -356,33 +355,28 @@ where
                     };
 
                     if new_i.deepest() + 1 < sibling_count {
-                        let new_i_len = new_i.len();
-                        new_i.0[new_i_len - 1] += 1;
+                        new_i.with_value(new_i.len() - 1, new_i[new_i.len() - 1] + 1)
+                    } else {
+                        new_i
                     }
                 } else if initial_i[0] + 1 < nodes.len() {
-                    new_i = initial_i.clone();
-                    new_i[0] += 1;
+                    initial_i.with_value(0, initial_i[0] + 1)
                 } else {
-                    new_i = initial_i.clone();
+                    initial_i.clone()
                 }
-                new_i
             }
             NavigationAction::Up if !is_filtering => {
-                if initial_i[initial_i.len() - 1] > 0 {
-                    let mut new_i = initial_i.clone();
-                    new_i[initial_i.len() - 1] -= 1;
-
-                    let node = TreeNode::get_node_at_path(new_i.clone(), &nodes);
+                if initial_i.deepest() > 0 {
+                    let new_path = initial_i.with_value(initial_i.len() - 1, initial_i.deepest() - 1);
+                    let node = TreeNode::get_node_at_path(new_path.clone(), &nodes);
 
                     if node.is_open && !node.children.is_empty() {
-                        new_i.push(node.children.len() - 1)
+                        new_path.with_child(node.children.len() - 1)
+                    } else {
+                        new_path
                     }
-
-                    new_i
                 } else if initial_i.len() > 1 {
-                    let mut new_i = initial_i.clone();
-                    new_i.truncate(initial_i.len() - 1);
-                    new_i
+                    initial_i.parent()
                 } else {
                     initial_i.clone()
                 }
@@ -392,9 +386,7 @@ where
 
                 if node.is_open && !node.children.is_empty() {
                     // Walk down / into
-                    let mut new_path = initial_i.clone();
-                    new_path.push(0);
-                    new_path
+                    initial_i.with_child(0)
                 } else {
                     // Walk next/up/next
                     let mut dynamic_path: VecDeque<usize> = initial_i.0.clone().into();

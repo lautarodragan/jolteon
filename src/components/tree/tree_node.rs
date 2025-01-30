@@ -51,8 +51,7 @@ impl<T> TreeNode<T> {
         fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: TreeNodePath, until_path: &TreeNodePath) -> usize {
             let mut count = 0;
             for i in 0..nodes.len() {
-                let mut new_path = path.clone();
-                new_path.push(i);
+                let new_path = path.with_child(i);
 
                 if new_path.cmp(until_path) >= Ordering::Equal {
                     break;
