@@ -2,6 +2,7 @@ use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Display};
+use std::ops::{Deref, DerefMut};
 
 use crossterm::event::KeyCode;
 
@@ -12,24 +13,52 @@ use crate::{
     structs::Direction,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
 pub struct TreeNodePath(Vec<usize>);
 
-fn cmp_vec(vec_a: &[usize], vec_b: &[usize]) -> Ordering {
-    let mut j = 0;
-    loop {
-        if j >= vec_a.len().min(vec_b.len()) {
-            break vec_a.len().cmp(&vec_b.len());
-        }
-
-        let ord = vec_a[j].cmp(&vec_b[j]);
-
-        if ord != Ordering::Equal {
-            break ord;
-        }
-
-        j += 1;
+impl TreeNodePath {
+    fn new() -> Self {
+        Self(vec![])
     }
+}
+
+impl Deref for TreeNodePath {
+    type Target = Vec<usize>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for TreeNodePath {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Ord for TreeNodePath {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let mut j = 0;
+        loop {
+            if j >= self.0.len().min(other.0.len()) {
+                break self.0.len().cmp(&other.0.len());
+            }
+
+            let ord = self.0[j].cmp(&other.0[j]);
+
+            if ord != Ordering::Equal {
+                break ord;
+            }
+
+            j += 1;
+        }
+    }
+}
+
+fn cmp_vec(vec_a: &[usize], vec_b: &[usize]) -> Ordering {
+    let vec_a = TreeNodePath(vec_a.to_vec());
+    let vec_b = TreeNodePath(vec_b.to_vec());
+    vec_a.cmp(&vec_b)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -77,14 +106,14 @@ impl<T> TreeNode<T> {
         nodes.len() + nodes.iter().map(|node| node.total_open_children_count()).sum::<usize>()
     }
 
-    fn open_count(nodes: &[TreeNode<T>], until_path: &Vec<usize>) -> usize {
-        fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: Vec<usize>, until_path: &Vec<usize>) -> usize {
+    fn open_count(nodes: &[TreeNode<T>], until_path: &TreeNodePath) -> usize {
+        fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: TreeNodePath, until_path: &TreeNodePath) -> usize {
             let mut count = 0;
             for i in 0..nodes.len() {
                 let mut new_path = path.clone();
                 new_path.push(i);
 
-                if cmp_vec(&new_path, &until_path) >= Ordering::Equal {
+                if new_path >= *until_path {
                     break;
                 }
 
@@ -98,7 +127,7 @@ impl<T> TreeNode<T> {
             }
             count
         }
-        recursive_open_count(&*nodes, vec![], until_path)
+        recursive_open_count(&*nodes, TreeNodePath::new(), until_path)
     }
 }
 
@@ -593,7 +622,7 @@ where
         }
 
         let total_visible_node_count = TreeNode::total_open_count(&*nodes) as isize;
-        let visible_node_count_until_selection = TreeNode::open_count(&*nodes, &i) as isize;
+        let visible_node_count_until_selection = TreeNode::open_count(&*nodes, &TreeNodePath(i.clone())) as isize;
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
         let padding = self.padding as isize;
