@@ -43,11 +43,11 @@ impl<T> TreeNode<T> {
         }
     }
 
-    pub(crate) fn total_open_count(nodes: &[TreeNode<T>]) -> usize {
+    pub fn total_open_count(nodes: &[TreeNode<T>]) -> usize {
         nodes.len() + nodes.iter().map(|node| node.total_open_children_count()).sum::<usize>()
     }
 
-    pub(crate) fn open_count(nodes: &[TreeNode<T>], until_path: &TreeNodePath) -> usize {
+    pub fn open_count(nodes: &[TreeNode<T>], until_path: &TreeNodePath) -> usize {
         fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: TreeNodePath, until_path: &TreeNodePath) -> usize {
             let mut count = 0;
             for i in 0..nodes.len() {
@@ -70,35 +70,35 @@ impl<T> TreeNode<T> {
         }
         recursive_open_count(nodes, TreeNodePath::empty(), until_path)
     }
-}
 
-pub fn get_node_at_path<T>(path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
-    fn recursive<T>(mut path: VecDeque<usize>, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
-        let Some(next_level) = path.pop_front() else {
-            panic!("get_node_at_path panic");
-        };
+    pub fn get_node_at_path(path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+        fn recursive<T>(mut path: VecDeque<usize>, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+            let Some(next_level) = path.pop_front() else {
+                panic!("get_node_at_path panic");
+            };
 
-        if path.is_empty() {
-            &nodes[next_level]
-        } else {
-            recursive(path, &nodes[next_level].children)
+            if path.is_empty() {
+                &nodes[next_level]
+            } else {
+                recursive(path, &nodes[next_level].children)
+            }
         }
+        let path: VecDeque<usize> = path.0.clone().into();
+        recursive(path, nodes)
     }
-    let path: VecDeque<usize> = path.0.clone().into();
-    recursive(path, nodes)
-}
 
-pub fn get_node_at_path_mut<T>(path: TreeNodePath, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
-    fn recursive<T>(mut path: VecDeque<usize>, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
-        let Some(next_level) = path.pop_front() else {
-            panic!("get_node_at_path_mut panic");
-        };
+    pub fn get_node_at_path_mut(path: TreeNodePath, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
+        fn recursive<T>(mut path: VecDeque<usize>, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
+            let Some(next_level) = path.pop_front() else {
+                panic!("get_node_at_path_mut panic");
+            };
 
-        if path.is_empty() {
-            &mut nodes[next_level]
-        } else {
-            recursive(path, &mut nodes[next_level].children)
+            if path.is_empty() {
+                &mut nodes[next_level]
+            } else {
+                recursive(path, &mut nodes[next_level].children)
+            }
         }
+        recursive(path.0.into(), nodes)
     }
-    recursive(path.0.into(), nodes)
 }

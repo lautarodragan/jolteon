@@ -5,5 +5,5 @@ mod tree_node_path;
 mod widget;
 
 pub use component::Tree;
-pub use tree_node::*;
+pub use tree_node::TreeNode;
 pub use tree_node_path::TreeNodePath;

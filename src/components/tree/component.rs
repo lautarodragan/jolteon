@@ -12,7 +12,7 @@ use crate::{
     ui::Focusable,
 };
 
-use super::{get_node_at_path, get_node_at_path_mut, TreeNode, TreeNodePath};
+use super::{TreeNode, TreeNodePath};
 
 pub struct Tree<'a, T: 'a> {
     pub(super) theme: Theme,
@@ -90,13 +90,13 @@ where
 
     pub fn with_node_at_path<R>(&self, path: TreeNodePath, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
         let items = self.items.borrow();
-        let node = get_node_at_path(path, &items);
+        let node = TreeNode::get_node_at_path(path, &items);
         cb(node)
     }
 
     pub fn with_node_at_path_mut<R>(&self, path: TreeNodePath, cb: impl FnOnce(&mut TreeNode<T>) -> R) -> R {
         let mut items = self.items.borrow_mut();
-        let node = &mut get_node_at_path_mut(path.clone(), &mut items);
+        let node = &mut TreeNode::get_node_at_path_mut(path.clone(), &mut items);
         cb(node)
     }
 
@@ -284,7 +284,7 @@ where
 
                     let items = self.items.borrow();
                     let i = self.selected_item_path.borrow().clone();
-                    let node = get_node_at_path(i, &items);
+                    let node = TreeNode::get_node_at_path(i, &items);
                     let item = node.inner.clone();
                     drop(items);
 
@@ -350,7 +350,7 @@ where
                             nodes.len()
                         } else {
                             let parent_path = new_i.parent();
-                            let node = get_node_at_path(parent_path, &nodes);
+                            let node = TreeNode::get_node_at_path(parent_path, &nodes);
                             node.children.len()
                         }
                     };
@@ -372,7 +372,7 @@ where
                     let mut new_i = initial_i.clone();
                     new_i[initial_i.len() - 1] -= 1;
 
-                    let node = get_node_at_path(new_i.clone(), &nodes);
+                    let node = TreeNode::get_node_at_path(new_i.clone(), &nodes);
 
                     if node.is_open && !node.children.is_empty() {
                         new_i.push(node.children.len() - 1)
@@ -388,7 +388,7 @@ where
                 }
             }
             NavigationAction::Down if !is_filtering => {
-                let node = get_node_at_path(initial_i.clone(), &nodes);
+                let node = TreeNode::get_node_at_path(initial_i.clone(), &nodes);
 
                 if node.is_open && !node.children.is_empty() {
                     // Walk down / into
@@ -409,7 +409,7 @@ where
                             break TreeNodePath(vec![(discarded + 1).min(nodes.len().saturating_sub(1))]);
                         }
 
-                        let parent_node = get_node_at_path(TreeNodePath(dynamic_path.clone().into()), &nodes); // TODO: get_node_at_path -> Option<...>
+                        let parent_node = TreeNode::get_node_at_path(TreeNodePath(dynamic_path.clone().into()), &nodes); // TODO: get_node_at_path -> Option<...>
 
                         if parent_node.children.len() > discarded + 1 {
                             dynamic_path.push_back(discarded + 1);
@@ -507,7 +507,7 @@ where
 
         *initial_i = i;
 
-        let newly_selected_item = get_node_at_path(initial_i.clone(), &nodes);
+        let newly_selected_item = TreeNode::get_node_at_path(initial_i.clone(), &nodes);
         let inner_clone = newly_selected_item.clone();
         drop(nodes);
         (self.on_select_fn)(inner_clone);
@@ -600,7 +600,7 @@ where
                 let siblings = if path_parent.is_empty() {
                     &mut *nodes
                 } else {
-                    &mut get_node_at_path_mut(path_parent.clone(), &mut nodes).children
+                    &mut TreeNode::get_node_at_path_mut(path_parent.clone(), &mut nodes).children
                 };
 
                 if siblings.len() < 2 {
@@ -631,7 +631,7 @@ where
             ListAction::OpenClose => {
                 let mut path = self.selected_item_path.borrow_mut();
                 let mut items = self.items.borrow_mut();
-                let selected_node = get_node_at_path_mut(path.clone(), &mut items);
+                let selected_node = TreeNode::get_node_at_path_mut(path.clone(), &mut items);
 
                 log::debug!("ListAction::OpenClose {path} {}", selected_node.inner);
 
@@ -640,7 +640,7 @@ where
                 } else if path.len() > 1 {
                     let parent_path = path.parent();
                     log::debug!("ListAction::OpenClose {parent_path} (parent of {path})");
-                    let node = get_node_at_path_mut(parent_path.clone(), &mut items);
+                    let node = TreeNode::get_node_at_path_mut(parent_path.clone(), &mut items);
                     node.is_open = false;
                     *path = parent_path;
 
