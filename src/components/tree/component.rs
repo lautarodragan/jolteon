@@ -12,6 +12,26 @@ use crate::{
     structs::Direction,
 };
 
+#[derive(Clone, Debug)]
+pub struct TreeNodePath(Vec<usize>);
+
+fn cmp_vec(vec_a: &[usize], vec_b: &[usize]) -> Ordering {
+    let mut j = 0;
+    loop {
+        if j >= vec_a.len().min(vec_b.len()) {
+            break vec_a.len().cmp(&vec_b.len());
+        }
+
+        let ord = vec_a[j].cmp(&vec_b[j]);
+
+        if ord != Ordering::Equal {
+            break ord;
+        }
+
+        j += 1;
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TreeNode<T> {
     pub inner: T,
@@ -30,6 +50,55 @@ impl<T> TreeNode<T> {
             is_open: true,
             children: vec![],
         }
+    }
+
+    fn total_open_children_count(&self) -> usize {
+        fn recursive_total_open_count<T>(nodes: &[TreeNode<T>]) -> usize {
+            let mut count = 0;
+            for i in 0..nodes.len() {
+                count += 1;
+
+                if !nodes[i].is_open || nodes[i].children.is_empty() {
+                    continue
+                }
+
+                count += recursive_total_open_count(&nodes[i].children);
+            }
+            count
+        }
+        if !self.is_open || self.children.is_empty() {
+            0
+        } else {
+            recursive_total_open_count(&self.children)
+        }
+    }
+
+    fn total_open_count(nodes: &[TreeNode<T>]) -> usize {
+        nodes.len() + nodes.iter().map(|node| node.total_open_children_count()).sum::<usize>()
+    }
+
+    fn open_count(nodes: &[TreeNode<T>], until_path: &Vec<usize>) -> usize {
+        fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: Vec<usize>, until_path: &Vec<usize>) -> usize {
+            let mut count = 0;
+            for i in 0..nodes.len() {
+                let mut new_path = path.clone();
+                new_path.push(i);
+
+                if cmp_vec(&new_path, &until_path) >= Ordering::Equal {
+                    break;
+                }
+
+                count += 1;
+
+                if !nodes[i].is_open || nodes[i].children.is_empty() {
+                    continue
+                }
+
+                count += recursive_open_count(&nodes[i].children, new_path, &until_path);
+            }
+            count
+        }
+        recursive_open_count(&*nodes, vec![], until_path)
     }
 }
 
@@ -517,69 +586,14 @@ where
             }
         };
 
-        fn cmp_vec(vec_a: &[usize], vec_b: &[usize]) -> Ordering {
-            let mut j = 0;
-            loop {
-                if j >= vec_a.len().min(vec_b.len()) {
-                    break vec_a.len().cmp(&vec_b.len());
-                }
-
-                let ord = vec_a[j].cmp(&vec_b[j]);
-
-                if ord != Ordering::Equal {
-                    break ord;
-                }
-
-                j += 1;
-            }
-        }
-
         let dir = cmp_vec(&i, &initial_i);
 
         if dir == Ordering::Equal {
             return;
         }
 
-        fn open_count<T>(nodes: &[TreeNode<T>], until_path: &Vec<usize>) -> usize {
-            fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: Vec<usize>, until_path: &Vec<usize>) -> usize {
-                let mut count = 0;
-                for i in 0..nodes.len() {
-                    let mut new_path = path.clone();
-                    new_path.push(i);
-
-                    if cmp_vec(&new_path, &until_path) >= Ordering::Equal {
-                        break;
-                    }
-
-                    count += 1;
-
-                    if !nodes[i].is_open || nodes[i].children.is_empty() {
-                        continue
-                    }
-
-                    count += recursive_open_count(&nodes[i].children, new_path, &until_path);
-                }
-                count
-            }
-            recursive_open_count(&*nodes, vec![], until_path)
-        }
-
-        fn total_open_count<T>(nodes: &[TreeNode<T>]) -> usize {
-            let mut count = 0;
-            for i in 0..nodes.len() {
-                count += 1;
-
-                if !nodes[i].is_open || nodes[i].children.is_empty() {
-                    continue
-                }
-
-                count += total_open_count(&nodes[i].children);
-            }
-            count
-        }
-
-        let total_visible_node_count = total_open_count(&*nodes) as isize;
-        let visible_node_count_until_selection = open_count(&*nodes, &i) as isize;
+        let total_visible_node_count = TreeNode::total_open_count(&*nodes) as isize;
+        let visible_node_count_until_selection = TreeNode::open_count(&*nodes, &i) as isize;
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
         let padding = self.padding as isize;
