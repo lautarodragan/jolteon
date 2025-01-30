@@ -15,7 +15,7 @@ use crate::{
     config::Theme,
     ui::Focusable,
 };
-
+use crate::components::TreeNodePath;
 use super::component::Tree;
 
 pub struct ListLine<'a> {
@@ -86,7 +86,7 @@ where
         let mut skip = offset as u16;
 
         for (i, node) in items.iter().enumerate() {
-            render_node(area, buf, &self.theme, &mut y, &mut skip, self.is_focused(), node, &*rename, line_style, &*selected_item_path, vec![i]);
+            render_node(area, buf, &self.theme, &mut y, &mut skip, self.is_focused(), node, &*rename, line_style, &*selected_item_path, TreeNodePath(vec![i]));
         }
     }
 }
@@ -101,8 +101,8 @@ fn render_node<'a, T>(
     node: &TreeNode<T>,
     rename: &Option<String>,
     line_style: &Option<&Box<dyn Fn(&T) -> Option<Style> + 'a>>,
-    selected_item_path: &Vec<usize>,
-    path: Vec<usize>,
+    selected_item_path: &TreeNodePath,
+    path: TreeNodePath,
 )
 where
     T: std::fmt::Display + Clone,
@@ -120,7 +120,8 @@ where
             ..area
         };
 
-        let is_selected = selected_item_path.len() == path.len() && selected_item_path.iter().zip(path.iter()).all(|(a, b)| *a == *b);
+        // log::debug!("rendering {path} selected i {selected_item_path}");
+        let is_selected = selected_item_path == &path;
         let is_renaming = is_selected && rename.is_some();
 
         let text = match *rename {

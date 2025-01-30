@@ -15,12 +15,6 @@ use crate::{
 
 use super::TreeNodePath;
 
-fn cmp_vec(vec_a: &[usize], vec_b: &[usize]) -> Ordering {
-    let vec_a = TreeNodePath(vec_a.to_vec());
-    let vec_b = TreeNodePath(vec_b.to_vec());
-    vec_a.cmp(&vec_b)
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TreeNode<T> {
     pub inner: T,
@@ -73,7 +67,7 @@ impl<T> TreeNode<T> {
                 let mut new_path = path.clone();
                 new_path.push(i);
 
-                if new_path >= *until_path {
+                if new_path.cmp(until_path) >= Ordering::Equal {
                     break;
                 }
 
@@ -87,40 +81,46 @@ impl<T> TreeNode<T> {
             }
             count
         }
-        recursive_open_count(&*nodes, TreeNodePath::new(), until_path)
+        recursive_open_count(&*nodes, TreeNodePath::empty(), until_path)
     }
 }
 
-fn get_node_at_path<T>(mut path: VecDeque<usize>, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
-    let Some(next_level) = path.pop_front() else {
-        panic!("get_node_at_path panic");
-    };
+fn get_node_at_path<T>(mut path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+    fn recursive<T>(mut path: VecDeque<usize>, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+        let Some(next_level) = path.pop_front() else {
+            panic!("get_node_at_path panic");
+        };
 
-    if path.is_empty() {
-        &nodes[next_level]
-    } else {
-        get_node_at_path(path, &nodes[next_level].children)
+        if path.is_empty() {
+            &nodes[next_level]
+        } else {
+            recursive(path, &nodes[next_level].children)
+        }
     }
+    let path: VecDeque<usize> = path.0.clone().into();
+    recursive(path, nodes)
 }
 
+fn get_node_at_path_mut<T>(mut path: TreeNodePath, nodes: &mut[TreeNode<T>]) -> &mut TreeNode<T> {
+    fn recursive<T>(mut path: VecDeque<usize>, nodes: &mut[TreeNode<T>]) -> &mut TreeNode<T> {
+        let Some(next_level) = path.pop_front() else {
+            panic!("get_node_at_path_mut panic");
+        };
 
-fn get_node_at_path_mut<T>(mut path: VecDeque<usize>, nodes: &mut[TreeNode<T>]) -> &mut TreeNode<T> {
-    let Some(next_level) = path.pop_front() else {
-        panic!("get_node_at_path_mut panic");
-    };
-
-    if path.is_empty() {
-        &mut nodes[next_level]
-    } else {
-        get_node_at_path_mut(path, &mut nodes[next_level].children)
+        if path.is_empty() {
+            &mut nodes[next_level]
+        } else {
+            recursive(path, &mut nodes[next_level].children)
+        }
     }
+    recursive(path.0.into(), nodes)
 }
 
 pub struct Tree<'a, T: 'a> {
     pub(super) theme: Theme,
 
     pub(super) items: RefCell<Vec<TreeNode<T>>>,
-    pub(super) selected_item_path: RefCell<Vec<usize>>,
+    pub(super) selected_item_path: RefCell<TreeNodePath>,
 
     pub(super) on_select_fn: Box<dyn Fn(TreeNode<T>) + 'a>,
     pub(super) on_enter_fn: RefCell<Box<dyn Fn(T) + 'a>>,
@@ -165,7 +165,7 @@ where
             find_next_item_by_fn: RefCell::new(None),
 
             items: RefCell::new(items),
-            selected_item_path: RefCell::new(vec![0]),
+            selected_item_path: RefCell::new(TreeNodePath::zero()),
 
             auto_select_next: Cell::new(true),
 
@@ -190,24 +190,24 @@ where
         self.line_style = Some(Box::new(cb));
     }
 
-    pub fn with_node_at_path<R>(&self, path: VecDeque<usize>, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
+    pub fn with_node_at_path<R>(&self, path: TreeNodePath, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
         let items = self.items.borrow();
         let node = get_node_at_path(path, &*items);
         cb(node)
     }
 
-    pub fn with_node_at_path_mut<R>(&self, path: VecDeque<usize>, cb: impl FnOnce(&mut TreeNode<T>) -> R) -> R {
+    pub fn with_node_at_path_mut<R>(&self, path: TreeNodePath, cb: impl FnOnce(&mut TreeNode<T>) -> R) -> R {
         let mut items = self.items.borrow_mut();
-        let node = &mut get_node_at_path_mut(path, &mut *items);
+        let node = &mut get_node_at_path_mut(path.clone(), &mut *items);
         cb(node)
     }
 
     pub fn with_selected_node<R>(&self, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
-        self.with_node_at_path((*self.selected_item_path.borrow()).clone().into(), cb)
+        self.with_node_at_path((*self.selected_item_path.borrow()).clone(), cb)
     }
 
     pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut TreeNode<T>)) {
-        self.with_node_at_path_mut((*self.selected_item_path.borrow()).clone().into(), cb)
+        self.with_node_at_path_mut((*self.selected_item_path.borrow()).clone(), cb)
     }
 
     /// Triggered by moving the selection around, with the Up and Down arrow keys by default.
@@ -268,7 +268,7 @@ where
 
     /// Sets the list of items and resets selection and scroll
     pub fn set_items(&self, items: Vec<TreeNode<T>>) {
-        self.set_items_s(items, vec![0], 0);
+        self.set_items_s(items, TreeNodePath::zero(), 0);
     }
 
     // /// Sets the list of items but tries to conserve selection and scroll
@@ -291,7 +291,7 @@ where
     // }
 
     /// Sets the list of items, selection and scroll
-    fn set_items_s(&self, new_items: Vec<TreeNode<T>>, i: Vec<usize>, o: usize) {
+    fn set_items_s(&self, new_items: Vec<TreeNode<T>>, i: TreeNodePath, o: usize) {
         *self.selected_item_path.borrow_mut() = i;
         self.offset.set(o);
         *self.items.borrow_mut() = new_items;
@@ -366,7 +366,7 @@ where
     //     self.selected_item_index.borrow()
     // }
 
-    pub fn set_selected_index(&self, new_i: Vec<usize>) {
+    pub fn set_selected_index(&self, new_i: TreeNodePath) {
         log::debug!("set_selected_index {new_i:?}");
         *self.selected_item_path.borrow_mut() = new_i;
     }
@@ -428,7 +428,7 @@ where
 
         if initial_i.is_empty() {
             log::error!("exec_navigation_action: self.selected_item_path was empty.");
-            *initial_i = vec![0];
+            *initial_i = TreeNodePath::zero();
         }
 
         let i = match action {
@@ -443,26 +443,29 @@ where
             }
             NavigationAction::NextSpecial => {
                 // TODO: maybe define these as "next / previous node with children"? (and implement them so)
-                let mut new_i = initial_i.clone();
+                let mut new_i;
                 if initial_i.len() > 1 {
-                    let new_len = initial_i.len() - 1;
-                    new_i.truncate(new_len);
+                    new_i = initial_i.parent();
 
                     let sibling_count = {
                         if new_i.len() == 1 {
                             nodes.len()
                         } else {
-                            let parent_path = new_i[..new_i.len() - 1].to_vec();
-                            let node = get_node_at_path(parent_path.into(), &*nodes);
+                            let parent_path = new_i.parent();
+                            let node = get_node_at_path(parent_path, &*nodes);
                             node.children.len()
                         }
                     };
 
-                    if new_i[new_len - 1] + 1 < sibling_count {
-                        new_i[new_len - 1] += 1;
+                    if new_i.deepest() + 1 < sibling_count {
+                        let new_i_len = new_i.len();
+                        new_i.0[new_i_len - 1] += 1;
                     }
-                } else if new_i[0] + 1 < nodes.len() {
+                } else if initial_i[0] + 1 < nodes.len() {
+                    new_i = initial_i.clone();
                     new_i[0] += 1;
+                } else {
+                    new_i = initial_i.clone();
                 }
                 new_i
             }
@@ -487,7 +490,7 @@ where
                 }
             },
             NavigationAction::Down if !is_filtering => {
-                let node = get_node_at_path(initial_i.clone().into(), &*nodes);
+                let node = get_node_at_path(initial_i.clone(), &*nodes);
 
                 if node.is_open && !node.children.is_empty() {
                     // Walk down / into
@@ -496,7 +499,7 @@ where
                     new_path
                 } else {
                     // Walk next/up/next
-                    let mut dynamic_path: VecDeque<usize> = initial_i.clone().into();
+                    let mut dynamic_path: VecDeque<usize> = initial_i.0.clone().into();
 
                     loop {
                         let Some(discarded) = dynamic_path.pop_back() else {
@@ -505,14 +508,14 @@ where
                         };
 
                         if dynamic_path.is_empty() {
-                            break vec![(discarded + 1).min(nodes.len().saturating_sub(1))];
+                            break TreeNodePath(vec![(discarded + 1).min(nodes.len().saturating_sub(1))]);
                         }
 
-                        let parent_node = get_node_at_path(dynamic_path.clone(), &*nodes); // TODO: get_node_at_path -> Option<...>
+                        let parent_node = get_node_at_path(TreeNodePath(dynamic_path.clone().into()), &*nodes); // TODO: get_node_at_path -> Option<...>
 
                         if parent_node.children.len() > discarded + 1 {
                             dynamic_path.push_back(discarded + 1);
-                            break dynamic_path.into();
+                            break TreeNodePath(dynamic_path.clone().into());
                         }
                     }
                 }
@@ -540,14 +543,14 @@ where
             NavigationAction::PageDown if !is_filtering => {
                 initial_i.clone()
             },
-            NavigationAction::Home if !is_filtering => vec![0],
+            NavigationAction::Home if !is_filtering => TreeNodePath::zero(),
             NavigationAction::End if !is_filtering => {
                 let mut new_i = vec![nodes.len() - 1];
                 let mut node = &nodes[nodes.len() - 1];
 
                 loop {
                     if !node.is_open || node.children.is_empty() {
-                        break new_i;
+                        break TreeNodePath(new_i);
                     }
 
                     let i = node.children.len() - 1;
@@ -576,14 +579,14 @@ where
             }
         };
 
-        let dir = cmp_vec(&i, &initial_i);
+        let dir = i.cmp(&initial_i);
 
         if dir == Ordering::Equal {
             return;
         }
 
         let total_visible_node_count = TreeNode::total_open_count(&*nodes) as isize;
-        let visible_node_count_until_selection = TreeNode::open_count(&*nodes, &TreeNodePath(i.clone())) as isize;
+        let visible_node_count_until_selection = TreeNode::open_count(&*nodes, &i) as isize;
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
         let padding = self.padding as isize;
@@ -687,14 +690,13 @@ where
 
                 let mut nodes = self.items.borrow_mut();
                 let mut selected_item_path = self.selected_item_path.borrow_mut();
-                let path_p = TreeNodePath(selected_item_path.clone());
-                let path_parent = path_p.parent();
-                let selected_node_index = path_p.deepest();
+                let path_parent = selected_item_path.parent();
+                let selected_node_index = selected_item_path.deepest();
 
                 let mut siblings = if path_parent.is_empty() {
                     &mut *nodes
                 } else {
-                    &mut get_node_at_path_mut((&*path_parent).clone().into(), &mut *nodes).children
+                    &mut get_node_at_path_mut(path_parent.clone(), &mut *nodes).children
                 };
 
                 if siblings.len() < 2 {
@@ -711,7 +713,7 @@ where
                 };
 
                 siblings.swap(selected_node_index, next_i);
-                *selected_item_path = path_parent.with_child(next_i).0;
+                *selected_item_path = path_parent.with_child(next_i);
 
                 drop(nodes);
                 drop(selected_item_path);
@@ -725,18 +727,18 @@ where
             ListAction::OpenClose => {
                 let mut path = self.selected_item_path.borrow_mut();
                 let mut items = self.items.borrow_mut();
-                let node = get_node_at_path_mut(path.clone().into(), &mut *items);
-                log::debug!("ListAction::OpenClose {path:?} {}", node.inner);
+                let selected_node = get_node_at_path_mut(path.clone(), &mut *items);
 
-                if !node.children.is_empty() {
-                    node.is_open = !node.is_open;
+                log::debug!("ListAction::OpenClose {path} {}", selected_node.inner);
+
+                if !selected_node.children.is_empty() {
+                    selected_node.is_open = !selected_node.is_open;
                 } else if path.len() > 1 {
-                    let parent_path: Vec<usize> = path[..path.len() - 1].into();
-                    log::debug!("ListAction::OpenClose {parent_path:?} (parent of {path:?})");
-                    let node = get_node_at_path_mut(parent_path.into(), &mut *items);
+                    let parent_path = path.parent();
+                    log::debug!("ListAction::OpenClose {parent_path} (parent of {path})");
+                    let node = get_node_at_path_mut(parent_path.clone(), &mut *items);
                     node.is_open = false;
-                    let new_len = path.len().saturating_sub(1);
-                    path.truncate(new_len);
+                    *path = parent_path;
 
                     // TODO: collapsing the selected node may require lowering the offset by up to node.children.len()
                 }

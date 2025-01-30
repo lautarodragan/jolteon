@@ -6,8 +6,12 @@ use std::ops::{Deref, DerefMut};
 pub struct TreeNodePath(pub Vec<usize>);
 
 impl TreeNodePath {
-    pub fn new() -> Self {
+    pub fn empty() -> Self {
         Self(vec![])
+    }
+
+    pub fn zero() -> Self {
+        Self(vec![0])
     }
 
     pub fn parent(&self) -> Self {
