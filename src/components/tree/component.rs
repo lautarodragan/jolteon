@@ -476,7 +476,20 @@ where
                 initial_i.clone()
             },
             NavigationAction::Home if !is_filtering => vec![0],
-            // NavigationAction::End if !is_filtering => usize::MAX,
+            NavigationAction::End if !is_filtering => {
+                let mut new_i = vec![nodes.len() - 1];
+                let mut node = &nodes[nodes.len() - 1];
+
+                loop {
+                    if !node.is_open || node.children.is_empty() {
+                        break new_i;
+                    }
+
+                    let i = node.children.len() - 1;
+                    new_i.push(i);
+                    node = &node.children[i];
+                }
+            },
             // NavigationAction::Home if is_filtering => {
             //     let v_items = self.visible_items.borrow();
             //     let items = self.items.borrow();
