@@ -149,7 +149,7 @@ impl<'a> Library<'a> {
             let song_list = song_list.clone();
 
             move |item| {
-                log::trace!(target: "::library.album_tree.on_select", "selected {:#?}", item);
+                // log::trace!(target: "::library.album_tree.on_select", "selected {:#?}", item);
 
                 let songs = match item.inner {
                     AlbumTreeItem::Artist(_) => item.children.iter().flat_map(|child| child.inner.songs()).collect(),

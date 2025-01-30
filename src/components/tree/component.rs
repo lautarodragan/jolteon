@@ -1,4 +1,5 @@
 use std::cell::{Cell, RefCell};
+use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Display};
 
@@ -359,6 +360,11 @@ where
     fn exec_navigation_action(&self, action: NavigationAction) {
         let is_filtering = !self.filter.borrow_mut().is_empty();
         let nodes = self.items.borrow();
+
+        if nodes.is_empty() {
+            return;
+        }
+
         let mut initial_i = self.selected_item_path.borrow_mut();
 
         if initial_i.is_empty() {
@@ -511,10 +517,81 @@ where
             }
         };
 
-        log::debug!("NavigationAction: new selection path {i:?}");
-        if i.len() == initial_i.len() && i.iter().zip(initial_i.iter()).all(|(a, b)| *a == *b) {
-            log::debug!("NavigationAction: new selection path did not change");
+        fn cmp_vec(vec_a: &[usize], vec_b: &[usize]) -> Ordering {
+            let mut j = 0;
+            loop {
+                if j >= vec_a.len().min(vec_b.len()) {
+                    break vec_a.len().cmp(&vec_b.len());
+                }
+
+                let ord = vec_a[j].cmp(&vec_b[j]);
+
+                if ord != Ordering::Equal {
+                    break ord;
+                }
+
+                j += 1;
+            }
+        }
+
+        let dir = cmp_vec(&i, &initial_i);
+
+        if dir == Ordering::Equal {
             return;
+        }
+
+        fn open_count<T>(nodes: &[TreeNode<T>], until_path: &Vec<usize>) -> usize {
+            fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: Vec<usize>, until_path: &Vec<usize>) -> usize {
+                let mut count = 0;
+                for i in 0..nodes.len() {
+                    let mut new_path = path.clone();
+                    new_path.push(i);
+
+                    if cmp_vec(&new_path, &until_path) >= Ordering::Equal {
+                        break;
+                    }
+
+                    count += 1;
+
+                    if !nodes[i].is_open || nodes[i].children.is_empty() {
+                        continue
+                    }
+
+                    count += recursive_open_count(&nodes[i].children, new_path, &until_path);
+                }
+                count
+            }
+            recursive_open_count(&*nodes, vec![], until_path)
+        }
+
+        fn total_open_count<T>(nodes: &[TreeNode<T>]) -> usize {
+            let mut count = 0;
+            for i in 0..nodes.len() {
+                count += 1;
+
+                if !nodes[i].is_open || nodes[i].children.is_empty() {
+                    continue
+                }
+
+                count += total_open_count(&nodes[i].children);
+            }
+            count
+        }
+
+        let total_visible_node_count = total_open_count(&*nodes) as isize;
+        let visible_node_count_until_selection = open_count(&*nodes, &i) as isize;
+        let height = self.height.get() as isize;
+        let offset = self.offset.get() as isize;
+        let padding = self.padding as isize;
+        let padding = if dir == Ordering::Greater { height - padding - 1 } else { padding };
+
+        if (dir == Ordering::Less && visible_node_count_until_selection < offset + padding) || (dir == Ordering::Greater && visible_node_count_until_selection > offset + padding) {
+            let offset = if visible_node_count_until_selection > padding {
+                (visible_node_count_until_selection - padding).min(total_visible_node_count - height).max(0)
+            } else {
+                0
+            };
+            self.offset.set(offset as usize);
         }
 
         *initial_i = i;
@@ -641,6 +718,8 @@ where
                     node.is_open = false;
                     let new_len = path.len().saturating_sub(1);
                     path.truncate(new_len);
+
+                    // TODO: collapsing the selected node may require lowering the offset by up to node.children.len()
                 }
             }
             ListAction::ExpandAll => {

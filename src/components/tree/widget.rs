@@ -83,9 +83,10 @@ where
         let rename = self.rename.borrow();
 
         let mut y = 0;
+        let mut skip = offset as u16;
 
         for (i, node) in items.iter().enumerate() {
-            render_node(area, buf, &self.theme, &mut y, self.is_focused(), node, &*rename, line_style, &*selected_item_path, vec![i]);
+            render_node(area, buf, &self.theme, &mut y, &mut skip, self.is_focused(), node, &*rename, line_style, &*selected_item_path, vec![i]);
         }
     }
 }
@@ -95,6 +96,7 @@ fn render_node<'a, T>(
     buf: &mut Buffer,
     theme: &Theme,
     y: &mut u16,
+    skip: &mut u16,
     is_focused: bool,
     node: &TreeNode<T>,
     rename: &Option<String>,
@@ -105,40 +107,42 @@ fn render_node<'a, T>(
 where
     T: std::fmt::Display + Clone,
 {
-    // let item_index = i + offset;
-
     if *y >= area.height {
         return;
     }
 
-    let parent_area = Rect {
-        y: area.y + *y,
-        height: 1,
-        ..area
-    };
+    if *skip > 0 {
+        *skip -= 1;
+    } else {
+        let parent_area = Rect {
+            y: area.y + *y,
+            height: 1,
+            ..area
+        };
 
-    let is_selected = selected_item_path.len() == path.len() && selected_item_path.iter().zip(path.iter()).all(|(a, b)| *a == *b);
-    let is_renaming = is_selected && rename.is_some();
+        let is_selected = selected_item_path.len() == path.len() && selected_item_path.iter().zip(path.iter()).all(|(a, b)| *a == *b);
+        let is_renaming = is_selected && rename.is_some();
 
-    let text = match *rename {
-        Some(ref rename) if is_selected => rename.as_str().into(),
-        _ => node.inner.to_string().into(),
-    };
+        let text = match *rename {
+            Some(ref rename) if is_selected => rename.as_str().into(),
+            _ => node.inner.to_string().into(),
+        };
 
-    let style_overrides = line_style.and_then(|ls| ls(&node.inner));
+        let style_overrides = line_style.and_then(|ls| ls(&node.inner));
 
-    let line = ListLine {
-        theme: &theme,
-        text,
-        list_has_focus: is_focused,
-        is_selected,
-        is_match: node.is_match,
-        is_renaming,
-        overrides: style_overrides,
-    };
+        let line = ListLine {
+            theme: &theme,
+            text,
+            list_has_focus: is_focused,
+            is_selected,
+            is_match: node.is_match,
+            is_renaming,
+            overrides: style_overrides,
+        };
 
-    line.render(parent_area, buf);
-    *y += 1;
+        line.render(parent_area, buf);
+        *y += 1;
+    }
 
     if !node.is_open {
         return;
@@ -147,6 +151,6 @@ where
     for (i, node) in node.children.iter().enumerate() {
         let mut new_path = path.clone();
         new_path.push(i);
-        render_node(area, buf, &theme, y, is_focused, node, rename, line_style, selected_item_path, new_path);
+        render_node(area, buf, &theme, y, skip, is_focused, node, rename, line_style, selected_item_path, new_path);
     }
 }
