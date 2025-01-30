@@ -107,6 +107,10 @@ where
 {
     // let item_index = i + offset;
 
+    if *y >= area.height {
+        return;
+    }
+
     let parent_area = Rect {
         y: area.y + *y,
         height: 1,
