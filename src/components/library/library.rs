@@ -92,16 +92,21 @@ impl<'a> Library<'a> {
 
         let song_tree = library_file_to_song_tree(crate::files::Library::from_file());
 
-        let album_tree_items: Vec<TreeNode<AlbumTreeItem>> = song_tree.iter().cloned().map(|mut artist| {
-            let albums = std::mem::take(&mut artist.albums);
-            let mut tree_node = TreeNode::new(AlbumTreeItem::Artist(artist));
+        let album_tree_items: Vec<TreeNode<AlbumTreeItem>> = song_tree
+            .iter()
+            .cloned()
+            .map(|mut artist| {
+                let albums = std::mem::take(&mut artist.albums);
+                let mut tree_node = TreeNode::new(AlbumTreeItem::Artist(artist));
 
-            tree_node.children = albums.into_iter().map(|album| {
-                TreeNode::new(AlbumTreeItem::Album(album))
-            }).collect();
+                tree_node.children = albums
+                    .into_iter()
+                    .map(|album| TreeNode::new(AlbumTreeItem::Album(album)))
+                    .collect();
 
-            tree_node
-        }).collect();
+                tree_node
+            })
+            .collect();
         let mut album_tree = Tree::new(theme, album_tree_items);
 
         // album_tree.set_is_visible_magic(|item| item.is_artist());
@@ -207,9 +212,9 @@ impl<'a> Library<'a> {
             }
         });
         album_tree.on_reorder({
-           move |parent_path, old_index, new_index| {
-               log::debug!("album_tree.on_reorder({parent_path}, {old_index}, {new_index})")
-           }
+            move |parent_path, old_index, new_index| {
+                log::debug!("album_tree.on_reorder({parent_path}, {old_index}, {new_index})")
+            }
         });
         let album_tree = Rc::new(album_tree);
         let focus_group = FocusGroup::new(vec![album_tree.clone(), song_list.clone()]);
@@ -268,16 +273,21 @@ impl<'a> Library<'a> {
         }
 
         // let album_tree_items = song_tree_to_album_tree_item_vec(song_tree.clone()); // TODO: optimize. this is extremely wasteful!
-        let album_tree_items: Vec<TreeNode<AlbumTreeItem>> = song_tree.iter().cloned().map(|mut artist| {
-            let albums = std::mem::take(&mut artist.albums);
-            let mut tree_node = TreeNode::new(AlbumTreeItem::Artist(artist));
+        let album_tree_items: Vec<TreeNode<AlbumTreeItem>> = song_tree
+            .iter()
+            .cloned()
+            .map(|mut artist| {
+                let albums = std::mem::take(&mut artist.albums);
+                let mut tree_node = TreeNode::new(AlbumTreeItem::Artist(artist));
 
-            tree_node.children = albums.into_iter().map(|album| {
-                TreeNode::new(AlbumTreeItem::Album(album))
-            }).collect();
+                tree_node.children = albums
+                    .into_iter()
+                    .map(|album| TreeNode::new(AlbumTreeItem::Album(album)))
+                    .collect();
 
-            tree_node
-        }).collect();
+                tree_node
+            })
+            .collect();
         self.album_tree.set_items(album_tree_items);
 
         // TODO: save changes

@@ -1,19 +1,18 @@
-use std::cell::{Cell, RefCell};
-use std::cmp::Ordering;
-use std::collections::VecDeque;
-use std::fmt::{Debug, Display, Formatter, Write};
-use std::ops::{Deref, DerefMut};
-
-use crossterm::event::KeyCode;
+use std::{
+    cell::{Cell, RefCell},
+    cmp::Ordering,
+    collections::VecDeque,
+    fmt::{Debug, Display},
+};
 
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},
     config::Theme,
-    ui::Focusable,
     structs::Direction,
+    ui::Focusable,
 };
 
-use super::{TreeNode, TreeNodePath, get_node_at_path, get_node_at_path_mut};
+use super::{get_node_at_path, get_node_at_path_mut, TreeNode, TreeNodePath};
 
 pub struct Tree<'a, T: 'a> {
     pub(super) theme: Theme,
@@ -91,13 +90,13 @@ where
 
     pub fn with_node_at_path<R>(&self, path: TreeNodePath, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
         let items = self.items.borrow();
-        let node = get_node_at_path(path, &*items);
+        let node = get_node_at_path(path, &items);
         cb(node)
     }
 
     pub fn with_node_at_path_mut<R>(&self, path: TreeNodePath, cb: impl FnOnce(&mut TreeNode<T>) -> R) -> R {
         let mut items = self.items.borrow_mut();
-        let node = &mut get_node_at_path_mut(path.clone(), &mut *items);
+        let node = &mut get_node_at_path_mut(path.clone(), &mut items);
         cb(node)
     }
 
@@ -285,7 +284,7 @@ where
 
                     let items = self.items.borrow();
                     let i = self.selected_item_path.borrow().clone();
-                    let node = get_node_at_path(i.into(), &*items);
+                    let node = get_node_at_path(i, &items);
                     let item = node.inner.clone();
                     drop(items);
 
@@ -335,7 +334,7 @@ where
                 let mut new_i = initial_i.clone();
                 if initial_i.len() > 1 {
                     new_i.truncate(initial_i.len() - 1);
-                } else if new_i[0] > 0{
+                } else if new_i[0] > 0 {
                     new_i[0] -= 1;
                 }
                 new_i
@@ -351,7 +350,7 @@ where
                             nodes.len()
                         } else {
                             let parent_path = new_i.parent();
-                            let node = get_node_at_path(parent_path, &*nodes);
+                            let node = get_node_at_path(parent_path, &nodes);
                             node.children.len()
                         }
                     };
@@ -373,7 +372,7 @@ where
                     let mut new_i = initial_i.clone();
                     new_i[initial_i.len() - 1] -= 1;
 
-                    let node = get_node_at_path(new_i.clone().into(), &*nodes);
+                    let node = get_node_at_path(new_i.clone(), &nodes);
 
                     if node.is_open && !node.children.is_empty() {
                         new_i.push(node.children.len() - 1)
@@ -387,9 +386,9 @@ where
                 } else {
                     initial_i.clone()
                 }
-            },
+            }
             NavigationAction::Down if !is_filtering => {
-                let node = get_node_at_path(initial_i.clone(), &*nodes);
+                let node = get_node_at_path(initial_i.clone(), &nodes);
 
                 if node.is_open && !node.children.is_empty() {
                     // Walk down / into
@@ -410,7 +409,7 @@ where
                             break TreeNodePath(vec![(discarded + 1).min(nodes.len().saturating_sub(1))]);
                         }
 
-                        let parent_node = get_node_at_path(TreeNodePath(dynamic_path.clone().into()), &*nodes); // TODO: get_node_at_path -> Option<...>
+                        let parent_node = get_node_at_path(TreeNodePath(dynamic_path.clone().into()), &nodes); // TODO: get_node_at_path -> Option<...>
 
                         if parent_node.children.len() > discarded + 1 {
                             dynamic_path.push_back(discarded + 1);
@@ -418,7 +417,7 @@ where
                         }
                     }
                 }
-            },
+            }
             // NavigationAction::Up if is_filtering => {
             //     let items = self.items.borrow();
             //     let Some(n) = items.iter().take(initial_i).rposition(|item| item.is_match) else {
@@ -438,10 +437,8 @@ where
                 // It'll make more sense to implement the logic here, and have the "normal" Up/Down
                 // call this code with a page_size of 1.
                 initial_i.clone()
-            },
-            NavigationAction::PageDown if !is_filtering => {
-                initial_i.clone()
-            },
+            }
+            NavigationAction::PageDown if !is_filtering => initial_i.clone(),
             NavigationAction::Home if !is_filtering => TreeNodePath::zero(),
             NavigationAction::End if !is_filtering => {
                 let mut new_i = vec![nodes.len() - 1];
@@ -456,7 +453,7 @@ where
                     new_i.push(i);
                     node = &node.children[i];
                 }
-            },
+            }
             // NavigationAction::Home if is_filtering => {
             //     let v_items = self.visible_items.borrow();
             //     let items = self.items.borrow();
@@ -484,16 +481,24 @@ where
             return;
         }
 
-        let total_visible_node_count = TreeNode::total_open_count(&*nodes) as isize;
-        let visible_node_count_until_selection = TreeNode::open_count(&*nodes, &i) as isize;
+        let total_visible_node_count = TreeNode::total_open_count(&nodes) as isize;
+        let visible_node_count_until_selection = TreeNode::open_count(&nodes, &i) as isize;
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
         let padding = self.padding as isize;
-        let padding = if dir == Ordering::Greater { height - padding - 1 } else { padding };
+        let padding = if dir == Ordering::Greater {
+            height - padding - 1
+        } else {
+            padding
+        };
 
-        if (dir == Ordering::Less && visible_node_count_until_selection < offset + padding) || (dir == Ordering::Greater && visible_node_count_until_selection > offset + padding) {
+        if (dir == Ordering::Less && visible_node_count_until_selection < offset + padding)
+            || (dir == Ordering::Greater && visible_node_count_until_selection > offset + padding)
+        {
             let offset = if visible_node_count_until_selection > padding {
-                (visible_node_count_until_selection - padding).min(total_visible_node_count - height).max(0)
+                (visible_node_count_until_selection - padding)
+                    .min(total_visible_node_count - height)
+                    .max(0)
             } else {
                 0
             };
@@ -502,7 +507,7 @@ where
 
         *initial_i = i;
 
-        let newly_selected_item = get_node_at_path(initial_i.clone().into(), &*nodes);
+        let newly_selected_item = get_node_at_path(initial_i.clone(), &nodes);
         let inner_clone = newly_selected_item.clone();
         drop(nodes);
         (self.on_select_fn)(inner_clone);
@@ -563,7 +568,7 @@ where
                     return;
                 };
 
-                let mut items = self.items.borrow_mut();
+                let items = self.items.borrow_mut();
 
                 if items.is_empty() {
                     return;
@@ -592,10 +597,10 @@ where
                 let path_parent = selected_item_path.parent();
                 let selected_node_index = selected_item_path.deepest();
 
-                let mut siblings = if path_parent.is_empty() {
+                let siblings = if path_parent.is_empty() {
                     &mut *nodes
                 } else {
-                    &mut get_node_at_path_mut(path_parent.clone(), &mut *nodes).children
+                    &mut get_node_at_path_mut(path_parent.clone(), &mut nodes).children
                 };
 
                 if siblings.len() < 2 {
@@ -626,7 +631,7 @@ where
             ListAction::OpenClose => {
                 let mut path = self.selected_item_path.borrow_mut();
                 let mut items = self.items.borrow_mut();
-                let selected_node = get_node_at_path_mut(path.clone(), &mut *items);
+                let selected_node = get_node_at_path_mut(path.clone(), &mut items);
 
                 log::debug!("ListAction::OpenClose {path} {}", selected_node.inner);
 
@@ -635,7 +640,7 @@ where
                 } else if path.len() > 1 {
                     let parent_path = path.parent();
                     log::debug!("ListAction::OpenClose {parent_path} (parent of {path})");
-                    let node = get_node_at_path_mut(parent_path.clone(), &mut *items);
+                    let node = get_node_at_path_mut(parent_path.clone(), &mut items);
                     node.is_open = false;
                     *path = parent_path;
 

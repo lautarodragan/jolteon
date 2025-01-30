@@ -1,13 +1,11 @@
 use std::cell::{Cell, RefCell};
 use std::fmt::{Debug, Display};
 
-use crossterm::event::KeyCode;
-
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},
     config::Theme,
-    ui::Focusable,
     structs::Direction,
+    ui::Focusable,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -60,7 +58,7 @@ pub struct List<'a, T: 'a> {
 
 impl<'a, T> List<'a, T>
 where
-    T: 'a + Clone + Display
+    T: 'a + Clone + Display,
 {
     pub fn new(theme: Theme, items: Vec<T>) -> Self {
         let items: Vec<ListItem<T>> = items.into_iter().map(ListItem::new).collect();

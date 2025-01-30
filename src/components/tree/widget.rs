@@ -10,13 +10,9 @@ use ratatui::{
     widgets::{Widget, WidgetRef},
 };
 
-use crate::{
-    components::TreeNode,
-    config::Theme,
-    ui::Focusable,
-};
-use crate::components::TreeNodePath;
-use super::component::Tree;
+use crate::{config::Theme, ui::Focusable};
+
+use super::{Tree, TreeNode, TreeNodePath};
 
 pub struct ListLine<'a> {
     theme: &'a crate::config::Theme,
@@ -86,7 +82,19 @@ where
         let mut skip = offset as u16;
 
         for (i, node) in items.iter().enumerate() {
-            render_node(area, buf, &self.theme, &mut y, &mut skip, self.is_focused(), node, &*rename, line_style, &*selected_item_path, TreeNodePath(vec![i]));
+            render_node(
+                area,
+                buf,
+                &self.theme,
+                &mut y,
+                &mut skip,
+                self.is_focused(),
+                node,
+                &rename,
+                line_style,
+                &selected_item_path,
+                TreeNodePath(vec![i]),
+            );
         }
     }
 }
@@ -103,8 +111,7 @@ fn render_node<'a, T>(
     line_style: &Option<&Box<dyn Fn(&T) -> Option<Style> + 'a>>,
     selected_item_path: &TreeNodePath,
     path: TreeNodePath,
-)
-where
+) where
     T: std::fmt::Display + Clone,
 {
     if *y >= area.height {
@@ -132,7 +139,7 @@ where
         let style_overrides = line_style.and_then(|ls| ls(&node.inner));
 
         let line = ListLine {
-            theme: &theme,
+            theme,
             text,
             list_has_focus: is_focused,
             is_selected,
@@ -152,6 +159,18 @@ where
     for (i, node) in node.children.iter().enumerate() {
         let mut new_path = path.clone();
         new_path.push(i);
-        render_node(area, buf, &theme, y, skip, is_focused, node, rename, line_style, selected_item_path, new_path);
+        render_node(
+            area,
+            buf,
+            theme,
+            y,
+            skip,
+            is_focused,
+            node,
+            rename,
+            line_style,
+            selected_item_path,
+            new_path,
+        );
     }
 }

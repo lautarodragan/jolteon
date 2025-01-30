@@ -1,5 +1,4 @@
-use std::cmp::Ordering;
-use std::collections::VecDeque;
+use std::{cmp::Ordering, collections::VecDeque};
 
 use super::TreeNodePath;
 
@@ -30,7 +29,7 @@ impl<T> TreeNode<T> {
                 count += 1;
 
                 if !nodes[i].is_open || nodes[i].children.is_empty() {
-                    continue
+                    continue;
                 }
 
                 count += recursive_total_open_count(&nodes[i].children);
@@ -62,18 +61,18 @@ impl<T> TreeNode<T> {
                 count += 1;
 
                 if !nodes[i].is_open || nodes[i].children.is_empty() {
-                    continue
+                    continue;
                 }
 
-                count += recursive_open_count(&nodes[i].children, new_path, &until_path);
+                count += recursive_open_count(&nodes[i].children, new_path, until_path);
             }
             count
         }
-        recursive_open_count(&*nodes, TreeNodePath::empty(), until_path)
+        recursive_open_count(nodes, TreeNodePath::empty(), until_path)
     }
 }
 
-pub fn get_node_at_path<T>(mut path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+pub fn get_node_at_path<T>(path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
     fn recursive<T>(mut path: VecDeque<usize>, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
         let Some(next_level) = path.pop_front() else {
             panic!("get_node_at_path panic");
@@ -89,8 +88,8 @@ pub fn get_node_at_path<T>(mut path: TreeNodePath, nodes: &[TreeNode<T>]) -> &Tr
     recursive(path, nodes)
 }
 
-pub fn get_node_at_path_mut<T>(mut path: TreeNodePath, nodes: &mut[TreeNode<T>]) -> &mut TreeNode<T> {
-    fn recursive<T>(mut path: VecDeque<usize>, nodes: &mut[TreeNode<T>]) -> &mut TreeNode<T> {
+pub fn get_node_at_path_mut<T>(path: TreeNodePath, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
+    fn recursive<T>(mut path: VecDeque<usize>, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
         let Some(next_level) = path.pop_front() else {
             panic!("get_node_at_path_mut panic");
         };

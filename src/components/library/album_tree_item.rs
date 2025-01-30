@@ -39,8 +39,8 @@ impl AlbumTreeItem {
 
     pub fn songs(&self) -> Vec<Song> {
         match self {
-            AlbumTreeItem::Artist(_) => {vec![]}
-            AlbumTreeItem::Album(a) => {a.songs.clone()}
+            AlbumTreeItem::Artist(_) => vec![],
+            AlbumTreeItem::Album(a) => a.songs.clone(),
         }
     }
 }

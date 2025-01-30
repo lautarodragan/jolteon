@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+
 use crate::actions::{Action, OnAction};
 
 use super::component::List;
