@@ -22,15 +22,19 @@ impl TreeNodePath {
         self.0.len()
     }
 
+    pub fn first(&self) -> usize {
+        self[0]
+    }
+
+    pub fn last(&self) -> usize {
+        self[self.len().saturating_sub(1)]
+    }
+
     pub fn parent(&self) -> Self {
         let mut parent = self.clone();
         let new_len = parent.len().saturating_sub(1);
         parent.0.truncate(new_len);
         parent
-    }
-
-    pub fn deepest(&self) -> usize {
-        self[self.len().saturating_sub(1)]
     }
 
     pub fn with_child(&self, i: usize) -> Self {

@@ -333,8 +333,8 @@ where
             NavigationAction::PreviousSpecial => {
                 if initial_i.len() > 1 {
                     initial_i.parent()
-                } else if initial_i[0] > 0 {
-                    TreeNodePath(vec![initial_i[0] - 1])
+                } else if initial_i.first() > 0 {
+                    initial_i.with_value(0, initial_i.first() - 1)
                 } else {
                     initial_i.clone()
                 }
@@ -354,20 +354,20 @@ where
                         }
                     };
 
-                    if new_i.deepest() + 1 < sibling_count {
-                        new_i.with_value(new_i.len() - 1, new_i[new_i.len() - 1] + 1)
+                    if new_i.last() + 1 < sibling_count {
+                        new_i.with_value(new_i.len() - 1, new_i.last() + 1)
                     } else {
                         new_i
                     }
-                } else if initial_i[0] + 1 < nodes.len() {
-                    initial_i.with_value(0, initial_i[0] + 1)
+                } else if initial_i.first() + 1 < nodes.len() {
+                    initial_i.with_value(0, initial_i.first() + 1)
                 } else {
                     initial_i.clone()
                 }
             }
             NavigationAction::Up if !is_filtering => {
-                if initial_i.deepest() > 0 {
-                    let new_path = initial_i.with_value(initial_i.len() - 1, initial_i.deepest() - 1);
+                if initial_i.last() > 0 {
+                    let new_path = initial_i.with_value(initial_i.len() - 1, initial_i.last() - 1);
                     let node = TreeNode::get_node_at_path(new_path.clone(), &nodes);
 
                     if node.is_open && !node.children.is_empty() {
@@ -587,7 +587,7 @@ where
                 let mut nodes = self.items.borrow_mut();
                 let mut selected_item_path = self.selected_item_path.borrow_mut();
                 let path_parent = selected_item_path.parent();
-                let selected_node_index = selected_item_path.deepest();
+                let selected_node_index = selected_item_path.last();
 
                 let siblings = if path_parent.is_empty() {
                     &mut *nodes
