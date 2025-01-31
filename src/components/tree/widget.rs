@@ -93,7 +93,7 @@ where
                 &rename,
                 line_style,
                 &selected_item_path,
-                TreeNodePath(vec![i]),
+                TreeNodePath::from_vec(vec![i]),
             );
         }
     }

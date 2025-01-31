@@ -389,7 +389,7 @@ where
                     initial_i.with_child(0)
                 } else {
                     // Walk next/up/next
-                    let mut dynamic_path: VecDeque<usize> = initial_i.0.clone().into();
+                    let mut dynamic_path: VecDeque<usize> = initial_i.as_vec().into();
 
                     loop {
                         let Some(discarded) = dynamic_path.pop_back() else {
@@ -398,14 +398,15 @@ where
                         };
 
                         if dynamic_path.is_empty() {
-                            break TreeNodePath(vec![(discarded + 1).min(nodes.len().saturating_sub(1))]);
+                            break TreeNodePath::from_vec(vec![(discarded + 1).min(nodes.len().saturating_sub(1))]);
                         }
 
-                        let parent_node = TreeNode::get_node_at_path(TreeNodePath(dynamic_path.clone().into()), &nodes); // TODO: get_node_at_path -> Option<...>
+                        let parent_node =
+                            TreeNode::get_node_at_path(TreeNodePath::from_vec(dynamic_path.clone().into()), &nodes); // TODO: get_node_at_path -> Option<...>
 
                         if parent_node.children.len() > discarded + 1 {
                             dynamic_path.push_back(discarded + 1);
-                            break TreeNodePath(dynamic_path.clone().into());
+                            break TreeNodePath::from_vec(dynamic_path.into());
                         }
                     }
                 }
@@ -438,7 +439,7 @@ where
 
                 loop {
                     if !node.is_open || node.children.is_empty() {
-                        break TreeNodePath(new_i);
+                        break TreeNodePath::from_vec(new_i);
                     }
 
                     let i = node.children.len() - 1;

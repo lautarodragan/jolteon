@@ -1,9 +1,9 @@
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
-use std::ops::{Deref, Index};
+use std::ops::Index;
 
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
-pub struct TreeNodePath(pub Vec<usize>);
+pub struct TreeNodePath(Vec<usize>);
 
 impl TreeNodePath {
     pub fn empty() -> Self {
@@ -12,6 +12,14 @@ impl TreeNodePath {
 
     pub fn zero() -> Self {
         Self(vec![0])
+    }
+
+    pub fn from_vec(vec: Vec<usize>) -> Self {
+        Self(vec)
+    }
+
+    pub fn as_vec(&self) -> Vec<usize> {
+        self.0.clone()
     }
 
     pub fn is_empty(&self) -> bool {

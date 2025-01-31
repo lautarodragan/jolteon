@@ -82,7 +82,7 @@ impl<T> TreeNode<T> {
                 recursive(path, &nodes[next_level].children)
             }
         }
-        let path: VecDeque<usize> = path.0.clone().into();
+        let path: VecDeque<usize> = path.as_vec().into();
         recursive(path, nodes)
     }
 
@@ -98,6 +98,6 @@ impl<T> TreeNode<T> {
                 recursive(path, &mut nodes[next_level].children)
             }
         }
-        recursive(path.0.into(), nodes)
+        recursive(path.as_vec().into(), nodes)
     }
 }
