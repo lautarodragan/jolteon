@@ -389,24 +389,25 @@ where
                     initial_i.with_child(0)
                 } else {
                     // Walk next/up/next
-                    let mut dynamic_path: VecDeque<usize> = initial_i.as_vec().into();
+                    let mut dynamic_path = initial_i.clone();
 
                     loop {
-                        let Some(discarded) = dynamic_path.pop_back() else {
+                        if dynamic_path.is_empty() {
                             log::error!("NavigationAction::Down: dynamic_path is empty already! {initial_i:?}");
                             break initial_i.clone();
                         };
 
+                        let last = dynamic_path.last();
+                        dynamic_path = dynamic_path.parent();
+
                         if dynamic_path.is_empty() {
-                            break TreeNodePath::from_vec(vec![(discarded + 1).min(nodes.len().saturating_sub(1))]);
+                            break TreeNodePath::from_vec(vec![(last + 1).min(nodes.len().saturating_sub(1))]);
                         }
 
-                        let parent_node =
-                            TreeNode::get_node_at_path(TreeNodePath::from_vec(dynamic_path.clone().into()), &nodes); // TODO: get_node_at_path -> Option<...>
+                        let parent_node = TreeNode::get_node_at_path(dynamic_path.clone(), &nodes); // TODO: get_node_at_path -> Option<...>
 
-                        if parent_node.children.len() > discarded + 1 {
-                            dynamic_path.push_back(discarded + 1);
-                            break TreeNodePath::from_vec(dynamic_path.into());
+                        if parent_node.children.len() > last + 1 {
+                            break dynamic_path.with_child(last + 1);
                         }
                     }
                 }
