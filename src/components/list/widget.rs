@@ -72,7 +72,7 @@ where
         let items = self.items.borrow();
         let visible_items = self.visible_items.borrow();
 
-        if visible_items.len() < 1 {
+        if visible_items.is_empty() {
             return;
         }
 

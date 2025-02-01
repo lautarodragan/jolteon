@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::VecDeque};
+use std::collections::VecDeque;
 
 use super::TreeNodePath;
 
@@ -63,7 +63,7 @@ impl<T> TreeNode<T> {
             .iter()
             .take(until_path.first().saturating_add(1))
             .enumerate()
-            .map(|(i, n)| 1 + n.total_open_children_count(&TreeNodePath::from_vec(vec![i]), &until_path))
+            .map(|(i, n)| 1 + n.total_open_children_count(&TreeNodePath::from_vec(vec![i]), until_path))
             .sum()
     }
 
