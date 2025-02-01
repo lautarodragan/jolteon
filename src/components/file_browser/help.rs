@@ -3,7 +3,6 @@ use std::{
     fmt::{Display, Formatter, Write},
 };
 
-use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::WidgetRef};
 
 use crate::{
@@ -30,20 +29,11 @@ impl Display for Action {
 
 impl Display for KeyBinding {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self.modifiers() {
-            KeyModifiers::ALT => {
-                f.write_str("Alt+")?;
-            }
-            KeyModifiers::CONTROL => {
-                f.write_str("Ctrl+")?;
-            }
-            _ => {}
-        };
-        match self.code() {
-            KeyCode::Enter => f.write_str("Enter"),
-            KeyCode::Char(c) => f.write_char(c.to_ascii_uppercase()),
-            _ => Ok(()),
+        if !self.modifiers().is_empty() {
+            write!(f, "{}+", self.modifiers())?;
         }
+        let code = format!("{}", self.code()).replace(" ", "");
+        write!(f, "{code}")
     }
 }
 

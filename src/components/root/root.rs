@@ -14,7 +14,7 @@ use ratatui::{
 };
 
 use crate::{
-    actions::{Action, OnActionMut, ScreenAction},
+    actions::{Action, Actions, OnActionMut, ScreenAction},
     components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
     config::Theme,
     main_player::MainPlayer,
@@ -190,7 +190,8 @@ impl<'a> Root<'a> {
             });
         }
 
-        let help = Rc::new(RefCell::new(Help::new(theme)));
+        let actions = Actions::from_file_or_default();
+        let help = Rc::new(RefCell::new(Help::new(actions, settings, theme)));
 
         Self {
             settings,

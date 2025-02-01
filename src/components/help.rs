@@ -1,3 +1,3 @@
-pub mod help;
+mod help;
 
 pub use help::Help;

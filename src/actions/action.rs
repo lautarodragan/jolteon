@@ -2,6 +2,7 @@ use std::{collections::HashMap, fs::read_to_string, hash::Hash, sync::LazyLock};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
+
 use strum::EnumString;
 
 use crate::toml::{get_config_file_path, TomlFileError};
@@ -39,7 +40,7 @@ impl From<KeyEvent> for KeyBinding {
     }
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, Ord, PartialOrd)]
 #[allow(dead_code)]
 pub enum Action {
     Quit, // App will assert, on startup, as early as possible, there is at least one key-binding for Quit and crash otherwise.
@@ -57,7 +58,7 @@ pub enum Action {
     FileBrowser(FileBrowserAction),
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum NavigationAction {
     FocusNext,
     FocusPrevious,
@@ -73,14 +74,14 @@ pub enum NavigationAction {
     PreviousSpecial,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum TextAction {
     Char(char),
     Delete,
     DeleteBack,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum ListAction {
     Insert,
     Delete,
@@ -93,7 +94,7 @@ pub enum ListAction {
     ExpandAll,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum ScreenAction {
     Library,
     Playlists,
@@ -102,7 +103,7 @@ pub enum ScreenAction {
     Help,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum PlayerAction {
     Stop,
     PlayPause,
@@ -114,7 +115,7 @@ pub enum PlayerAction {
     RepeatOne,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum FileBrowserAction {
     AddToQueue,
     AddToLibrary,
@@ -124,7 +125,7 @@ pub enum FileBrowserAction {
     NavigateUp,
 }
 
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum PlaylistsAction {
     ShowHideGraveyard,
 }
@@ -252,6 +253,13 @@ impl Actions {
 
     pub fn list_secondary(&self) -> KeyBinding {
         self.key_by_action(Action::ConfirmAlt).unwrap()
+    }
+
+    pub fn actions(&self) -> HashMap<KeyBinding, Vec<Action>> {
+        let mut actions = HashMap::new();
+        self.actions.clone_into(&mut actions);
+        DEFAULT_ACTIONS.clone_into(&mut actions);
+        actions
     }
 }
 
