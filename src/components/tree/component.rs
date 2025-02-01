@@ -1,7 +1,6 @@
 use std::{
     cell::{Cell, RefCell},
     cmp::Ordering,
-    collections::VecDeque,
     fmt::{Debug, Display},
 };
 

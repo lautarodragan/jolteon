@@ -35,7 +35,7 @@ impl TreeNodePath {
     }
 
     pub fn first(&self) -> usize {
-        self[0]
+        self.0[0]
     }
 
     pub fn last(&self) -> usize {

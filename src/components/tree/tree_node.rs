@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::VecDeque};
+use std::{cmp::Ordering, collections::VecDeque, ops::Index};
 
 use super::TreeNodePath;
 
@@ -70,9 +70,11 @@ impl<T> TreeNode<T> {
         recursive_open_count(nodes, TreeNodePath::empty(), until_path)
     }
 
-    pub fn get_node_at_path(path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+    pub fn get_child(&self, path: &TreeNodePath) -> &Self {
         assert!(!path.is_empty(), "path cannot be empty");
-        fn recursive<'a, T>(mut path: &[usize], nodes: &'a [TreeNode<T>]) -> &'a TreeNode<T> {
+        assert!(!self.children.is_empty(), "self.children cannot be empty");
+
+        fn recursive<'a, T>(path: &[usize], nodes: &'a [TreeNode<T>]) -> &'a TreeNode<T> {
             let index = path[0];
             let path = &path[1..];
 
@@ -82,7 +84,20 @@ impl<T> TreeNode<T> {
                 recursive(path, &nodes[index].children)
             }
         }
-        recursive(path.as_slice(), nodes)
+
+        recursive(path.as_slice(), &self.children)
+    }
+
+    pub fn get_node_at_path(path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+        assert!(!path.is_empty(), "path cannot be empty");
+        let index = path.first();
+
+        if path.len() == 1 {
+            &nodes[index]
+        } else {
+            let p = TreeNodePath::from_vec(path.as_slice()[1..].to_vec());
+            &nodes[index].get_child(&p)
+        }
     }
 
     pub fn get_node_at_path_mut(path: TreeNodePath, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
