@@ -4,7 +4,7 @@ use crate::{
     components::List,
     config::Theme,
     structs::Song,
-    ui::{Component, Focusable},
+    ui::Focusable,
 };
 
 pub struct Queue<'a> {

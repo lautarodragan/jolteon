@@ -74,7 +74,7 @@ where
         let items = self.items.borrow();
         let selected_item_path = self.selected_item_path.borrow();
         let offset = self.offset.get();
-        let line_style = &self.line_style.as_ref();
+        let line_style = &self.line_style;
 
         let rename = self.rename.borrow();
 
@@ -108,7 +108,7 @@ fn render_node<'a, T>(
     is_focused: bool,
     node: &TreeNode<T>,
     rename: &Option<String>,
-    line_style: &Option<&Box<dyn Fn(&T) -> Option<Style> + 'a>>,
+    line_style: &Option<Box<dyn Fn(&T) -> Option<Style> + 'a>>,
     selected_item_path: &TreeNodePath,
     path: TreeNodePath,
 ) where
@@ -136,7 +136,7 @@ fn render_node<'a, T>(
             _ => node.inner.to_string().into(),
         };
 
-        let style_overrides = line_style.and_then(|ls| ls(&node.inner));
+        let style_overrides = line_style.as_ref().and_then(|ls| ls(&node.inner));
 
         let line = ListLine {
             theme,

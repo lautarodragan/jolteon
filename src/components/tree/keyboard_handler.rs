@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::actions::{Action, OnAction, OnActionMut};
+use crate::actions::{Action, OnActionMut};
 
 use super::component::Tree;
 

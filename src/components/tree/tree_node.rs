@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::VecDeque, ops::Index};
+use std::{cmp::Ordering, collections::VecDeque};
 
 use super::TreeNodePath;
 
@@ -25,14 +25,14 @@ impl<T> TreeNode<T> {
     fn total_open_children_count(&self) -> usize {
         fn recursive_total_open_count<T>(nodes: &[TreeNode<T>]) -> usize {
             let mut count = 0;
-            for i in 0..nodes.len() {
+            for node in nodes {
                 count += 1;
 
-                if !nodes[i].is_open || nodes[i].children.is_empty() {
+                if !node.is_open || node.children.is_empty() {
                     continue;
                 }
 
-                count += recursive_total_open_count(&nodes[i].children);
+                count += recursive_total_open_count(&node.children);
             }
             count
         }
@@ -50,7 +50,7 @@ impl<T> TreeNode<T> {
     pub fn open_count(nodes: &[Self], until_path: &TreeNodePath) -> usize {
         fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: TreeNodePath, until_path: &TreeNodePath) -> usize {
             let mut count = 0;
-            for i in 0..nodes.len() {
+            for (i, node) in nodes.iter().enumerate() {
                 let new_path = path.with_child(i);
 
                 if new_path.cmp(until_path) >= Ordering::Equal {
@@ -59,11 +59,11 @@ impl<T> TreeNode<T> {
 
                 count += 1;
 
-                if !nodes[i].is_open || nodes[i].children.is_empty() {
+                if !node.is_open || node.children.is_empty() {
                     continue;
                 }
 
-                count += recursive_open_count(&nodes[i].children, new_path, until_path);
+                count += recursive_open_count(&node.children, new_path, until_path);
             }
             count
         }

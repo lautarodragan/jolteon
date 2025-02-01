@@ -89,7 +89,7 @@ where
 
     pub fn with_node_at_path<R>(&self, path: &TreeNodePath, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
         let items = self.items.borrow();
-        let node = TreeNode::get_node_at_path(&path, &items).unwrap();
+        let node = TreeNode::get_node_at_path(path, &items).unwrap();
         cb(node)
     }
 
@@ -101,7 +101,7 @@ where
 
     pub fn with_selected_node<R>(&self, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
         let selected_item_path = self.selected_item_path.borrow();
-        self.with_node_at_path(&*selected_item_path, cb)
+        self.with_node_at_path(&selected_item_path, cb)
     }
 
     pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut TreeNode<T>)) {
@@ -551,7 +551,6 @@ where
                 let items = self.items.borrow_mut();
 
                 if items.is_empty() {
-                    return;
                 }
 
                 // let i = self.selected_item_index.borrow();
