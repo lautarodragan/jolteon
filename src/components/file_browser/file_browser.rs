@@ -8,7 +8,8 @@ use std::{
 use crate::{
     components::{
         file_browser::{file_meta::FileMeta, help::FileBrowserHelp},
-        FocusGroup, List,
+        FocusGroup,
+        List,
     },
     config::Theme,
     structs::Song,

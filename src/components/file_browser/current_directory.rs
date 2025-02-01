@@ -1,10 +1,14 @@
-use std::cell::RefCell;
-use std::path::{Path, PathBuf};
+use std::{
+    cell::RefCell,
+    path::{Path, PathBuf},
+};
 
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::prelude::{Line, Modifier, Span, Style};
-use ratatui::widgets::WidgetRef;
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    prelude::{Line, Modifier, Span, Style},
+    widgets::WidgetRef,
+};
 
 use crate::config::Theme;
 

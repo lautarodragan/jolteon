@@ -1,9 +1,14 @@
-use std::collections::VecDeque;
-use std::sync::mpsc::{channel, Sender};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::thread::JoinHandle;
-use std::time::Duration;
+use std::{
+    collections::VecDeque,
+    sync::{
+        mpsc::{channel, Sender},
+        Arc,
+        Mutex,
+    },
+    thread,
+    thread::JoinHandle,
+    time::Duration,
+};
 
 use rodio::OutputStreamHandle;
 

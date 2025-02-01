@@ -1,5 +1,4 @@
-use std::error::Error;
-use std::io::stdout;
+use std::{error::Error, io::stdout};
 
 use crossterm::{
     cursor::Show,

@@ -1,6 +1,8 @@
-use std::fmt::Formatter;
-use std::fs::{create_dir_all, read_to_string, write};
-use std::path::PathBuf;
+use std::{
+    fmt::Formatter,
+    fs::{create_dir_all, read_to_string, write},
+    path::PathBuf,
+};
 
 use log::error;
 use serde::de::DeserializeOwned;

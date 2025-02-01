@@ -2,7 +2,8 @@ use std::{
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
         mpsc::{channel, RecvTimeoutError, Sender},
-        Arc, Mutex,
+        Arc,
+        Mutex,
     },
     thread,
     thread::JoinHandle,

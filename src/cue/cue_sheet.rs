@@ -1,11 +1,11 @@
-use std::collections::VecDeque;
-use std::io::{self};
-use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::{
+    collections::VecDeque,
+    io::{self},
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
-use crate::cue::cue_line::CueLine;
-use crate::cue::cue_line_node::CueLineNode;
-use crate::cue::cue_sheet_item::CueSheetItem;
+use crate::cue::{cue_line::CueLine, cue_line_node::CueLineNode, cue_sheet_item::CueSheetItem};
 
 #[allow(dead_code)]
 #[derive(Debug, Default, Clone, Eq, PartialEq)]

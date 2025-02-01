@@ -52,11 +52,15 @@ impl<T> TreeNode<T> {
 
     pub fn total_open_count(nodes: &[Self]) -> usize {
         // TODO: not this
-        Self::open_count(nodes, &TreeNodePath::from_vec(vec![usize::MAX, usize::MAX, usize::MAX, usize::MAX, usize::MAX]))
+        Self::open_count(
+            nodes,
+            &TreeNodePath::from_vec(vec![usize::MAX, usize::MAX, usize::MAX, usize::MAX, usize::MAX]),
+        )
     }
 
     pub fn open_count(nodes: &[Self], until_path: &TreeNodePath) -> usize {
-        nodes.iter()
+        nodes
+            .iter()
             .take(until_path.first().saturating_add(1))
             .enumerate()
             .map(|(i, n)| 1 + n.total_open_children_count(&TreeNodePath::from_vec(vec![i]), &until_path))

@@ -3,8 +3,18 @@ use std::{error::Error, thread};
 use async_std::sync::{Arc, Mutex};
 
 use mpris_server::{
-    zbus, LoopStatus, Metadata, PlaybackRate, PlaybackStatus, PlayerInterface, Property, RootInterface, Server, Time,
-    TrackId, Volume,
+    zbus,
+    LoopStatus,
+    Metadata,
+    PlaybackRate,
+    PlaybackStatus,
+    PlayerInterface,
+    Property,
+    RootInterface,
+    Server,
+    Time,
+    TrackId,
+    Volume,
 };
 
 use crate::structs::Song;

@@ -1,5 +1,7 @@
-use std::cell::{Cell, RefCell};
-use std::fmt::{Debug, Display};
+use std::{
+    cell::{Cell, RefCell},
+    fmt::{Debug, Display},
+};
 
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},

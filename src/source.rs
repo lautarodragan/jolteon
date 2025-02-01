@@ -1,14 +1,25 @@
-use std::fs::File;
-use std::io::BufReader;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::{
+    fs::File,
+    io::BufReader,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use rodio::{
     source::{
-        Amplify, Pausable, PeriodicAccess, SamplesConverter, SeekError, Skippable, Speed, Stoppable, TrackPosition,
+        Amplify,
+        Pausable,
+        PeriodicAccess,
+        SamplesConverter,
+        SeekError,
+        Skippable,
+        Speed,
+        Stoppable,
+        TrackPosition,
     },
-    Decoder, Source as RodioSource,
+    Decoder,
+    Source as RodioSource,
 };
 
 type FullRodioSource = Stoppable<Skippable<Amplify<Pausable<TrackPosition<Speed<Decoder<BufReader<File>>>>>>>>;

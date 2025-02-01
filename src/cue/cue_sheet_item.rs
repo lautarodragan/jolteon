@@ -40,12 +40,10 @@ impl CueSheetItem {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::VecDeque;
-    use std::path::Path;
+    use std::{collections::VecDeque, path::Path};
 
     use super::*;
-    use crate::cue::cue_line::CueLine;
-    use crate::cue::cue_line_node::CueLineNode;
+    use crate::cue::{cue_line::CueLine, cue_line_node::CueLineNode};
 
     #[test]
     fn cue_sheet_item_from_cue_line_node() {

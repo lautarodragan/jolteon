@@ -1,7 +1,9 @@
-use std::fmt::{Debug, Display, Formatter};
-use std::fs::File;
-use std::io::{self, BufRead, BufReader};
-use std::path::Path;
+use std::{
+    fmt::{Debug, Display, Formatter},
+    fs::File,
+    io::{self, BufRead, BufReader},
+    path::Path,
+};
 
 use log::error;
 

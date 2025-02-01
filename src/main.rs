@@ -25,6 +25,7 @@ mod files;
 mod main_player;
 mod mpris;
 mod player;
+mod settings;
 mod source;
 mod spawn_terminal;
 mod state;
@@ -33,9 +34,7 @@ mod term;
 mod toml;
 mod ui;
 
-use std::error::Error;
-use std::io::stdout;
-use std::thread;
+use std::{error::Error, io::stdout, thread};
 
 use colored::{Color, Colorize};
 use flexi_logger::{style, DeferredNow, FileSpec, Logger, WriteMode};

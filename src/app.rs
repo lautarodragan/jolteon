@@ -1,11 +1,14 @@
-use std::error::Error;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    error::Error,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
 use async_std::task;
-use crossterm::event;
-use crossterm::event::Event;
+use crossterm::{event, event::Event};
 use rodio::OutputStream;
 
 use crate::{
