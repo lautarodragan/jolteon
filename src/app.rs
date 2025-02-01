@@ -17,6 +17,7 @@ use crate::{
     config::Theme,
     main_player::MainPlayer,
     mpris::Mpris,
+    settings::Settings,
     state::State,
     term::set_terminal,
 };
@@ -43,6 +44,9 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
 
     let mut terminal = set_terminal()?;
 
+    let settings = include_str!("../assets/settings.toml");
+    let settings: Settings = toml::from_str(settings).unwrap();
+
     let theme = include_str!("../assets/theme.toml");
     let theme: Theme = toml::from_str(theme).unwrap();
 
@@ -63,7 +67,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut root_component = Root::new(theme, Arc::downgrade(&player));
+    let mut root_component = Root::new(settings, theme, Arc::downgrade(&player));
 
     root_component.on_queue_changed({
         let player = player.clone();

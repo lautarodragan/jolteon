@@ -18,6 +18,7 @@ use crate::{
     components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
     config::Theme,
     main_player::MainPlayer,
+    settings::Settings,
     state::State,
     structs::Song,
     ui::{ComponentMut, TopBar},
@@ -50,6 +51,7 @@ impl<T> Default for Callback<'_, T> {
 }
 
 pub struct Root<'a> {
+    settings: Settings,
     theme: Theme,
     frame: u64,
 
@@ -66,7 +68,7 @@ pub struct Root<'a> {
 }
 
 impl<'a> Root<'a> {
-    pub fn new(theme: Theme, player: Weak<MainPlayer>) -> Self {
+    pub fn new(settings: Settings, theme: Theme, player: Weak<MainPlayer>) -> Self {
         let state = State::from_file();
 
         let current_directory = match &state.last_visited_path {
@@ -191,6 +193,7 @@ impl<'a> Root<'a> {
         let help = Rc::new(RefCell::new(Help::new(theme)));
 
         Self {
+            settings,
             theme,
             frame: 0,
 
@@ -260,7 +263,13 @@ impl Widget for &mut Root<'_> {
 
         let screen_titles: Vec<&str> = self.screens.iter().map(|screen| screen.0.as_str()).collect();
 
-        let top_bar = TopBar::new(self.theme, &screen_titles, self.focused_screen, self.frame);
+        let top_bar = TopBar::new(
+            self.settings,
+            self.theme,
+            &screen_titles,
+            self.focused_screen,
+            self.frame,
+        );
         top_bar.render(area_top, buf);
 
         let Some((_, component)) = self.screens.get(self.focused_screen) else {

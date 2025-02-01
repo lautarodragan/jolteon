@@ -6,6 +6,8 @@ use ratatui::{
     widgets::{Block, Tabs},
 };
 
+use crate::{config::Theme, settings::Settings};
+
 // static TIME_FORMAT: &str = "%A %-l:%M%P, %B %-e | %F";
 // static TIME_FORMAT: &str = "%A %-l:%M%P, %B %-e";
 static TIME_FORMAT: &str = "%A %-l:%M%P";
@@ -24,15 +26,23 @@ fn time_format() -> String {
 }
 
 pub struct TopBar<'a> {
-    theme: crate::config::Theme,
+    theme: Theme,
+    settings: Settings,
     tab_titles: &'a [&'a str],
     active_tab: usize,
     frame_count: u64,
 }
 
 impl<'a> TopBar<'a> {
-    pub fn new(theme: crate::config::Theme, tab_titles: &'a [&'a str], active_tab: usize, frame_count: u64) -> Self {
+    pub fn new(
+        settings: Settings,
+        theme: crate::config::Theme,
+        tab_titles: &'a [&'a str],
+        active_tab: usize,
+        frame_count: u64,
+    ) -> Self {
         Self {
+            settings,
             theme,
             tab_titles,
             active_tab,
@@ -72,9 +82,11 @@ impl Widget for TopBar<'_> {
         let clock = Line::from(time_format()).alignment(Alignment::Center);
         clock.render(area, buf);
 
-        Line::from(format!("FRAME {}", self.frame_count))
-            .style(Style::default())
-            .right_aligned()
-            .render(area, buf);
+        if self.settings.debug_frame_counter {
+            Line::from(format!("FRAME {}", self.frame_count))
+                .style(Style::default())
+                .right_aligned()
+                .render(area, buf);
+        }
     }
 }
