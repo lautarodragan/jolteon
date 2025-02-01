@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::Style,
     text::Line,
-    widgets::WidgetRef,
+    widgets::{WidgetRef, Wrap},
 };
 
 use crate::{
@@ -74,9 +74,21 @@ impl OnActionMut for Help<'_> {
 
 impl WidgetRef for Help<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let [area_top, area_main] = Layout::vertical([Constraint::Max(5), Constraint::Min(5)])
+        let [area_top, area_main] = Layout::vertical([Constraint::Max(10), Constraint::Min(5)])
             .horizontal_margin(2)
             .areas(area);
+
+        // TODO:
+        //   Ratatui has a nice WordWrapper that takes care of splitting lines,
+        //   but it doesn't export it, and the line count after wrapping isn't
+        //   exported by the Paragraph, so we have no way of measuring the rendered
+        //   area height of the paragraph.
+        //   Options:
+        //     - Reimplement most of Paragraph to suit Jolteon's need
+        //     - Contribute to Ratatui, either to make the WordWrapper public,
+        //       or to have Paragraph somehow return the rendered line count (stateful widget?)
+        //     - Set a fixed area for the paragraph, let it clip, and use Paragraph's scroll feature
+        //   The latter would require some visual feedback — probably borders... which are ugly :(
 
         ratatui::widgets::Paragraph::new(vec![
             Line::raw("Hi! Welcome to Jolteon."),
@@ -87,7 +99,7 @@ impl WidgetRef for Help<'_> {
             Line::raw("For now, here are the key bindings:"),
         ])
         .style(Style::new().fg(self.theme.foreground_secondary))
-        .wrap(ratatui::widgets::Wrap { trim: true })
+        .wrap(Wrap { trim: true })
         .render_ref(area_top, buf);
 
         self.actions.render_ref(area_main, buf);
