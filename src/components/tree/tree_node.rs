@@ -71,19 +71,18 @@ impl<T> TreeNode<T> {
     }
 
     pub fn get_node_at_path(path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
-        fn recursive<T>(mut path: VecDeque<usize>, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
-            let Some(next_level) = path.pop_front() else {
-                panic!("get_node_at_path panic");
-            };
+        assert!(!path.is_empty(), "path cannot be empty");
+        fn recursive<'a, T>(mut path: &[usize], nodes: &'a [TreeNode<T>]) -> &'a TreeNode<T> {
+            let index = path[0];
+            let path = &path[1..];
 
             if path.is_empty() {
-                &nodes[next_level]
+                &nodes[index]
             } else {
-                recursive(path, &nodes[next_level].children)
+                recursive(path, &nodes[index].children)
             }
         }
-        let path: VecDeque<usize> = path.to_vec().into();
-        recursive(path, nodes)
+        recursive(path.as_slice(), nodes)
     }
 
     pub fn get_node_at_path_mut(path: TreeNodePath, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
