@@ -73,20 +73,17 @@ impl<T> TreeNode<T> {
     pub fn get_child(&self, path: &TreeNodePath) -> Option<&Self> {
         assert!(!path.is_empty(), "path cannot be empty");
 
-        fn recursive<'a, T>(path: &[usize], nodes: &'a [TreeNode<T>]) -> Option<&'a TreeNode<T>> {
-            let node = nodes.get(path[0]);
+        let mut path = path.as_slice();
+        let mut children = &self.children;
 
-            if node.is_some() && path.len() == 1 {
-                node
-            } else {
-                node.and_then(|node| {
-                    recursive(&path[1..], &node.children)
-                })
+        loop {
+            let node =  children.get(path[0]);
+            if node.is_none() || path.len() == 1 {
+                return node;
             }
-
+            path = &path[1..];
+            children = &node.unwrap().children;
         }
-
-        recursive(path.as_slice(), &self.children)
     }
 
     pub fn get_node_at_path<'a>(path: &TreeNodePath, nodes: &'a [Self]) -> Option<&'a Self> {
