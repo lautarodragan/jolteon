@@ -20,14 +20,14 @@ pub struct Tree<'a, T: 'a> {
     pub(super) selected_item_path: RefCell<TreeNodePath>,
 
     pub(super) on_select_fn: Option<Box<dyn Fn(&TreeNode<T>) + 'a>>,
-    pub(super) on_enter_fn: RefCell<Option<Box<dyn Fn(&T) + 'a>>>,
-    pub(super) on_enter_alt_fn: RefCell<Option<Box<dyn Fn(&T) + 'a>>>,
-    pub(super) on_reorder_fn: RefCell<Option<Box<dyn Fn(TreeNodePath, usize, usize) + 'a>>>,
-    pub(super) on_insert_fn: RefCell<Option<Box<dyn Fn() + 'a>>>,
-    pub(super) on_delete_fn: RefCell<Option<Box<dyn Fn(T, Vec<usize>) + 'a>>>,
-    pub(super) on_rename_fn: RefCell<Option<Box<dyn Fn(String) + 'a>>>,
-    pub(super) on_request_focus_trap_fn: RefCell<Box<dyn Fn(bool) + 'a>>,
-    pub(super) find_next_item_by_fn: RefCell<Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>>,
+    pub(super) on_enter_fn: Option<Box<dyn Fn(&T) + 'a>>,
+    pub(super) on_enter_alt_fn: Option<Box<dyn Fn(&T) + 'a>>,
+    pub(super) on_reorder_fn: Option<Box<dyn Fn(TreeNodePath, usize, usize) + 'a>>,
+    pub(super) on_insert_fn: Option<Box<dyn Fn() + 'a>>,
+    pub(super) on_delete_fn: Option<Box<dyn Fn(T, Vec<usize>) + 'a>>,
+    pub(super) on_rename_fn: Option<Box<dyn Fn(String) + 'a>>,
+    pub(super) on_request_focus_trap: Option<Box<dyn Fn(bool) + 'a>>,
+    pub(super) find_next_item_by_fn: Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>,
 
     pub(super) auto_select_next: Cell<bool>,
 
@@ -52,14 +52,14 @@ where
             theme,
 
             on_select_fn: None,
-            on_enter_fn: RefCell::new(None),
-            on_enter_alt_fn: RefCell::new(None),
-            on_reorder_fn: RefCell::new(None),
-            on_insert_fn: RefCell::new(None),
-            on_delete_fn: RefCell::new(None),
-            on_rename_fn: RefCell::new(None),
-            on_request_focus_trap_fn: RefCell::new(Box::new(|_| {}) as _),
-            find_next_item_by_fn: RefCell::new(None),
+            on_enter_fn: None,
+            on_enter_alt_fn: None,
+            on_reorder_fn: None,
+            on_insert_fn: None,
+            on_delete_fn: None,
+            on_rename_fn: None,
+            on_request_focus_trap: None,
+            find_next_item_by_fn: None,
 
             items: RefCell::new(items),
             selected_item_path: RefCell::new(TreeNodePath::zero()),
@@ -115,35 +115,35 @@ where
 
     /// Triggered, by default, with Enter.
     /// Not the most intuitive name, but it is what it is.
-    pub fn on_enter(&self, cb: impl Fn(&T) + 'a) {
-        *self.on_enter_fn.borrow_mut() = Some(Box::new(cb));
+    pub fn on_enter(&mut self, cb: impl Fn(&T) + 'a) {
+        self.on_enter_fn = Some(Box::new(cb));
     }
 
     /// An alternative "on_enter", triggered, by default, with Alt+Enter.
     /// This is somewhat tightly coupled to functionality required by consumers of this List component.
-    pub fn on_enter_alt(&self, cb: impl Fn(&T) + 'a) {
-        *self.on_enter_alt_fn.borrow_mut() = Some(Box::new(cb));
+    pub fn on_enter_alt(&mut self, cb: impl Fn(&T) + 'a) {
+        self.on_enter_alt_fn = Some(Box::new(cb));
     }
 
     /// Callback will be called with (parent's path, old index, new index).
-    pub fn on_reorder(&self, cb: impl Fn(TreeNodePath, usize, usize) + 'a) {
-        *self.on_reorder_fn.borrow_mut() = Some(Box::new(cb));
+    pub fn on_reorder(&mut self, cb: impl Fn(TreeNodePath, usize, usize) + 'a) {
+        self.on_reorder_fn = Some(Box::new(cb));
     }
 
-    pub fn on_insert(&self, cb: impl Fn() + 'a) {
-        *self.on_insert_fn.borrow_mut() = Some(Box::new(cb));
+    pub fn on_insert(&mut self, cb: impl Fn() + 'a) {
+        self.on_insert_fn = Some(Box::new(cb));
     }
 
-    pub fn on_delete(&self, cb: impl Fn(T, Vec<usize>) + 'a) {
-        *self.on_delete_fn.borrow_mut() = Some(Box::new(cb));
+    pub fn on_delete(&mut self, cb: impl Fn(T, Vec<usize>) + 'a) {
+        self.on_delete_fn = Some(Box::new(cb));
     }
 
-    pub fn on_rename(&self, cb: impl Fn(String) + 'a) {
-        *self.on_rename_fn.borrow_mut() = Some(Box::new(cb));
+    pub fn on_rename(&mut self, cb: impl Fn(String) + 'a) {
+        self.on_rename_fn = Some(Box::new(cb));
     }
 
-    pub fn on_request_focus_trap_fn(&self, cb: impl Fn(bool) + 'a) {
-        *self.on_request_focus_trap_fn.borrow_mut() = Box::new(cb);
+    pub fn on_request_focus_trap_fn(&mut self, cb: impl Fn(bool) + 'a) {
+        self.on_request_focus_trap = Some(Box::new(cb));
     }
 
     /// Function used to select next/previous item by some custom logic.
@@ -160,8 +160,8 @@ where
     /// tree.selected_path[tree.selected_path.len() - 2] += 1;
     /// tree.selected_path[tree.selected_path.len() - 1] = 0;
     /// ```
-    pub fn find_next_item_by_fn(&self, cb: impl Fn(&[&T], usize, Direction) -> Option<usize> + 'a) {
-        *self.find_next_item_by_fn.borrow_mut() = Some(Box::new(cb));
+    pub fn find_next_item_by_fn(&mut self, cb: impl Fn(&[&T], usize, Direction) -> Option<usize> + 'a) {
+        self.find_next_item_by_fn = Some(Box::new(cb));
     }
 
     /// Sets the list of items and resets selection and scroll
@@ -254,7 +254,7 @@ where
         *self.selected_item_path.borrow_mut() = new_i;
     }
 
-    pub fn exec_action(&self, action: Action) {
+    pub fn exec_action(&mut self, action: Action) {
         let target = "::List.on_action";
 
         if self.rename.borrow().is_some() {
@@ -271,15 +271,14 @@ where
                     let node = TreeNode::get_node_at_path(&self.selected_item_path.borrow(), &items).unwrap();
 
                     if action == Action::Confirm {
-                        let on_enter_fn = self.on_enter_fn.borrow_mut();
-                        if let Some(on_enter_fn) = &*on_enter_fn {
+                        if let Some(on_enter_fn) = &self.on_enter_fn {
                             on_enter_fn(&node.inner);
                         }
                         if self.auto_select_next.get() {
                             self.exec_navigation_action(NavigationAction::Down);
                         }
                     } else if action == Action::ConfirmAlt {
-                        if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
+                        if let Some(on_enter_alt_fn) = &self.on_enter_alt_fn {
                             on_enter_alt_fn(&node.inner);
                             if self.auto_select_next.get() {
                                 self.exec_navigation_action(NavigationAction::Down);
@@ -493,22 +492,22 @@ where
         }
     }
 
-    fn exec_rename_action(&self, action: Action) {
+    fn exec_rename_action(&mut self, action: Action) {
         let mut rename_option = self.rename.borrow_mut();
         let Some(ref mut rename) = *rename_option else {
             return;
         };
         match action {
             Action::Confirm => {
-                self.on_request_focus_trap_fn.borrow_mut()(false);
+                if let Some(on_request_focus_trap) = &self.on_request_focus_trap {
+                    on_request_focus_trap(false);
+                }
 
                 if rename.is_empty() {
                     return;
                 }
 
-                let on_rename_fn = self.on_rename_fn.borrow_mut();
-
-                let Some(ref on_rename_fn) = *on_rename_fn else {
+                let Some(ref on_rename_fn) = &self.on_rename_fn else {
                     return;
                 };
 
@@ -516,7 +515,9 @@ where
             }
             Action::Cancel => {
                 *rename_option = None;
-                self.on_request_focus_trap_fn.borrow_mut()(false);
+                if let Some(on_request_focus_trap) = &self.on_request_focus_trap {
+                    on_request_focus_trap(false);
+                }
             }
             Action::Text(TextAction::Char(char)) => {
                 rename.push(char);
@@ -537,14 +538,13 @@ where
     fn exec_list_action(&self, action: ListAction) {
         match action {
             ListAction::Insert => {
-                let f = self.on_insert_fn.borrow_mut();
-                let Some(f) = &*f else {
+                let Some(f) = &self.on_insert_fn else {
                     return;
                 };
                 f();
             }
             ListAction::Delete => {
-                let Some(on_delete) = &*self.on_delete_fn.borrow_mut() else {
+                let Some(on_delete) = &self.on_delete_fn else {
                     return;
                 };
 
@@ -566,9 +566,7 @@ where
                 // on_delete(removed_item.inner, i.clone());
             }
             ListAction::SwapUp | ListAction::SwapDown => {
-                let on_reorder = self.on_reorder_fn.borrow_mut();
-
-                let Some(on_reorder) = &*on_reorder else {
+                let Some(on_reorder) = &self.on_reorder_fn else {
                     return;
                 };
 
@@ -604,9 +602,11 @@ where
 
                 on_reorder(path_parent, selected_node_index, next_i);
             }
-            ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
+            ListAction::RenameStart if self.on_rename_fn.is_some() => {
                 *self.rename.borrow_mut() = self.with_selected_node(|item| Some(item.inner.to_string()));
-                self.on_request_focus_trap_fn.borrow_mut()(true);
+                if let Some(on_request_focus_trap) = &self.on_request_focus_trap {
+                    on_request_focus_trap(false);
+                }
             }
             ListAction::OpenClose => {
                 let mut path = self.selected_item_path.borrow_mut();

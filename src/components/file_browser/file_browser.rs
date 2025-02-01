@@ -12,6 +12,7 @@ use crate::{
     },
     config::Theme,
     structs::Song,
+    ui::{Component, Focusable},
 };
 
 use super::{
@@ -241,7 +242,11 @@ impl<'a> FileBrowser<'a> {
             }
         });
 
-        let focus_group = FocusGroup::new(vec![parents_list.clone(), children_list.clone(), file_meta.clone()]);
+        let focus_group = FocusGroup::new(vec![
+            Component::Ref(parents_list.clone()),
+            Component::Ref(children_list.clone()),
+            Component::Ref(file_meta.clone()),
+        ]);
 
         Self {
             theme,
@@ -340,5 +345,15 @@ impl<'a> FileBrowser<'a> {
 impl Drop for FileBrowser<'_> {
     fn drop(&mut self) {
         log::trace!("FileBrowser.drop()");
+    }
+}
+
+impl Focusable for FileBrowser<'_> {
+    fn set_is_focused(&self, v: bool) {
+        todo!()
+    }
+
+    fn is_focused(&self) -> bool {
+        todo!()
     }
 }

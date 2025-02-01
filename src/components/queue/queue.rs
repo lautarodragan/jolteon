@@ -1,6 +1,11 @@
 use std::{cell::Cell, time::Duration};
 
-use crate::{components::List, config::Theme, structs::Song};
+use crate::{
+    components::List,
+    config::Theme,
+    structs::Song,
+    ui::{Component, Focusable},
+};
 
 pub struct Queue<'a> {
     pub(super) song_list: List<'a, Song>,
@@ -52,5 +57,15 @@ impl<'a> Queue<'a> {
 impl Drop for Queue<'_> {
     fn drop(&mut self) {
         log::trace!("QueueUi drop");
+    }
+}
+
+impl Focusable for Queue<'_> {
+    fn set_is_focused(&self, v: bool) {
+        todo!()
+    }
+
+    fn is_focused(&self) -> bool {
+        todo!()
     }
 }

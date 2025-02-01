@@ -23,7 +23,7 @@ impl WidgetRef for Library<'_> {
         .horizontal_margin(2)
         .areas(area);
 
-        self.album_tree.render_ref(area_left, buf);
+        self.album_tree.borrow().render_ref(area_left, buf);
         self.song_list.render_ref(area_right, buf);
     }
 }

@@ -77,7 +77,7 @@ impl<T> TreeNode<T> {
         let mut children = &self.children;
 
         loop {
-            let node =  children.get(path[0]);
+            let node = children.get(path[0]);
             if node.is_none() || path.len() == 1 {
                 return node;
             }

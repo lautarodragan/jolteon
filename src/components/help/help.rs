@@ -8,6 +8,7 @@ use ratatui::{
 use crate::{
     actions::{Action, NavigationAction, OnActionMut},
     config::Theme,
+    ui::Focusable,
 };
 
 pub struct Help<'a> {
@@ -142,5 +143,15 @@ impl WidgetRef for Help<'_> {
 impl Drop for Help<'_> {
     fn drop(&mut self) {
         log::trace!("HelpTab.drop()");
+    }
+}
+
+impl Focusable for Help<'_> {
+    fn set_is_focused(&self, v: bool) {
+        todo!()
+    }
+
+    fn is_focused(&self) -> bool {
+        todo!()
     }
 }

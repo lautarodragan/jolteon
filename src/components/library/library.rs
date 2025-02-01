@@ -4,6 +4,7 @@ use crate::{
     components::{FocusGroup, List, Tree, TreeNode},
     config::Theme,
     structs::{Direction, Song},
+    ui::{Component, Focusable},
 };
 
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};
@@ -15,7 +16,7 @@ pub struct Library<'a> {
     pub(super) song_tree: Rc<RefCell<Vec<Artist>>>,
 
     pub(super) song_list: Rc<List<'a, Song>>,
-    pub(super) album_tree: Rc<Tree<'a, AlbumTreeItem>>,
+    pub(super) album_tree: Rc<RefCell<Tree<'a, AlbumTreeItem>>>,
     pub(super) focus_group: FocusGroup<'a>,
 
     pub(super) on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>>,
@@ -87,8 +88,7 @@ fn song_tree_to_album_tree_item_vec(song_tree: Vec<Artist>) -> Vec<AlbumTreeItem
 
 impl<'a> Library<'a> {
     pub fn new(theme: Theme) -> Self {
-        let on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>> =
-            Rc::new(RefCell::new(Box::new(|_| {})));
+        let on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>> = Rc::new(RefCell::new(Box::new(|_| {})));
 
         let song_tree = library_file_to_song_tree(crate::files::Library::from_file());
 
@@ -170,9 +170,7 @@ impl<'a> Library<'a> {
                 log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
 
                 let songs = match item {
-                    AlbumTreeItem::Artist(artist) => {
-                        artist.albums.iter().flat_map(|album| &album.songs).collect()
-                    }
+                    AlbumTreeItem::Artist(artist) => artist.albums.iter().flat_map(|album| &album.songs).collect(),
                     AlbumTreeItem::Album(album) => album.songs.iter().collect(),
                 };
                 on_select_songs_fn.borrow_mut()(songs);
@@ -216,8 +214,13 @@ impl<'a> Library<'a> {
                 log::debug!("album_tree.on_reorder({parent_path}, {old_index}, {new_index})")
             }
         });
-        let album_tree = Rc::new(album_tree);
-        let focus_group = FocusGroup::new(vec![album_tree.clone(), song_list.clone()]);
+
+        let album_tree = Rc::new(RefCell::new(album_tree));
+
+        let focus_group = FocusGroup::new(vec![
+            Component::Mut(album_tree.clone()),
+            Component::Ref(song_list.clone()),
+        ]);
 
         Self {
             theme,
@@ -288,7 +291,7 @@ impl<'a> Library<'a> {
                 tree_node
             })
             .collect();
-        self.album_tree.set_items(album_tree_items);
+        self.album_tree.borrow_mut().set_items(album_tree_items);
 
         // TODO: save changes
     }
@@ -297,5 +300,15 @@ impl<'a> Library<'a> {
 impl Drop for Library<'_> {
     fn drop(&mut self) {
         log::trace!("Library.drop()");
+    }
+}
+
+impl Focusable for Library<'_> {
+    fn set_is_focused(&self, v: bool) {
+        todo!()
+    }
+
+    fn is_focused(&self) -> bool {
+        todo!()
     }
 }

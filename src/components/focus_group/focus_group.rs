@@ -1,18 +1,18 @@
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
 
 use crate::{
     actions::{Action, NavigationAction, OnAction},
     structs::Direction,
-    ui::ComponentRef,
+    ui::*,
 };
 
 pub struct FocusGroup<'a> {
-    pub(super) children: Vec<Rc<dyn 'a + ComponentRef<'a>>>,
-    pub(super) focused: RefCell<Rc<dyn 'a + ComponentRef<'a>>>,
+    pub(super) children: Vec<Component<'a>>,
+    pub(super) focused: RefCell<Component<'a>>,
 }
 
 impl<'a> FocusGroup<'a> {
-    pub fn new(children: Vec<Rc<dyn 'a + ComponentRef<'a>>>) -> Self {
+    pub fn new(children: Vec<Component<'a>>) -> Self {
         assert!(!children.is_empty(), "FocusGroup children cannot be empty");
         let focused = children[0].clone();
 
@@ -35,7 +35,7 @@ impl<'a> FocusGroup<'a> {
 
         let mut focus = 0;
         for i in 0..self.children.len() {
-            if Rc::ptr_eq(&self.children[i], &*current_focus) {
+            if self.children[i] == *current_focus {
                 focus = i;
             }
         }
@@ -73,7 +73,12 @@ impl OnAction for FocusGroup<'_> {
                 self.focus(Direction::Backwards);
             }
             _ => {
-                self.focused.borrow().on_action(action);
+                let focused = self.focused.borrow();
+
+                match &*focused {
+                    Component::Ref(e) => e.on_action(action),
+                    Component::Mut(e) => e.borrow_mut().on_action(action),
+                }
             }
         }
     }

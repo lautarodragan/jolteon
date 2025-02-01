@@ -6,6 +6,7 @@ use crate::{
     components::{FocusGroup, List},
     config::Theme,
     structs::{Playlist, Song},
+    ui::{Component, Focusable},
 };
 
 pub struct Playlists<'a> {
@@ -99,7 +100,10 @@ impl<'a> Playlists<'a> {
             }
         });
 
-        let focus_group = FocusGroup::new(vec![playlist_list.clone(), song_list.clone()]);
+        let focus_group = FocusGroup::new(vec![
+            Component::Ref(playlist_list.clone()),
+            Component::Ref(song_list.clone()),
+        ]);
 
         Self {
             // playlists: Mutex::new(vec![
@@ -160,4 +164,14 @@ fn save(playlist_list: &List<Playlist>, deleted_playlist_list: &List<Playlist>) 
         deleted: deleted_playlist_list.with_items(clone_vec),
     };
     f.save();
+}
+
+impl Focusable for Playlists<'_> {
+    fn set_is_focused(&self, v: bool) {
+        todo!()
+    }
+
+    fn is_focused(&self) -> bool {
+        todo!()
+    }
 }
