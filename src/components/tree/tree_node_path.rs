@@ -1,8 +1,9 @@
-use std::cmp::Ordering;
-use std::fmt::{Display, Formatter};
-use std::ops::Index;
+use std::{
+    fmt::{Display, Formatter},
+    ops::Index,
+};
 
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct TreeNodePath(Vec<usize>);
 
 impl TreeNodePath {
@@ -67,25 +68,6 @@ impl Index<usize> for TreeNodePath {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.0[index]
-    }
-}
-
-impl Ord for TreeNodePath {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let mut j = 0;
-        loop {
-            if j >= self.0.len().min(other.0.len()) {
-                break self.0.len().cmp(&other.0.len());
-            }
-
-            let ord = self.0[j].cmp(&other.0[j]);
-
-            if ord != Ordering::Equal {
-                break ord;
-            }
-
-            j += 1;
-        }
     }
 }
 
