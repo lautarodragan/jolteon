@@ -88,7 +88,7 @@ impl<T> TreeNode<T> {
         recursive(path.as_slice(), &self.children)
     }
 
-    pub fn get_node_at_path(path: TreeNodePath, nodes: &[TreeNode<T>]) -> &TreeNode<T> {
+    pub fn get_node_at_path<'a>(path: &TreeNodePath, nodes: &'a [TreeNode<T>]) -> &'a TreeNode<T> {
         assert!(!path.is_empty(), "path cannot be empty");
         let index = path.first();
 

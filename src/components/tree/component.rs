@@ -87,9 +87,9 @@ where
         self.line_style = Some(Box::new(cb));
     }
 
-    pub fn with_node_at_path<R>(&self, path: TreeNodePath, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
+    pub fn with_node_at_path<R>(&self, path: &TreeNodePath, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
         let items = self.items.borrow();
-        let node = TreeNode::get_node_at_path(path, &items);
+        let node = TreeNode::get_node_at_path(&path, &items);
         cb(node)
     }
 
@@ -100,7 +100,8 @@ where
     }
 
     pub fn with_selected_node<R>(&self, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
-        self.with_node_at_path((*self.selected_item_path.borrow()).clone(), cb)
+        let selected_item_path = self.selected_item_path.borrow();
+        self.with_node_at_path(&*selected_item_path, cb)
     }
 
     pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut TreeNode<T>)) {
@@ -282,8 +283,8 @@ where
                     });
 
                     let items = self.items.borrow();
-                    let i = self.selected_item_path.borrow().clone();
-                    let node = TreeNode::get_node_at_path(i, &items);
+                    let i = self.selected_item_path.borrow();
+                    let node = TreeNode::get_node_at_path(&i, &items);
                     let item = node.inner.clone();
                     drop(items);
 
@@ -348,7 +349,7 @@ where
                             nodes.len()
                         } else {
                             let parent_path = new_i.parent();
-                            let node = TreeNode::get_node_at_path(parent_path, &nodes);
+                            let node = TreeNode::get_node_at_path(&parent_path, &nodes);
                             node.children.len()
                         }
                     };
@@ -367,7 +368,7 @@ where
             NavigationAction::Up if !is_filtering => {
                 if initial_i.last() > 0 {
                     let new_path = initial_i.with_value(initial_i.len() - 1, initial_i.last() - 1);
-                    let node = TreeNode::get_node_at_path(new_path.clone(), &nodes);
+                    let node = TreeNode::get_node_at_path(&new_path, &nodes);
 
                     if node.is_open && !node.children.is_empty() {
                         new_path.with_child(node.children.len() - 1)
@@ -381,7 +382,7 @@ where
                 }
             }
             NavigationAction::Down if !is_filtering => {
-                let node = TreeNode::get_node_at_path(initial_i.clone(), &nodes);
+                let node = TreeNode::get_node_at_path(&initial_i, &nodes);
 
                 if node.is_open && !node.children.is_empty() {
                     // Walk down / into
@@ -403,7 +404,7 @@ where
                             break TreeNodePath::from_vec(vec![(last + 1).min(nodes.len().saturating_sub(1))]);
                         }
 
-                        let parent_node = TreeNode::get_node_at_path(dynamic_path.clone(), &nodes); // TODO: get_node_at_path -> Option<...>
+                        let parent_node = TreeNode::get_node_at_path(&dynamic_path, &nodes); // TODO: get_node_at_path -> Option<...>
 
                         if parent_node.children.len() > last + 1 {
                             break dynamic_path.with_child(last + 1);
@@ -500,7 +501,7 @@ where
 
         *initial_i = i;
 
-        let newly_selected_item = TreeNode::get_node_at_path(initial_i.clone(), &nodes);
+        let newly_selected_item = TreeNode::get_node_at_path(&initial_i, &nodes);
         let inner_clone = newly_selected_item.clone();
         drop(nodes);
         (self.on_select_fn)(inner_clone);
