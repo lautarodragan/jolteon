@@ -61,6 +61,10 @@ impl TreeNodePath {
         new.0[index] = value;
         new
     }
+
+    pub fn without_first(&self) -> Self {
+        TreeNodePath::from_vec(self.0.as_slice()[1..].to_vec())
+    }
 }
 
 impl Index<usize> for TreeNodePath {

@@ -460,7 +460,7 @@ where
         }
 
         let total_visible_node_count = TreeNode::total_open_count(&nodes) as isize;
-        let visible_node_count_until_selection = TreeNode::open_count(&nodes, &i) as isize;
+        let visible_node_count_until_selection = TreeNode::open_count(&nodes, &i) as isize - 1;
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
         let padding = self.padding as isize;
@@ -550,8 +550,7 @@ where
 
                 let items = self.items.borrow_mut();
 
-                if items.is_empty() {
-                }
+                if items.is_empty() {}
 
                 // let i = self.selected_item_index.borrow();
                 // let removed_item = items.remove(i);

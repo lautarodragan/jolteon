@@ -22,38 +22,13 @@ impl<T> TreeNode<T> {
         }
     }
 
-    fn total_open_children_count(&self) -> usize {
-        fn recursive_total_open_count<T>(nodes: &[TreeNode<T>]) -> usize {
-            let mut count = 0;
-            for node in nodes {
-                count += 1;
-
-                if !node.is_open || node.children.is_empty() {
-                    continue;
-                }
-
-                count += recursive_total_open_count(&node.children);
-            }
-            count
-        }
-        if !self.is_open || self.children.is_empty() {
-            0
-        } else {
-            recursive_total_open_count(&self.children)
-        }
-    }
-
-    pub fn total_open_count(nodes: &[Self]) -> usize {
-        nodes.len() + nodes.iter().map(|node| node.total_open_children_count()).sum::<usize>()
-    }
-
-    pub fn open_count(nodes: &[Self], until_path: &TreeNodePath) -> usize {
+    fn total_open_children_count(&self, base_path: &TreeNodePath, until_path: &TreeNodePath) -> usize {
         fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: TreeNodePath, until_path: &TreeNodePath) -> usize {
             let mut count = 0;
             for (i, node) in nodes.iter().enumerate() {
                 let new_path = path.with_child(i);
 
-                if new_path.cmp(until_path) >= Ordering::Equal {
+                if new_path > *until_path {
                     break;
                 }
 
@@ -67,7 +42,25 @@ impl<T> TreeNode<T> {
             }
             count
         }
-        recursive_open_count(nodes, TreeNodePath::empty(), until_path)
+
+        if !self.is_open || self.children.is_empty() {
+            0
+        } else {
+            recursive_open_count(&self.children, base_path.clone(), until_path)
+        }
+    }
+
+    pub fn total_open_count(nodes: &[Self]) -> usize {
+        // TODO: not this
+        Self::open_count(nodes, &TreeNodePath::from_vec(vec![usize::MAX, usize::MAX, usize::MAX, usize::MAX, usize::MAX]))
+    }
+
+    pub fn open_count(nodes: &[Self], until_path: &TreeNodePath) -> usize {
+        nodes.iter()
+            .take(until_path.first().saturating_add(1))
+            .enumerate()
+            .map(|(i, n)| 1 + n.total_open_children_count(&TreeNodePath::from_vec(vec![i]), &until_path))
+            .sum()
     }
 
     pub fn get_child(&self, path: &TreeNodePath) -> Option<&Self> {
