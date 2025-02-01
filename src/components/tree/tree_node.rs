@@ -43,11 +43,11 @@ impl<T> TreeNode<T> {
         }
     }
 
-    pub fn total_open_count(nodes: &[TreeNode<T>]) -> usize {
+    pub fn total_open_count(nodes: &[Self]) -> usize {
         nodes.len() + nodes.iter().map(|node| node.total_open_children_count()).sum::<usize>()
     }
 
-    pub fn open_count(nodes: &[TreeNode<T>], until_path: &TreeNodePath) -> usize {
+    pub fn open_count(nodes: &[Self], until_path: &TreeNodePath) -> usize {
         fn recursive_open_count<T>(nodes: &[TreeNode<T>], path: TreeNodePath, until_path: &TreeNodePath) -> usize {
             let mut count = 0;
             for i in 0..nodes.len() {
@@ -70,37 +70,38 @@ impl<T> TreeNode<T> {
         recursive_open_count(nodes, TreeNodePath::empty(), until_path)
     }
 
-    pub fn get_child(&self, path: &TreeNodePath) -> &Self {
+    pub fn get_child(&self, path: &TreeNodePath) -> Option<&Self> {
         assert!(!path.is_empty(), "path cannot be empty");
-        assert!(!self.children.is_empty(), "self.children cannot be empty");
 
-        fn recursive<'a, T>(path: &[usize], nodes: &'a [TreeNode<T>]) -> &'a TreeNode<T> {
-            let index = path[0];
-            let path = &path[1..];
+        fn recursive<'a, T>(path: &[usize], nodes: &'a [TreeNode<T>]) -> Option<&'a TreeNode<T>> {
+            let node = nodes.get(path[0]);
 
-            if path.is_empty() {
-                &nodes[index]
+            if node.is_some() && path.len() == 1 {
+                node
             } else {
-                recursive(path, &nodes[index].children)
+                node.and_then(|node| {
+                    recursive(&path[1..], &node.children)
+                })
             }
+
         }
 
         recursive(path.as_slice(), &self.children)
     }
 
-    pub fn get_node_at_path<'a>(path: &TreeNodePath, nodes: &'a [TreeNode<T>]) -> &'a TreeNode<T> {
+    pub fn get_node_at_path<'a>(path: &TreeNodePath, nodes: &'a [Self]) -> Option<&'a Self> {
         assert!(!path.is_empty(), "path cannot be empty");
         let index = path.first();
 
         if path.len() == 1 {
-            &nodes[index]
+            Some(&nodes[index])
         } else {
             let p = TreeNodePath::from_vec(path.as_slice()[1..].to_vec());
-            &nodes[index].get_child(&p)
+            nodes[index].get_child(&p)
         }
     }
 
-    pub fn get_node_at_path_mut(path: TreeNodePath, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
+    pub fn get_node_at_path_mut(path: TreeNodePath, nodes: &mut [Self]) -> &mut Self {
         fn recursive<T>(mut path: VecDeque<usize>, nodes: &mut [TreeNode<T>]) -> &mut TreeNode<T> {
             let Some(next_level) = path.pop_front() else {
                 panic!("get_node_at_path_mut panic");
