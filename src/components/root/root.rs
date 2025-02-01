@@ -107,6 +107,7 @@ impl<'a> Root<'a> {
 
                 move |songs| {
                     log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
+                    let songs: Vec<Song> = songs.into_iter().map(|song| song.clone()).collect();
                     queue_screen.borrow_mut().append(songs.clone());
                     on_queue_changed_fn.call(QueueChange::Append(songs));
                 }

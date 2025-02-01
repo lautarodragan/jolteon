@@ -18,7 +18,7 @@ pub struct Library<'a> {
     pub(super) album_tree: Rc<Tree<'a, AlbumTreeItem>>,
     pub(super) focus_group: FocusGroup<'a>,
 
-    pub(super) on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<Song>) + 'a>>>,
+    pub(super) on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>>,
 }
 
 /// TODO: refactor crate::files::Library to store Vec<Artist> and delete this
@@ -87,8 +87,8 @@ fn song_tree_to_album_tree_item_vec(song_tree: Vec<Artist>) -> Vec<AlbumTreeItem
 
 impl<'a> Library<'a> {
     pub fn new(theme: Theme) -> Self {
-        let on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<Song>) + 'a>>> =
-            Rc::new(RefCell::new(Box::new(|_| {}) as _));
+        let on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>> =
+            Rc::new(RefCell::new(Box::new(|_| {})));
 
         let song_tree = library_file_to_song_tree(crate::files::Library::from_file());
 
@@ -156,11 +156,11 @@ impl<'a> Library<'a> {
             move |item| {
                 // log::trace!(target: "::library.album_tree.on_select", "selected {:#?}", item);
 
-                let songs = match item.inner {
+                let songs = match &item.inner {
                     AlbumTreeItem::Artist(_) => item.children.iter().flat_map(|child| child.inner.songs()).collect(),
                     AlbumTreeItem::Album(album) => album.songs.clone(),
                 };
-                song_list.set_items(songs);
+                song_list.set_items(songs.clone());
             }
         });
         album_tree.on_enter({
@@ -171,9 +171,9 @@ impl<'a> Library<'a> {
 
                 let songs = match item {
                     AlbumTreeItem::Artist(artist) => {
-                        artist.albums.iter().flat_map(|album| album.songs.clone()).collect()
+                        artist.albums.iter().flat_map(|album| &album.songs).collect()
                     }
-                    AlbumTreeItem::Album(album) => album.songs,
+                    AlbumTreeItem::Album(album) => album.songs.iter().collect(),
                 };
                 on_select_songs_fn.borrow_mut()(songs);
             }
@@ -239,7 +239,7 @@ impl<'a> Library<'a> {
         self.song_list.on_enter_alt(cb);
     }
 
-    pub fn on_select_songs_fn(&self, cb: impl FnMut(Vec<Song>) + 'a) {
+    pub fn on_select_songs_fn(&self, cb: impl FnMut(Vec<&Song>) + 'a) {
         *self.on_select_songs_fn.borrow_mut() = Box::new(cb);
     }
 

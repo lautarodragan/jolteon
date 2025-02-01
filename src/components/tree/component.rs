@@ -19,9 +19,9 @@ pub struct Tree<'a, T: 'a> {
     pub(super) items: RefCell<Vec<TreeNode<T>>>,
     pub(super) selected_item_path: RefCell<TreeNodePath>,
 
-    pub(super) on_select_fn: Box<dyn Fn(TreeNode<T>) + 'a>,
-    pub(super) on_enter_fn: RefCell<Box<dyn Fn(T) + 'a>>,
-    pub(super) on_enter_alt_fn: RefCell<Option<Box<dyn Fn(T) + 'a>>>,
+    pub(super) on_select_fn: Option<Box<dyn Fn(&TreeNode<T>) + 'a>>,
+    pub(super) on_enter_fn: RefCell<Option<Box<dyn Fn(&T) + 'a>>>,
+    pub(super) on_enter_alt_fn: RefCell<Option<Box<dyn Fn(&T) + 'a>>>,
     pub(super) on_reorder_fn: RefCell<Option<Box<dyn Fn(TreeNodePath, usize, usize) + 'a>>>,
     pub(super) on_insert_fn: RefCell<Option<Box<dyn Fn() + 'a>>>,
     pub(super) on_delete_fn: RefCell<Option<Box<dyn Fn(T, Vec<usize>) + 'a>>>,
@@ -45,14 +45,14 @@ pub struct Tree<'a, T: 'a> {
 
 impl<'a, T> Tree<'a, T>
 where
-    T: 'a + Clone + Display + Debug,
+    T: 'a + Display + Debug,
 {
     pub fn new(theme: Theme, items: Vec<TreeNode<T>>) -> Self {
         Self {
             theme,
 
-            on_select_fn: Box::new(|_| {}) as _,
-            on_enter_fn: RefCell::new(Box::new(|_| {}) as _),
+            on_select_fn: None,
+            on_enter_fn: RefCell::new(None),
             on_enter_alt_fn: RefCell::new(None),
             on_reorder_fn: RefCell::new(None),
             on_insert_fn: RefCell::new(None),
@@ -109,19 +109,19 @@ where
     }
 
     /// Triggered by moving the selection around, with the Up and Down arrow keys by default.
-    pub fn on_select(&mut self, cb: impl Fn(TreeNode<T>) + 'a) {
-        self.on_select_fn = Box::new(cb);
+    pub fn on_select(&mut self, cb: impl Fn(&TreeNode<T>) + 'a) {
+        self.on_select_fn = Some(Box::new(cb));
     }
 
     /// Triggered, by default, with Enter.
     /// Not the most intuitive name, but it is what it is.
-    pub fn on_enter(&self, cb: impl Fn(T) + 'a) {
-        *self.on_enter_fn.borrow_mut() = Box::new(cb);
+    pub fn on_enter(&self, cb: impl Fn(&T) + 'a) {
+        *self.on_enter_fn.borrow_mut() = Some(Box::new(cb));
     }
 
     /// An alternative "on_enter", triggered, by default, with Alt+Enter.
     /// This is somewhat tightly coupled to functionality required by consumers of this List component.
-    pub fn on_enter_alt(&self, cb: impl Fn(T) + 'a) {
+    pub fn on_enter_alt(&self, cb: impl Fn(&T) + 'a) {
         *self.on_enter_alt_fn.borrow_mut() = Some(Box::new(cb));
     }
 
@@ -193,21 +193,6 @@ where
         *self.selected_item_path.borrow_mut() = i;
         self.offset.set(o);
         *self.items.borrow_mut() = new_items;
-    }
-
-    fn is_open(&self, i: usize) -> bool {
-        self.items.borrow()[i].is_open
-    }
-
-    fn set_is_open(&self, i: usize, v: bool) {
-        let mut items = self.items.borrow_mut();
-        items[i].is_open = v;
-    }
-
-    pub fn toggle_is_open(&self, i: usize) -> bool {
-        let is_open = !self.is_open(i);
-        self.set_is_open(i, is_open);
-        is_open
     }
 
     pub fn set_is_open_all(&self, v: bool) {
@@ -284,17 +269,18 @@ where
 
                     let items = self.items.borrow();
                     let node = TreeNode::get_node_at_path(&self.selected_item_path.borrow(), &items).unwrap();
-                    let item = node.inner.clone();
-                    drop(items);
 
                     if action == Action::Confirm {
-                        self.on_enter_fn.borrow_mut()(item);
+                        let on_enter_fn = self.on_enter_fn.borrow_mut();
+                        if let Some(on_enter_fn) = &*on_enter_fn {
+                            on_enter_fn(&node.inner);
+                        }
                         if self.auto_select_next.get() {
                             self.exec_navigation_action(NavigationAction::Down);
                         }
                     } else if action == Action::ConfirmAlt {
                         if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
-                            on_enter_alt_fn(item);
+                            on_enter_alt_fn(&node.inner);
                             if self.auto_select_next.get() {
                                 self.exec_navigation_action(NavigationAction::Down);
                             }
@@ -501,9 +487,10 @@ where
         *initial_i = i;
 
         let newly_selected_item = TreeNode::get_node_at_path(&initial_i, &nodes).unwrap();
-        let inner_clone = newly_selected_item.clone();
-        drop(nodes);
-        (self.on_select_fn)(inner_clone);
+
+        if let Some(on_select_fn) = &self.on_select_fn {
+            on_select_fn(newly_selected_item);
+        }
     }
 
     fn exec_rename_action(&self, action: Action) {
