@@ -18,7 +18,7 @@ impl TreeNodePath {
         Self(vec)
     }
 
-    pub fn as_vec(&self) -> Vec<usize> {
+    pub fn to_vec(&self) -> Vec<usize> {
         self.0.clone()
     }
 
