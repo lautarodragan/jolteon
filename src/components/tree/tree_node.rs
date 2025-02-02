@@ -1,8 +1,10 @@
 use std::collections::VecDeque;
 
+use serde::{Deserialize, Serialize};
+
 use super::TreeNodePath;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TreeNode<T> {
     pub inner: T,
     pub is_visible: bool,
@@ -19,6 +21,16 @@ impl<T> TreeNode<T> {
             is_match: false,
             is_open: true,
             children: vec![],
+        }
+    }
+
+    pub fn new_with_children(t: T, children: Vec<TreeNode<T>>) -> Self {
+        Self {
+            inner: t,
+            is_visible: true,
+            is_match: false,
+            is_open: true,
+            children,
         }
     }
 
@@ -65,6 +77,10 @@ impl<T> TreeNode<T> {
             .enumerate()
             .map(|(i, n)| 1 + n.total_open_children_count(&TreeNodePath::from_vec(vec![i]), until_path))
             .sum()
+    }
+
+    pub fn children(&self) -> &Vec<Self> {
+        &self.children
     }
 
     pub fn get_child(&self, path: &TreeNodePath) -> Option<&Self> {

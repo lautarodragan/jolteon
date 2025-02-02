@@ -76,6 +76,11 @@ where
         }
     }
 
+    pub fn with_nodes_mut(&mut self, cb: impl FnOnce(&mut Vec<TreeNode<T>>)) {
+        let mut items = self.items.borrow_mut();
+        cb(&mut *items)
+    }
+
     #[allow(unused)]
     pub fn set_auto_select_next(&self, v: bool) {
         self.auto_select_next.set(v)

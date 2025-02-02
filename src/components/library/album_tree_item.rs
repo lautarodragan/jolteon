@@ -1,8 +1,10 @@
 use std::fmt::{Display, Formatter};
 
+use serde::{Deserialize, Serialize};
+
 use crate::structs::Song;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Artist {
     pub name: String,
     pub albums: Vec<Album>,
@@ -14,7 +16,7 @@ impl Artist {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Album {
     pub artist: String,
     pub name: String,
@@ -22,7 +24,7 @@ pub struct Album {
     pub songs: Vec<Song>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum AlbumTreeItem {
     Artist(Artist),
     Album(Album),
