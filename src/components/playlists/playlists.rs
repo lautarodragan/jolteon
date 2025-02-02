@@ -121,15 +121,15 @@ impl<'a> Playlists<'a> {
     }
 
     pub fn on_enter_song(&self, cb: impl Fn(Song) + 'a) {
-        self.song_list.on_enter(cb);
+        self.song_list.on_confirm(cb);
     }
 
     pub fn on_enter_song_alt(&self, cb: impl Fn(Song) + 'a) {
-        self.song_list.on_enter_alt(cb);
+        self.song_list.on_confirm_alt(cb);
     }
 
     pub fn on_enter_playlist(&self, cb: impl Fn(Playlist) + 'a) {
-        self.playlist_list.on_enter(cb);
+        self.playlist_list.on_confirm(cb);
     }
 
     pub fn on_request_focus_trap_fn(&self, cb: impl Fn(bool) + 'a) {

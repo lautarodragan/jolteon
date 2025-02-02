@@ -37,11 +37,12 @@ pub struct FileBrowser<'a> {
     pub(super) help: FileBrowserHelp,
     pub(super) focus_group: FocusGroup<'a>,
 
+    pub(super) history: Rc<RefCell<HashMap<PathBuf, (usize, usize)>>>,
+
     pub(super) current_directory: Rc<CurrentDirectory>,
     pub(super) on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) on_add_to_lib_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) on_add_to_playlist_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
-    pub(super) history: Rc<RefCell<HashMap<PathBuf, (usize, usize)>>>,
     pub(super) add_mode: Rc<Cell<AddMode>>,
 }
 
@@ -67,7 +68,7 @@ impl<'a> FileBrowser<'a> {
                 file_meta.set_file(s);
             }
         });
-        children_list.on_enter({
+        children_list.on_confirm({
             let on_enqueue_fn = Rc::clone(&on_enqueue_fn);
 
             move |item| {
@@ -88,7 +89,7 @@ impl<'a> FileBrowser<'a> {
                 }
             }
         });
-        children_list.on_enter_alt({
+        children_list.on_confirm_alt({
             let on_add_to_lib_fn = Rc::clone(&on_add_to_lib_fn);
             let on_add_to_playlist_fn = Rc::clone(&on_add_to_playlist_fn);
             let mode = Rc::clone(&add_mode);
@@ -117,20 +118,22 @@ impl<'a> FileBrowser<'a> {
             }
         });
 
-        // TODO: duplicated code from parents_list.on_select(...).
-        //   Must create a FileList component that wraps a List and has a .set_directory etc.
-        if let Some(first_parent) = items.first()
-            && let FileBrowserSelection::Directory(path) = first_parent
         {
-            let files = directory_to_songs_and_folders(path.as_path());
+            // TODO: duplicated code from parents_list.on_select(...).
+            //   Must create a FileList component that wraps a List and has a .set_directory etc.
+            if let Some(first_parent) = items.first()
+                && let FileBrowserSelection::Directory(path) = first_parent
+            {
+                let files = directory_to_songs_and_folders(path.as_path());
 
-            if let Some(f) = files.first() {
-                file_meta.set_file(f.clone());
-            } else {
-                file_meta.clear();
+                if let Some(f) = files.first() {
+                    file_meta.set_file(f.clone());
+                } else {
+                    file_meta.clear();
+                }
+
+                children_list.set_items(files);
             }
-
-            children_list.set_items(files);
         }
 
         let mut parents_list = List::new(theme, items);
@@ -159,7 +162,7 @@ impl<'a> FileBrowser<'a> {
 
         let parents_list = Rc::new(parents_list);
 
-        parents_list.on_enter({
+        parents_list.on_confirm({
             let on_enqueue_fn = Rc::clone(&on_enqueue_fn);
             let current_directory = Rc::clone(&current_directory);
             let parents_list = Rc::clone(&parents_list);
@@ -172,7 +175,7 @@ impl<'a> FileBrowser<'a> {
 
                     if !files.iter().any(|f| matches!(f, FileBrowserSelection::Directory(_))) {
                         // UX:
-                        //   Do not navigate into a directory if it has no directories inside.
+                        //   Forbid navigating into a directory if it has no directories inside.
                         //   Use the right-side list to operate on its children instead.
                         return;
                     }
@@ -217,26 +220,33 @@ impl<'a> FileBrowser<'a> {
                 _ => {}
             }
         });
-        parents_list.on_enter_alt({
-            let on_enter_alt_fn = Rc::clone(&on_add_to_lib_fn);
+        parents_list.on_confirm_alt({
+            let mode = Rc::clone(&add_mode);
+            let on_add_to_lib_fn = Rc::clone(&on_add_to_lib_fn);
+            let on_add_to_playlist_fn = Rc::clone(&on_add_to_playlist_fn);
 
             move |item| {
-                let on_enter_alt_fn = on_enter_alt_fn.borrow();
-                let Some(on_enter_alt_fn) = &*on_enter_alt_fn else {
+                let cb = if mode.get() == AddMode::AddToLibrary {
+                    on_add_to_lib_fn.borrow()
+                } else {
+                    on_add_to_playlist_fn.borrow()
+                };
+
+                let Some(cb) = &*cb else {
                     return;
                 };
 
                 match item {
                     FileBrowserSelection::Directory(path) => {
                         let songs = Song::from_dir(path.as_path());
-                        on_enter_alt_fn(songs);
+                        cb(songs);
                     }
                     FileBrowserSelection::Song(song) => {
-                        on_enter_alt_fn(vec![song]);
+                        cb(vec![song]);
                     }
                     FileBrowserSelection::CueSheet(cue_sheet) => {
                         let songs = Song::from_cue_sheet(cue_sheet);
-                        on_enter_alt_fn(songs);
+                        cb(songs);
                     }
                     _ => {}
                 }
@@ -283,13 +293,11 @@ impl<'a> FileBrowser<'a> {
     }
 
     pub fn on_add_to_lib(&self, cb: impl Fn(Vec<Song>) + 'a) {
-        let mut on_add_to_lib_fn = self.on_add_to_lib_fn.borrow_mut();
-        *on_add_to_lib_fn = Some(Box::new(cb));
+        *self.on_add_to_lib_fn.borrow_mut() = Some(Box::new(cb));
     }
 
     pub fn on_add_to_playlist(&self, cb: impl Fn(Vec<Song>) + 'a) {
-        let mut on_add_to_playlist_fn = self.on_add_to_playlist_fn.borrow_mut();
-        *on_add_to_playlist_fn = Some(Box::new(cb));
+        *self.on_add_to_playlist_fn.borrow_mut() = Some(Box::new(cb));
     }
 
     pub fn navigate_up(&self) {

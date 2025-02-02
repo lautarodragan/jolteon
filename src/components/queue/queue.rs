@@ -41,7 +41,7 @@ impl<'a> Queue<'a> {
     }
 
     pub fn on_enter(&self, cb: impl Fn(Song) + 'a) {
-        self.song_list.on_enter(cb);
+        self.song_list.on_confirm(cb);
     }
 
     pub fn on_delete(&self, cb: impl Fn(Song, usize) + 'a) {

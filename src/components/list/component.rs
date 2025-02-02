@@ -133,13 +133,13 @@ where
 
     /// Triggered, by default, with Enter.
     /// Not the most intuitive name, but it is what it is.
-    pub fn on_enter(&self, cb: impl Fn(T) + 'a) {
+    pub fn on_confirm(&self, cb: impl Fn(T) + 'a) {
         *self.on_enter_fn.borrow_mut() = Box::new(cb);
     }
 
     /// An alternative "on_enter", triggered, by default, with Alt+Enter.
     /// This is somewhat tightly coupled to functionality required by consumers of this List component.
-    pub fn on_enter_alt(&self, cb: impl Fn(T) + 'a) {
+    pub fn on_confirm_alt(&self, cb: impl Fn(T) + 'a) {
         *self.on_enter_alt_fn.borrow_mut() = Some(Box::new(cb));
     }
 

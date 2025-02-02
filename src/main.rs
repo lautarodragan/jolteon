@@ -10,6 +10,7 @@
 #![warn(clippy::inefficient_to_string)]
 #![allow(clippy::enum_variant_names)]
 #![feature(let_chains)]
+#![feature(stmt_expr_attributes)]
 
 mod actions;
 mod app;

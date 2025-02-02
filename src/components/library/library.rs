@@ -235,11 +235,11 @@ impl<'a> Library<'a> {
     }
 
     pub fn on_enter(&self, cb: impl Fn(Song) + 'a) {
-        self.song_list.on_enter(cb);
+        self.song_list.on_confirm(cb);
     }
 
     pub fn on_enter_alt(&self, cb: impl Fn(Song) + 'a) {
-        self.song_list.on_enter_alt(cb);
+        self.song_list.on_confirm_alt(cb);
     }
 
     pub fn on_select_songs_fn(&self, cb: impl FnMut(Vec<&Song>) + 'a) {
@@ -247,12 +247,15 @@ impl<'a> Library<'a> {
     }
 
     pub fn add_songs(&self, songs: Vec<Song>) {
+        log::debug!(
+            "Library.add_songs({:?})",
+            songs.iter().map(|s| s.title.as_str()).collect::<Vec<&str>>()
+        );
         let mut song_tree = self.song_tree.borrow_mut();
 
         for song in songs {
-            if let Some(ref artist) = song.artist
-                && let Some(ref album) = song.album
-            {
+            #[rustfmt::skip]
+            if let Some(ref artist) = song.artist && let Some(ref album) = song.album {
                 if let Some(artist) = song_tree.iter_mut().find(|i| i.name == *artist) {
                     if let Some(album) = artist.albums.iter_mut().find(|i| i.name == *album) {
                         if !album.songs.contains(&song) {
@@ -269,9 +272,19 @@ impl<'a> Library<'a> {
                         })
                     }
                     artist.albums.sort_unstable_by_key(|a| a.year);
+                } else {
+                    song_tree.push(Artist {
+                        name: artist.to_string(),
+                        albums: vec![Album {
+                            artist: artist.to_string(),
+                            name: album.to_string(),
+                            year: song.year,
+                            songs: vec![song],
+                        }],
+                    });
                 }
             } else {
-                log::warn!("Library.add_songs: ignoring song due to missing artist or album {song:#?}");
+                log::warn!("Library.add_songs: ignoring song due to missing artist or album in song {song:#?}");
             }
         }
 
@@ -303,12 +316,4 @@ impl Drop for Library<'_> {
     }
 }
 
-impl Focusable for Library<'_> {
-    fn set_is_focused(&self, v: bool) {
-        todo!()
-    }
-
-    fn is_focused(&self) -> bool {
-        todo!()
-    }
-}
+impl Focusable for Library<'_> {}

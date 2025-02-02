@@ -7,6 +7,8 @@ pub use keyboard_handler::*;
 pub use top_bar::TopBar;
 
 pub trait Focusable {
-    fn set_is_focused(&self, v: bool);
-    fn is_focused(&self) -> bool;
+    fn set_is_focused(&self, v: bool) {}
+    fn is_focused(&self) -> bool {
+        false
+    }
 }
