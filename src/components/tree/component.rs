@@ -7,7 +7,6 @@ use std::{
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},
     config::Theme,
-    structs::Direction,
     ui::Focusable,
 };
 
@@ -27,7 +26,6 @@ pub struct Tree<'a, T: 'a> {
     pub(super) on_delete_fn: Option<Box<dyn Fn(T, Vec<usize>) + 'a>>,
     pub(super) on_rename_fn: Option<Box<dyn Fn(String) + 'a>>,
     pub(super) on_request_focus_trap: Option<Box<dyn Fn(bool) + 'a>>,
-    pub(super) find_next_item_by_fn: Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>,
 
     pub(super) auto_select_next: Cell<bool>,
 
@@ -59,7 +57,6 @@ where
             on_delete_fn: None,
             on_rename_fn: None,
             on_request_focus_trap: None,
-            find_next_item_by_fn: None,
 
             items: RefCell::new(items),
             selected_item_path: RefCell::new(TreeNodePath::zero()),
@@ -79,20 +76,24 @@ where
         }
     }
 
+    #[allow(unused)]
     pub fn set_auto_select_next(&self, v: bool) {
         self.auto_select_next.set(v)
     }
 
+    #[allow(unused)]
     pub fn line_style(&mut self, cb: impl Fn(&T) -> Option<ratatui::style::Style> + 'a) {
         self.line_style = Some(Box::new(cb));
     }
 
+    #[allow(unused)]
     pub fn with_node_at_path<R>(&self, path: &TreeNodePath, cb: impl FnOnce(&TreeNode<T>) -> R) -> R {
         let items = self.items.borrow();
         let node = TreeNode::get_node_at_path(path, &items).unwrap();
         cb(node)
     }
 
+    #[allow(unused)]
     pub fn with_node_at_path_mut<R>(&self, path: TreeNodePath, cb: impl FnOnce(&mut TreeNode<T>) -> R) -> R {
         let mut items = self.items.borrow_mut();
         let node = &mut TreeNode::get_node_at_path_mut(path.clone(), &mut items);
@@ -104,7 +105,8 @@ where
         self.with_node_at_path(&selected_item_path, cb)
     }
 
-    pub fn with_selected_item_mut(&self, cb: impl FnOnce(&mut TreeNode<T>)) {
+    #[allow(unused)]
+    pub fn with_selected_node_mut(&self, cb: impl FnOnce(&mut TreeNode<T>)) {
         self.with_node_at_path_mut((*self.selected_item_path.borrow()).clone(), cb)
     }
 
@@ -115,13 +117,14 @@ where
 
     /// Triggered, by default, with Enter.
     /// Not the most intuitive name, but it is what it is.
-    pub fn on_enter(&mut self, cb: impl Fn(&T) + 'a) {
+    pub fn on_confirm(&mut self, cb: impl Fn(&T) + 'a) {
         self.on_enter_fn = Some(Box::new(cb));
     }
 
     /// An alternative "on_enter", triggered, by default, with Alt+Enter.
     /// This is somewhat tightly coupled to functionality required by consumers of this List component.
-    pub fn on_enter_alt(&mut self, cb: impl Fn(&T) + 'a) {
+    #[allow(unused)]
+    pub fn on_confirm_alt(&mut self, cb: impl Fn(&T) + 'a) {
         self.on_enter_alt_fn = Some(Box::new(cb));
     }
 
@@ -130,6 +133,7 @@ where
         self.on_reorder_fn = Some(Box::new(cb));
     }
 
+    #[allow(unused)]
     pub fn on_insert(&mut self, cb: impl Fn() + 'a) {
         self.on_insert_fn = Some(Box::new(cb));
     }
@@ -138,30 +142,14 @@ where
         self.on_delete_fn = Some(Box::new(cb));
     }
 
+    #[allow(unused)]
     pub fn on_rename(&mut self, cb: impl Fn(String) + 'a) {
         self.on_rename_fn = Some(Box::new(cb));
     }
 
+    #[allow(unused)]
     pub fn on_request_focus_trap_fn(&mut self, cb: impl Fn(bool) + 'a) {
         self.on_request_focus_trap = Some(Box::new(cb));
-    }
-
-    /// Function used to select next/previous item by some custom logic.
-    /// Triggered by Alt+Up/Down by default.
-    /// Currently used only to jump to the first song of the next/previous album
-    /// in the Library's song list (right panel).
-    ///
-    /// If the List component was a Tree component, we wouldn't need this "special" behavior.
-    /// We'd be jumping to the first child of the next/previous parent.
-    ///
-    /// If `tree.selected_path` was `Vec<usize>`, we'd do something like the following:
-    ///
-    /// ```
-    /// tree.selected_path[tree.selected_path.len() - 2] += 1;
-    /// tree.selected_path[tree.selected_path.len() - 1] = 0;
-    /// ```
-    pub fn find_next_item_by_fn(&mut self, cb: impl Fn(&[&T], usize, Direction) -> Option<usize> + 'a) {
-        self.find_next_item_by_fn = Some(Box::new(cb));
     }
 
     /// Sets the list of items and resets selection and scroll
@@ -203,22 +191,18 @@ where
         }
     }
 
-    pub fn filter(&self) -> String {
-        self.filter.borrow().clone()
-    }
-
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
-        // let mut items = self.items.borrow_mut();
-        //
-        // if items.len() < 2 {
-        //     return;
-        // }
-        //
-        // let mut filter = self.filter.borrow_mut();
-        //
-        // cb(&mut filter);
-        //
-        // for item in items.iter_mut() {
+        let nodes = self.items.borrow_mut();
+
+        if nodes.len() < 2 {
+            return;
+        }
+
+        let mut filter = self.filter.borrow_mut();
+
+        cb(&mut filter);
+
+        // for item in nodes.iter_mut() {
         //     if filter.is_empty() {
         //         item.is_match = false;
         //     } else {
@@ -241,22 +225,18 @@ where
         // }
     }
 
-    pub fn scroll_position(&self) -> usize {
-        self.offset.get()
-    }
-
     // pub fn selected_index(&self) -> Vec<usize> {
     //     self.selected_item_index.borrow()
     // }
 
-    pub fn set_selected_index(&self, new_i: TreeNodePath) {
+    #[allow(unused)]
+    pub fn set_selected_path(&self, new_i: TreeNodePath) {
         log::debug!("set_selected_index {new_i:?}");
+        // TODO: assert the path is valid
         *self.selected_item_path.borrow_mut() = new_i;
     }
 
     pub fn exec_action(&mut self, action: Action) {
-        let target = "::List.on_action";
-
         if self.rename.borrow().is_some() {
             self.exec_rename_action(action);
         } else {
@@ -544,15 +524,17 @@ where
                 f();
             }
             ListAction::Delete => {
-                let Some(on_delete) = &self.on_delete_fn else {
+                let Some(_on_delete) = &self.on_delete_fn else {
                     return;
                 };
 
                 let items = self.items.borrow_mut();
 
-                if items.is_empty() {}
+                if items.is_empty() {
+                    return;
+                }
 
-                // let i = self.selected_item_index.borrow();
+                let _selected_item_path = self.selected_item_path.borrow_mut();
                 // let removed_item = items.remove(i);
                 //
                 // if i >= items.len() {

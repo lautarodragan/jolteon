@@ -99,6 +99,7 @@ where
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_node<'a, T>(
     area: Rect,
     buf: &mut Buffer,

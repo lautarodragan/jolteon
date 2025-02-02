@@ -166,12 +166,4 @@ fn save(playlist_list: &List<Playlist>, deleted_playlist_list: &List<Playlist>) 
     f.save();
 }
 
-impl Focusable for Playlists<'_> {
-    fn set_is_focused(&self, v: bool) {
-        todo!()
-    }
-
-    fn is_focused(&self) -> bool {
-        todo!()
-    }
-}
+impl Focusable for Playlists<'_> {}

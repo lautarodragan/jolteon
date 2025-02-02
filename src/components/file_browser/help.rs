@@ -1,6 +1,6 @@
 use std::{
     cell::Cell,
-    fmt::{Display, Formatter, Write},
+    fmt::{Display, Formatter},
 };
 
 use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::WidgetRef};

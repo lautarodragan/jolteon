@@ -62,30 +62,6 @@ fn library_file_to_song_tree(songs_by_artist: crate::files::Library) -> Vec<Arti
     artists
 }
 
-/// Takes a nested list of Artist<Albums> and returns a flat list of Artist|Album.
-///
-/// We only need this because the album tree view is implemented on top of a plain List
-/// component, and we use list.set_is_visible on each album item to "open"/"close"
-/// artist nodes.
-/// If the List component was a Tree component,
-/// we wouldn't need to have two sources of truth for the library.
-fn song_tree_to_album_tree_item_vec(song_tree: Vec<Artist>) -> Vec<AlbumTreeItem> {
-    let mut album_tree_items = vec![];
-
-    for artist in &*song_tree {
-        album_tree_items.push(AlbumTreeItem::Artist(Artist {
-            name: artist.name.clone(),
-            albums: artist.albums.clone(),
-        }));
-
-        for album in &artist.albums {
-            album_tree_items.push(AlbumTreeItem::Album(album.clone()))
-        }
-    }
-
-    album_tree_items
-}
-
 impl<'a> Library<'a> {
     pub fn new(theme: Theme) -> Self {
         let on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>> = Rc::new(RefCell::new(Box::new(|_| {})));
@@ -163,7 +139,7 @@ impl<'a> Library<'a> {
                 song_list.set_items(songs.clone());
             }
         });
-        album_tree.on_enter({
+        album_tree.on_confirm({
             let on_select_songs_fn = on_select_songs_fn.clone();
 
             move |item| {

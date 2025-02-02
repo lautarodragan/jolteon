@@ -19,6 +19,7 @@ use crate::{
 pub struct Help<'a> {
     actions: List<'a, String>,
     theme: Theme,
+    #[allow(unused)]
     settings: Settings,
 }
 
@@ -112,12 +113,4 @@ impl Drop for Help<'_> {
     }
 }
 
-impl Focusable for Help<'_> {
-    fn set_is_focused(&self, v: bool) {
-        todo!()
-    }
-
-    fn is_focused(&self) -> bool {
-        todo!()
-    }
-}
+impl Focusable for Help<'_> {}

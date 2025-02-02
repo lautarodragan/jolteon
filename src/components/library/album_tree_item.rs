@@ -29,14 +29,6 @@ pub enum AlbumTreeItem {
 }
 
 impl AlbumTreeItem {
-    pub fn is_artist(&self) -> bool {
-        matches!(self, Self::Artist(_))
-    }
-
-    pub fn is_album(&self) -> bool {
-        matches!(self, Self::Album(_))
-    }
-
     pub fn songs(&self) -> Vec<Song> {
         match self {
             AlbumTreeItem::Artist(_) => vec![],

@@ -7,6 +7,7 @@ use std::{
 pub struct TreeNodePath(Vec<usize>);
 
 impl TreeNodePath {
+    #[allow(unused)]
     pub fn empty() -> Self {
         Self(vec![])
     }
@@ -62,6 +63,7 @@ impl TreeNodePath {
         new
     }
 
+    #[allow(unused)]
     pub fn without_first(&self) -> Self {
         TreeNodePath::from_vec(self.0.as_slice()[1..].to_vec())
     }

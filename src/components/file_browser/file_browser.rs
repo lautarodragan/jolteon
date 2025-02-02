@@ -357,12 +357,4 @@ impl Drop for FileBrowser<'_> {
     }
 }
 
-impl Focusable for FileBrowser<'_> {
-    fn set_is_focused(&self, v: bool) {
-        todo!()
-    }
-
-    fn is_focused(&self) -> bool {
-        todo!()
-    }
-}
+impl Focusable for FileBrowser<'_> {}
