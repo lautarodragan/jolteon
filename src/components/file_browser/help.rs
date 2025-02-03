@@ -37,16 +37,14 @@ impl Display for KeyBinding {
     }
 }
 
-pub struct FileBrowserHelp {
+pub struct FileBrowserHelp<'a> {
     theme: Theme,
     pills: Vec<(KeyBinding, Cell<Action>)>,
-    actions: Actions,
+    actions: &'a Actions,
 }
 
-impl FileBrowserHelp {
-    pub fn new(theme: Theme) -> Self {
-        let actions = Actions::from_file_or_default();
-
+impl<'a> FileBrowserHelp<'a> {
+    pub fn new(actions: &'a Actions, theme: Theme) -> Self {
         let pills = vec![
             (
                 actions.list_primary(),
@@ -90,7 +88,7 @@ impl FileBrowserHelp {
     }
 }
 
-impl WidgetRef for FileBrowserHelp {
+impl WidgetRef for FileBrowserHelp<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let help_pill_style = Style::new().fg(self.theme.foreground).bg(self.theme.top_bar_background);
         let help_pill_border_style = Style::new().fg(self.theme.top_bar_background);

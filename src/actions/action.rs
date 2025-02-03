@@ -199,9 +199,8 @@ impl Actions {
     }
 
     pub fn from_file() -> Result<Self, TomlFileError> {
-        let path = get_config_file_path("shortcuts")?;
+        let path = get_config_file_path("key_bindings")?;
         let string = read_to_string(path)?;
-
         Ok(Self::from_str(string.as_str()))
     }
 

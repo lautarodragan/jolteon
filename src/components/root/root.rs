@@ -68,7 +68,7 @@ pub struct Root<'a> {
 }
 
 impl<'a> Root<'a> {
-    pub fn new(settings: Settings, theme: Theme, player: Weak<MainPlayer>) -> Self {
+    pub fn new(actions: &'a Actions, settings: Settings, theme: Theme, player: Weak<MainPlayer>) -> Self {
         let state = State::from_file();
 
         let current_directory = match &state.last_visited_path {
@@ -81,7 +81,7 @@ impl<'a> Root<'a> {
         let queue_screen = Rc::new(RefCell::new(QueueScreen::new(state.queue_items.clone(), theme)));
         let library = Rc::new(RefCell::new(Library::new(theme)));
         let playlist = Rc::new(RefCell::new(Playlists::new(theme)));
-        let browser = Rc::new(RefCell::new(FileBrowser::new(theme, current_directory)));
+        let browser = Rc::new(RefCell::new(FileBrowser::new(actions, theme, current_directory)));
 
         let on_queue_changed_fn = Rc::new(Callback::default());
 
@@ -190,7 +190,6 @@ impl<'a> Root<'a> {
             });
         }
 
-        let actions = Actions::from_file_or_default();
         let help = Rc::new(RefCell::new(Help::new(actions, settings, theme)));
 
         Self {

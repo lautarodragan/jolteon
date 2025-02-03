@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::{
+    actions::Actions,
     components::{
         file_browser::{file_meta::FileMeta, help::FileBrowserHelp},
         FocusGroup,
@@ -34,7 +35,7 @@ pub struct FileBrowser<'a> {
     pub(super) parents_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) children_list: Rc<List<'a, FileBrowserSelection>>,
     pub(super) file_meta: Rc<FileMeta<'a>>,
-    pub(super) help: FileBrowserHelp,
+    pub(super) help: FileBrowserHelp<'a>,
     pub(super) focus_group: FocusGroup<'a>,
 
     pub(super) history: Rc<RefCell<HashMap<PathBuf, (usize, usize)>>>,
@@ -47,7 +48,7 @@ pub struct FileBrowser<'a> {
 }
 
 impl<'a> FileBrowser<'a> {
-    pub fn new(theme: Theme, current_directory: PathBuf) -> Self {
+    pub fn new(actions: &'a Actions, theme: Theme, current_directory: PathBuf) -> Self {
         let items = directory_to_songs_and_folders(&current_directory);
         let mut children_list = List::new(theme, vec![]);
         let file_meta = Rc::new(FileMeta::new(theme));
@@ -277,7 +278,7 @@ impl<'a> FileBrowser<'a> {
             on_add_to_playlist_fn,
             history,
             add_mode,
-            help: FileBrowserHelp::new(theme),
+            help: FileBrowserHelp::new(actions, theme),
         }
     }
 

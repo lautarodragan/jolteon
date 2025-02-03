@@ -67,7 +67,7 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut root_component = Root::new(settings, theme, Arc::downgrade(&player));
+    let mut root_component = Root::new(&actions, settings, theme, Arc::downgrade(&player));
 
     root_component.on_queue_changed({
         let player = player.clone();

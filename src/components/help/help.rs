@@ -24,7 +24,7 @@ pub struct Help<'a> {
 }
 
 impl Help<'_> {
-    pub fn new(actions: Actions, settings: Settings, theme: Theme) -> Self {
+    pub fn new(actions: &Actions, settings: Settings, theme: Theme) -> Self {
         let mut actions_by_action: HashMap<Action, Vec<KeyBinding>> = HashMap::new();
 
         for (k, v) in actions.actions() {
