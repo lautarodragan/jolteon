@@ -165,12 +165,16 @@ impl<'a> FileBrowser<'a> {
         parents_list.on_confirm({
             let on_enqueue_fn = Rc::clone(&on_enqueue_fn);
             let current_directory = Rc::clone(&current_directory);
-            let parents_list = Rc::clone(&parents_list);
+            let parents_list = Rc::downgrade(&parents_list);
             let children_list = children_list.clone();
             let history = Rc::clone(&history);
 
             move |item| match item {
                 FileBrowserSelection::Directory(path) => {
+                    let Some(parents_list) = parents_list.upgrade() else {
+                        return;
+                    };
+
                     let files = directory_to_songs_and_folders(path.as_path());
 
                     if !files.iter().any(|f| matches!(f, FileBrowserSelection::Directory(_))) {

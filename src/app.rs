@@ -143,7 +143,9 @@ fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
         log::error!("Could not save app state {err:?}");
     }
 
+    log::trace!("Dropping root_component...");
     drop(root_component);
+    log::trace!("root_component dropped");
 
     log::debug!(
         "main_player strong_count: {}. weak_count: {}",
