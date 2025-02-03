@@ -1,7 +1,6 @@
 use std::{io::BufRead, path::PathBuf, thread};
 
-#[allow(dead_code)]
-fn spawn_terminal(cwd: PathBuf) {
+pub fn spawn_terminal(cwd: PathBuf) {
     thread::Builder::new()
         .name("term".to_string())
         .spawn(move || {

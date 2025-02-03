@@ -1,4 +1,8 @@
-use crate::actions::{Action, FileBrowserAction, OnAction, OnActionMut};
+use crate::{
+    actions::{Action, FileBrowserAction, OnAction, OnActionMut},
+    components::FileBrowserSelection,
+    spawn_terminal::spawn_terminal,
+};
 
 use super::{AddMode, FileBrowser};
 
@@ -17,7 +21,15 @@ impl OnActionMut for FileBrowser<'_> {
                     self.navigate_up();
                 }
                 FileBrowserAction::OpenTerminal => {
-                    log::error!("FileBrowserAction::OpenTerminal {action:?} not implemented");
+                    let path = self
+                        .parents_list
+                        .with_selected_item(|item| match item {
+                            FileBrowserSelection::Directory(dir) => Some(dir.clone()),
+                            _ => None,
+                        })
+                        .unwrap_or(self.current_directory.path());
+                    log::info!("FileBrowserAction::OpenTerminal at {path:?}");
+                    spawn_terminal(path);
                 }
                 FileBrowserAction::AddToLibrary => {
                     log::error!("FileBrowserAction::AddToLibrary not implemented");
