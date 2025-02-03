@@ -1,13 +1,17 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use std::fs::{read_to_string, write};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fs::{read_to_string, write},
+    rc::Rc,
+};
 
 use crate::{
     components::{FocusGroup, List, Tree, TreeNode},
     config::Theme,
     structs::{Direction, Song},
+    toml::{get_config_file_path, TomlFileError},
     ui::{Component, Focusable},
 };
-use crate::toml::{get_config_file_path, TomlFileError};
 
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};
 
@@ -20,47 +24,6 @@ pub struct Library<'a> {
     pub(super) focus_group: FocusGroup<'a>,
 
     pub(super) on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>>,
-}
-
-fn load_lib() -> Vec<TreeNode<AlbumTreeItem>> {
-    let path = home::home_dir()
-        .map(|path| path.as_path().join(".config/jolteon/library.json"))
-        .unwrap();
-    let string = match read_to_string(&path) {
-        Ok(a) => {a}
-        Err(e) => {
-            log::error!("read_to_string error {e:?}");
-            return vec![];
-        }
-    };
-    match serde_json::from_str::<Vec<TreeNode<AlbumTreeItem>>>(&string) {
-        Ok(a) => {a}
-        Err(e) => {
-            log::error!("from_str error {e:?}");
-            vec![]
-        }
-    }
-}
-
-fn save_lib(nodes: &Vec<TreeNode<AlbumTreeItem>>) {
-    log::trace!("Library save_lib");
-    let path = home::home_dir()
-        .map(|path| path.as_path().join(".config/jolteon/library.json"))
-        .unwrap();
-
-    let string = match serde_json::to_string_pretty(nodes) {
-        Ok(a) => {a}
-        Err(e) => {
-            log::error!("from_str error {e:?}");
-            return;
-        }
-    };
-    match write(&path, &string) {
-        Ok(_) => {}
-        Err(e) => {
-            log::error!("write error {e:?}");
-        }
-    };
 }
 
 impl<'a> Library<'a> {
@@ -203,6 +166,16 @@ impl<'a> Library<'a> {
     }
 }
 
+impl Drop for Library<'_> {
+    fn drop(&mut self) {
+        log::trace!("Library.drop()");
+        self.album_tree.borrow_mut().with_nodes_mut(|nodes| {
+            log::trace!("Library.drop() -> saving lib");
+            save_lib(nodes)
+        });
+    }
+}
+
 fn song_vec_to_map(songs: Vec<Song>) -> HashMap<String, HashMap<String, Vec<Song>>> {
     let mut artist_album_map: HashMap<String, HashMap<String, Vec<Song>>> = HashMap::new();
 
@@ -288,14 +261,45 @@ fn add_album_nodes(artist_node: &mut TreeNode<AlbumTreeItem>, artist_name: Strin
     }
 }
 
-impl Drop for Library<'_> {
-    fn drop(&mut self) {
-        log::trace!("Library.drop()");
-        self.album_tree.borrow_mut().with_nodes_mut(|nodes| {
-            log::trace!("Library.drop() -> saving lib");
-            save_lib(nodes)
-        });
+impl Focusable for Library<'_> {}
+
+fn load_lib() -> Vec<TreeNode<AlbumTreeItem>> {
+    let path = home::home_dir()
+        .map(|path| path.as_path().join(".config/jolteon/library.json"))
+        .unwrap();
+    let string = match read_to_string(&path) {
+        Ok(a) => a,
+        Err(e) => {
+            log::error!("read_to_string error {e:?}");
+            return vec![];
+        }
+    };
+    match serde_json::from_str::<Vec<TreeNode<AlbumTreeItem>>>(&string) {
+        Ok(a) => a,
+        Err(e) => {
+            log::error!("from_str error {e:?}");
+            vec![]
+        }
     }
 }
 
-impl Focusable for Library<'_> {}
+fn save_lib(nodes: &Vec<TreeNode<AlbumTreeItem>>) {
+    log::trace!("Library save_lib");
+    let path = home::home_dir()
+        .map(|path| path.as_path().join(".config/jolteon/library.json"))
+        .unwrap();
+
+    let string = match serde_json::to_string_pretty(nodes) {
+        Ok(a) => a,
+        Err(e) => {
+            log::error!("from_str error {e:?}");
+            return;
+        }
+    };
+    match write(&path, &string) {
+        Ok(_) => {}
+        Err(e) => {
+            log::error!("write error {e:?}");
+        }
+    };
+}
