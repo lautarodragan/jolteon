@@ -625,6 +625,9 @@ where
                 for node in &mut *nodes {
                     node.is_open = false;
                 }
+
+                // TODO: if the selected node was closed, `selected_path = selected_path.parent()`
+                // and update the scroll position if necessary
             }
             _ => {}
         }

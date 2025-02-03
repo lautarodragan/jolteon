@@ -9,7 +9,6 @@ use crate::{
     components::{FocusGroup, List, Tree, TreeNode},
     config::Theme,
     structs::{Direction, Song},
-    toml::{get_config_file_path, TomlFileError},
     ui::{Component, Focusable},
 };
 
@@ -29,8 +28,6 @@ pub struct Library<'a> {
 impl<'a> Library<'a> {
     pub fn new(theme: Theme) -> Self {
         let album_tree_items = load_lib();
-
-        log::debug!("{album_tree_items:#?}");
 
         let on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>> = Rc::new(RefCell::new(Box::new(|_| {})));
 
@@ -161,7 +158,7 @@ impl<'a> Library<'a> {
                 }
             }
 
-            save_lib(&artist_nodes);
+            save_lib(artist_nodes);
         });
     }
 }
