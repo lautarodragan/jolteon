@@ -213,6 +213,8 @@ impl Actions {
     pub fn to_file(&self) {}
 
     pub fn action_by_key(&self, key: KeyEvent) -> Vec<Action> {
+        log::debug!("action_by_key {key:?}");
+
         if let KeyCode::Char(c) = key.code
             && key.modifiers.is_empty()
             && c.is_alphabetic()
@@ -220,13 +222,12 @@ impl Actions {
             return vec![Action::Text(TextAction::Char(c))];
         }
 
-        let sc = KeyBinding::from(key);
-        // log::trace!("key {key:?}");
+        let kb = KeyBinding::from(key);
         self.actions
-            .get(&sc)
-            .or(DEFAULT_ACTIONS.get(&sc))
+            .get(&kb)
+            .or(DEFAULT_ACTIONS.get(&kb))
             .cloned()
-            .unwrap_or(vec![])
+            .unwrap_or_default()
     }
 
     pub fn key_by_action(&self, action: Action) -> Option<KeyBinding> {
