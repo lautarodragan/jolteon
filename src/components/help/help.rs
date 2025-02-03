@@ -4,7 +4,6 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     style::Style,
-    text::Line,
     widgets::{WidgetRef, Wrap},
 };
 
@@ -15,6 +14,8 @@ use crate::{
     settings::Settings,
     ui::Focusable,
 };
+
+static HELP_TEXT_STR: &str = include_str!("../../../assets/help.txt");
 
 pub struct Help<'a> {
     actions: List<'a, String>,
@@ -91,14 +92,9 @@ impl WidgetRef for Help<'_> {
         //     - Set a fixed area for the paragraph, let it clip, and use Paragraph's scroll feature
         //   The latter would require some visual feedback — probably borders... which are ugly :(
 
-        ratatui::widgets::Paragraph::new(vec![
-            Line::raw("Hi! Welcome to Jolteon."),
-            Line::raw("This project is a work in progress. It's generally usable, but not thoroughly documented, yet."),
-            Line::raw(
-                "This screen will eventually have some help, documentation and display the active settings and theme.",
-            ),
-            Line::raw("For now, here are the key bindings:"),
-        ])
+        ratatui::widgets::Paragraph::new(
+            HELP_TEXT_STR.replace("{{actions.kv.path}}", &Actions::path().to_string_lossy()),
+        )
         .style(Style::new().fg(self.theme.foreground_secondary))
         .wrap(Wrap { trim: true })
         .render_ref(area_top, buf);

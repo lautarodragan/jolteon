@@ -1,0 +1,7 @@
+Hi! Welcome to Jolteon.
+
+This project is a work in progress. It's generally usable, but not thoroughly documented, yet. This screen will eventually have some help, documentation and display the active settings and theme.
+
+Key bindings can be overridden by creating a file {{actions.kv.path}}. Currently, these are merged with the defaults. That is likely to change in a future version.
+
+Active key bindings:

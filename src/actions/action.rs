@@ -1,11 +1,11 @@
-use std::{collections::HashMap, fs::read_to_string, hash::Hash, sync::LazyLock};
+use std::{collections::HashMap, fs::read_to_string, hash::Hash, path::PathBuf, sync::LazyLock};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
 
 use strum::EnumString;
 
-use crate::toml::{get_config_file_path, TomlFileError};
+use crate::toml::TomlFileError;
 
 static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.kv");
 static DEFAULT_ACTIONS: LazyLock<HashMap<KeyBinding, Vec<Action>>> =
@@ -198,8 +198,17 @@ impl Actions {
         Self { actions }
     }
 
+    pub fn path() -> PathBuf {
+        home::home_dir()
+            .unwrap_or(PathBuf::from("~"))
+            .as_path()
+            .join(".config")
+            .join("jolteon")
+            .join("actions.kv")
+    }
+
     pub fn from_file() -> Result<Self, TomlFileError> {
-        let path = get_config_file_path("key_bindings")?;
+        let path = Self::path();
         let string = read_to_string(path)?;
         Ok(Self::from_str(string.as_str()))
     }
@@ -256,9 +265,10 @@ impl Actions {
     }
 
     pub fn actions(&self) -> HashMap<KeyBinding, Vec<Action>> {
-        let mut actions = HashMap::new();
-        self.actions.clone_into(&mut actions);
-        DEFAULT_ACTIONS.clone_into(&mut actions);
+        let mut actions = DEFAULT_ACTIONS.clone();
+        for (kb, a) in &self.actions {
+            actions.insert(*kb, a.clone());
+        }
         actions
     }
 }
