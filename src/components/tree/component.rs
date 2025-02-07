@@ -358,25 +358,29 @@ where
                     initial_i.with_child(0)
                 } else {
                     // Walk next/up/next
-                    let mut dynamic_path = initial_i.clone();
+                    let mut path = initial_i.clone();
 
                     loop {
-                        if dynamic_path.is_empty() {
+                        if path.is_empty() {
                             log::error!("NavigationAction::Down: dynamic_path is empty already! {initial_i:?}");
                             break initial_i.clone();
                         };
 
-                        let last = dynamic_path.last();
-                        dynamic_path = dynamic_path.parent();
+                        let last = path.last();
+                        path = path.parent();
 
-                        if dynamic_path.is_empty() {
-                            break TreeNodePath::from_vec(vec![(last + 1).min(nodes.len().saturating_sub(1))]);
+                        if path.is_empty() {
+                            if last == nodes.len() - 1 {
+                                break initial_i.clone();
+                            } else {
+                                break TreeNodePath::from_vec(vec![(last + 1).min(nodes.len().saturating_sub(1))]);
+                            }
                         }
 
-                        let parent_node = TreeNode::get_node_at_path(&dynamic_path, &nodes).unwrap();
+                        let parent_node = TreeNode::get_node_at_path(&path, &nodes).unwrap();
 
                         if parent_node.children.len() > last + 1 {
-                            break dynamic_path.with_child(last + 1);
+                            break path.with_child(last + 1);
                         }
                     }
                 }
