@@ -8,7 +8,7 @@ use super::{AddMode, FileBrowser};
 
 impl OnActionMut for FileBrowser<'_> {
     fn on_action(&mut self, actions: Vec<Action>) {
-        log::debug!("FB action {actions:?}");
+        // log::debug!("FB action {actions:?}");
 
         if self.parents_list.filter().is_empty()
             && let Some(action) = actions.iter().find_map(|action| match action {

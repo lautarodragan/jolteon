@@ -3,6 +3,13 @@ use std::{
     collections::HashMap,
     path::PathBuf,
     rc::Rc,
+    sync::{
+        mpsc::{channel, RecvTimeoutError},
+        Arc,
+        Mutex,
+    },
+    thread,
+    time::Duration,
 };
 
 use crate::{
@@ -38,6 +45,8 @@ pub struct FileBrowser<'a> {
     pub(super) help: FileBrowserHelp<'a>,
     pub(super) focus_group: FocusGroup<'a>,
 
+    pub(super) files_from_io_thread: Arc<Mutex<Vec<FileBrowserSelection>>>,
+
     pub(super) history: Rc<RefCell<HashMap<PathBuf, (usize, usize)>>>,
 
     pub(super) current_directory: Rc<CurrentDirectory>,
@@ -58,6 +67,40 @@ impl<'a> FileBrowser<'a> {
         let on_add_to_lib_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
         let on_add_to_playlist_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
         let add_mode = Rc::new(Cell::new(AddMode::AddToLibrary));
+
+        let (io_thread, files_from_io_thread) = {
+            let (tx, rx) = channel::<PathBuf>();
+            let files_from_io_thread = Arc::new(Mutex::new(vec![]));
+            thread::spawn({
+                let files_from_io_thread = Arc::clone(&files_from_io_thread);
+                move || loop {
+                    let Ok(mut path) = rx.recv() else {
+                        log::trace!("FileBrowser's IO thread will close now.");
+                        break;
+                    };
+                    log::trace!("FileBrowser's IO thread: received {path:?}");
+                    let path = loop {
+                        match rx.recv_timeout(Duration::from_millis(100)) {
+                            Ok(p) => {
+                                log::trace!("FileBrowser's IO thread: debounced path {p:?}");
+                                path = p;
+                            }
+                            Err(RecvTimeoutError::Timeout) => {
+                                log::trace!("FileBrowser's IO thread: will now process path {path:?}");
+                                break path;
+                            }
+                            _ => {
+                                log::trace!("FileBrowser's IO thread (inner loop) will close now.");
+                                return;
+                            }
+                        }
+                    };
+                    let files = directory_to_songs_and_folders(path.as_path());
+                    *files_from_io_thread.lock().unwrap() = files;
+                }
+            });
+            (tx, files_from_io_thread)
+        };
 
         children_list.line_style(|i| match i {
             FileBrowserSelection::Song(_) | FileBrowserSelection::CueSheet(_) => None,
@@ -143,18 +186,12 @@ impl<'a> FileBrowser<'a> {
         let children_list = Rc::new(children_list);
         parents_list.on_select({
             let children_list = children_list.clone();
-            let file_meta = file_meta.clone();
+            // let file_meta = file_meta.clone();
             move |item| {
                 if let FileBrowserSelection::Directory(path) = item {
-                    let files = directory_to_songs_and_folders(path.as_path());
-
-                    if let Some(f) = files.first() {
-                        file_meta.set_file(f.clone());
-                    } else {
-                        file_meta.clear();
-                    }
-
-                    children_list.set_items(files);
+                    if let Err(err) = io_thread.send(path.clone()) {
+                        log::error!("FileBrowser: error sending path to IO thread {err:?}");
+                    };
                 } else {
                     children_list.set_items(vec![]);
                 }
@@ -271,6 +308,8 @@ impl<'a> FileBrowser<'a> {
             children_list,
             file_meta,
             focus_group,
+
+            files_from_io_thread,
 
             current_directory,
             on_enqueue_fn,

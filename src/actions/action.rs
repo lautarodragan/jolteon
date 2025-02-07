@@ -221,7 +221,7 @@ impl Actions {
     pub fn to_file(&self) {}
 
     pub fn action_by_key(&self, key: KeyEvent) -> Vec<Action> {
-        log::debug!("action_by_key {key:?}");
+        // log::debug!("action_by_key {key:?}");
 
         if let KeyCode::Char(c) = key.code
             && key.modifiers.is_empty()
