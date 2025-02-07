@@ -31,19 +31,21 @@ See [Developing](#developing) down below.
 
 ## Features
 
-- 🚧 Automatic updates
-  - Not fully implemented yet. The app checks for new GitHub releases when launched, and detects new versions,
-    but doesn't yet download the published binary, and we aren't publishing releases automatically just yet.
 - The number keys `1` through `5` select the different screens. The top bar shows the available screens and highlights the active one.
 - `Tab` cycles through focusable elements in the screen.
 - `Ctrl+Space` toggles play/pause. 
 - When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen.
-- A frame counter is show in the top-right corner of the screen.
-  - 🚧 This is only there for debugging purposes, and will be configurable and disabled by default in the future. 
+  - 🚧 In the future, we'll be able to configure both whether we want the animation or not and where we want it on the screen. 
 - Media library
   - Search/Filter in the artist/album tree. Just press any letter or number key to start filtering. 
     Matches will be displayed in red, and, while filtering, the navigation keys will jump between matches.
     Press `Esc` to exit filtering. Pressing `Enter` to play a song will also exit filtering mode.
+  - `Space` toggles expanding/collapsing (or opening/closing) the selected artist.
+  - `(`, `Alt9`, and `AltC` collapses all artists.
+  - `)`, `Alt0`, and `AltE` expands all artists.
+  - The entire library is just one big json file. This makes it easy to back it up, and you can even use `git` to track changes to it, etc.
+  - Modifications to the library are saved instantly, not when the application closes.
+  - 🚧 Upcoming: automatic sorting
   - 🚧 Soon, support to search individual songs will be added. UI and UX for this feature TBD.
 - Playlists
   - `Enter` will add the selected song or playlist to the queue. `Alt+Enter` will play it immediately. 
@@ -58,10 +60,15 @@ See [Developing](#developing) down below.
     bottom-right.
   - Play (add to queue) music files right there in the browser, or add them to the selected playlist or library.
   - Key Bindings are shown on the screen.
+  - The current directory is persisted when the application closes. You can close Jolteon, come back, and pick up where you left off. 
   - 🚧 Soon, adding a folder to the library or queue will prioritize .cue files inside the folder. Right now, cue sheet files are ignored
     when adding an entire folder, so you'll have to open the folder and work on the individual .cue file instead.
   - 🚧 Upcoming: Bookmarks
 - Playing Queue
+  - The queue is persisted when the application closes. If you close Jolteon with tracks in the queue, when you come back, it'll
+    start playing the next automatically.
+  - 🚧 In the future, the currently playing song and its position will be persisted too, so, rather than to start playing 
+    the next song, it'll start playing the same song at the position it was when Jolteon was closed.
 - `.cue` sheet file support
   - Metadata missing for the `.cue` file will be grabbed from the media file itself 
 - `.jolt` files to override audio metadata non-destructively
@@ -78,35 +85,35 @@ See [Developing](#developing) down below.
       tab being opened to YouTube overtaking it, but it being regained when the tab is closed).
     - 🚧 This feature isn't build into the binary conditionally, which I'm guessing is breaking Jolteon in the Mac builds.
       This should be straight-forward to fix and will be addressed soon.
-- Gapless playback
-  - 🚧 Cue sheet files still perform seeking when jumping from one song to the next in the Queue, which might introduce a noticeable delay.
-    In the future, I'll improve this feature so, if a track in the queue is followed by the next track in the same cue sheet file,
-    no seeking is done at all, which will enable 100% true gapless playback for cue sheet files.
-- Persistent app state
-  - The current directory of the browser
-  - The queue
-  - Modifications to playlists and library are saved immediately. This means application crashes or unexpected system shut-downs
-    will not prevent changes from being saved.
-  - 🚧 Current song, with playback position (coming soon)
+- Help Screen
+  - 🚧 This is pretty raw, right now. The goal is for Jolteon to require no guesswork, no external documentation, and to feel 100% friendly and risk-free.
+    (no destructive actions, Ctrl+Z for everything, no confusing behavior, etc).
 - Focus on stability
   - Application crashes are handled safely, restoring the terminal to its normal state before exiting the process.
   - Thread hygiene: all threads joined on exit - no thread is brute-force-killed by the OS on process exit.
-  - Minimal use of `unwrap`. Only true bugs in the application should crash Jolteon. Any external source of indeterministic should be
+  - Minimal use of `unwrap`. Only true bugs in the application should crash Jolteon. Any external source of indeterminism should be
     handled accordingly.
   - 🚧 In the future, if any non-bug causes an issue, rather than just being ignored, proper UX will be implemented and feedback given.
 - A clock on the top bar :)
   - 🚧 In the future, we'll be able to enable/disable this feature, as well as configuring the time format.
-- 🚧 Configurable keyboard shortcuts
-  - This is a work in progress. They are not really configurable yet, unless you're willing to modify `assets/actions.kv`, but 90% the code
-    is already there, and this feature will be fully implemented soon.
-  - Not every keyboard shortcut will be configurable.
-  - Custom keyboard shortcuts will override default ones, but default ones will always be present.
-  - Ctrl+Q is handled specially. The application must always be exit-able, no matter what. No "how do I exit Vim" situation.
+- Configurable key bindings
+  - The Help screen has a bit of info on this, but the UX will improve in the future, like support to change the key bindings inside the application.
 - 🚧 Themes
   - Currently, there's only one theme. You can find it in `assets/theme.toml`. 90% of the code allowing customization and multiple
     out-of-the-box themes is already done, so this feature is likely to come soon.
   - There will be some way to switch themes programmatically from outside the application, for themes to be switchable by external scripts.
   - Integration with OS light/dark mode will be added. Which theme is associated with each mode will be configurable, but have a sensible default.
+- 🚧 Gapless playback
+  - 🚧 Cue sheet tracks are handled as if they were individual files. If playing 2 consecutive tracks from a single Cue sheet,
+    when track A finishes playing, Jolteon will still close the file, open it again, and seek to the starting time of track B.
+    This basically defeats the gapless playback we get for free from Cue sheet files. In the future, this case will be handled specifically,
+    to take advantage of it and just keep playing the same audio file.
+  - 🚧 True gapless playback between different files is a different challenge. Latency is addressed by buffering two files at once
+    rather than just one, and, roughly speaking, chaining the decoding iterators. We may still wind up with undesired pauses or audible artifacts
+    between songs. Ideally, for gapless playback, we should always try to have a single, big audio file for the entire album, with its Cue sheet.
+- 🚧 Automatic updates
+  - Not fully implemented yet. The app checks for new GitHub releases when launched, and detects new versions,
+    but doesn't yet download the published binary, and we aren't publishing releases automatically just yet.
 
 ### Upcoming
 
