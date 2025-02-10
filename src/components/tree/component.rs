@@ -361,11 +361,6 @@ where
                     let mut path = initial_i.clone();
 
                     loop {
-                        if path.is_empty() {
-                            log::error!("NavigationAction::Down: dynamic_path is empty already! {initial_i:?}");
-                            break initial_i.clone();
-                        };
-
                         let last = path.last();
                         path = path.parent();
 
