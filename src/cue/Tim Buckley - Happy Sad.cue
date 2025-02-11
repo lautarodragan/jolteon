@@ -1,7 +1,7 @@
 REM GENRE Folk/Blues
 REM DATE 1969
 REM DISCID 5B0A7D06
-REM COMMENT "ExactAudioCopy v0.99pb4"
+REM COMMENT "Nice album"
 PERFORMER "Tim Buckley"
 TITLE "Happy Sad"
 FILE "Tim Buckley - Happy Sad.flac" WAVE

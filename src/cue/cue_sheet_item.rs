@@ -89,7 +89,7 @@ mod tests {
                 CueSheetItem::Comment("GENRE Folk/Blues".to_string()),
                 CueSheetItem::Comment("DATE 1969".to_string()),
                 CueSheetItem::Comment("DISCID 5B0A7D06".to_string()),
-                CueSheetItem::Comment("COMMENT \"ExactAudioCopy v0.99pb4\"".to_string()), // TODO: bug! need to be smarter with the stripping of double-quotes.
+                CueSheetItem::Comment("COMMENT \"Nice album\"".to_string()), // TODO: bug! need to be smarter with the stripping of double-quotes.
             ]
         );
 

@@ -178,7 +178,7 @@ mod tests {
         assert_eq!(
             cue.comments,
             vec![
-                "COMMENT \"ExactAudioCopy v0.99pb4\"",
+                "COMMENT \"Nice album\"",
                 "DATE 1969",
                 "DISCID 5B0A7D06",
                 "GENRE Folk/Blues",

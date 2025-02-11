@@ -97,6 +97,7 @@ impl Song {
     }
 
     pub fn from_cue_sheet(cue_sheet: CueSheet) -> Vec<Self> {
+        // TODO: attempt to read date from REM DATE comment
         let cue_file = cue_sheet.file().unwrap();
         let performer = cue_sheet.performer();
         let file_name = cue_file.name();
@@ -117,6 +118,10 @@ impl Song {
         };
 
         let jolt = Jolt::from_path(song_path.parent().unwrap().join(".jolt")).ok();
+
+        let cue_date = cue_sheet.comments().into_iter().find(|comment| comment.starts_with("DATE "));
+
+        log::debug!("DATE from cue sheet: {cue_date:?}");
 
         let mut songs: Vec<Song> = tracks
             .iter()
