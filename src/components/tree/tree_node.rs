@@ -8,6 +8,7 @@ use super::TreeNodePath;
 pub struct TreeNode<T> {
     pub inner: T,
     pub is_visible: bool,
+    #[serde(skip)]
     pub is_match: bool,
     pub is_open: bool,
     pub children: Vec<Self>,
@@ -127,8 +128,9 @@ impl<T> TreeNode<T> {
     }
 
     pub fn iter(&self) -> TreeNodeIterator<T> {
+        // TODO: iter_mut???
         let iter = TreeNodeIterator {
-            root: &self,
+            root: self,
             current_node: None,
             current_path: TreeNodePath::empty(),
         };
@@ -137,7 +139,7 @@ impl<T> TreeNode<T> {
     }
 }
 
-struct TreeNodeIterator<'a, T> {
+pub struct TreeNodeIterator<'a, T> {
     root: &'a TreeNode<T>,
     current_node: Option<&'a TreeNode<T>>,
     current_path: TreeNodePath,
@@ -149,6 +151,7 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         // TODO: avoid calling .get_child(). store branch: Vec<&'a TreeNode<T>> (or VecDeque?)
+        // TODO: skip closed nodes? can that be achieved with .filter (is filter lazy and ordered and deterministic?)
 
         if let Some(current_node) = self.current_node {
             let current_node_first_child = current_node.children().first();

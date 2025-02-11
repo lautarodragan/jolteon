@@ -197,9 +197,7 @@ where
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
-        let nodes = self.items.borrow_mut();
-
-        if nodes.len() < 2 {
+        if self.items.borrow().len() < 2 {
             return;
         }
 
@@ -207,32 +205,22 @@ where
 
         cb(&mut filter);
 
-        // for item in nodes.iter_mut() {
-        //     if filter.is_empty() {
-        //         item.is_match = false;
-        //     } else {
-        //         item.is_match = item
-        //             .inner
-        //             .to_string()
-        //             .to_lowercase()
-        //             .contains(filter.to_lowercase().as_str());
-        //     }
-        // }
+        let mut nodes = self.items.borrow_mut();
+        for node in nodes.iter_mut() {
+            node.is_match = !filter.is_empty() && node.inner.to_string().to_lowercase().contains(filter.to_lowercase().as_str());
 
-        // let selected_item_index = self.selected_item_index.get();
-        // if !items[selected_item_index].is_match {
-        //     if let Some(i) = items.iter().skip(selected_item_index).position(|item| item.is_match) {
-        //         let i = i + selected_item_index;
-        //         self.selected_item_index.set(i);
-        //     } else if let Some(i) = items.iter().position(|item| item.is_match) {
-        //         self.selected_item_index.set(i);
-        //     }
-        // }
+            if node.is_open {
+                for node in node.children.iter_mut() {
+                    node.is_match = !filter.is_empty() && node.inner.to_string().to_lowercase().contains(filter.to_lowercase().as_str());
+                }
+
+                // TODO: how can I implement node.iter_mut????
+                // for node in node.iter() {
+                //     // log::debug!("filtering child: {}", node.inner)
+                // }
+            }
+        }
     }
-
-    // pub fn selected_index(&self) -> Vec<usize> {
-    //     self.selected_item_index.borrow()
-    // }
 
     #[allow(unused)]
     pub fn set_selected_path(&self, new_i: TreeNodePath) {
