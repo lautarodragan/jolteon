@@ -15,6 +15,11 @@ pub fn spawn_terminal(cwd: PathBuf) {
             if let Ok(mut proc) = proc {
                 log::debug!("spawned child process");
 
+
+                // TODO: this keeps Jolteon's process open, even after closing jolteon,
+                //  until this child process ends.
+                //  Not good UX, and there's no real need to do this, other than debugging.
+                //  Maybe make it configurable, or skip in release compilation.
                 let stdout = proc.stdout.as_mut().unwrap();
                 let stdout_reader = std::io::BufReader::new(stdout);
 
