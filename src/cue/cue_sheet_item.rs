@@ -1,5 +1,3 @@
-use crate::extensions::string::StringExtensions;
-
 use super::cue_line_node::CueLineNode;
 
 #[derive(PartialEq, Eq, Debug)]
@@ -20,8 +18,8 @@ impl CueSheetItem {
         match &cue_line_node.line {
             Some(line) => match line.key.as_str() {
                 "REM" => Self::Comment(line.value.clone()),
-                "PERFORMER" => Self::Performer(line.value.strip_quotes().to_string()),
-                "TITLE" => Self::Title(line.value.strip_quotes().to_string()),
+                "PERFORMER" => Self::Performer(line.value.trim_matches('"').to_string()),
+                "TITLE" => Self::Title(line.value.trim_matches('"').to_string()),
                 "INDEX" => Self::Index(line.value.clone()),
                 "FILE" => {
                     let children = cue_line_node.children.iter().map(Self::from_cue_line_node).collect();

@@ -1,13 +1,11 @@
 use std::{
     fmt::{Debug, Display, Formatter},
-    fs::File,
-    io::{self, BufRead, BufReader},
+    fs::{read_to_string, File},
+    io::{self, BufRead, BufReader, Read},
     path::Path,
 };
 
 use log::error;
-
-use crate::extensions::string::StringExtensions;
 
 #[derive(Eq, PartialEq)]
 pub struct CueLine {
@@ -29,26 +27,25 @@ impl Debug for CueLine {
 }
 
 impl CueLine {
-    pub fn from_reader<B>(lines: io::Lines<B>) -> Vec<CueLine>
-    where
-        B: BufRead,
-    {
+    pub fn from_file(path: &Path) -> io::Result<Vec<CueLine>> {
+        let mut file = File::open(path)?;
+
+        let mut buf = vec![];
+        file.read_to_end(&mut buf)?;
+
+        let contents = String::from_utf8_lossy(&buf);
+
         let mut cue_lines = Vec::new();
+        for line in contents.split(&['\n', '\r']).filter(|l| !l.trim().is_empty()) {
+            if line.contains(char::REPLACEMENT_CHARACTER) {
+                log::warn!("this line has invalid UTF8 {line}");
+            }
 
-        for line in lines {
-            let line = match line {
-                Ok(line) => line,
-                Err(err) => {
-                    log::warn!(target: "::CueLine::from_reader()", "Failed to read line {:?}", err);
-                    continue;
-                }
-            };
-
-            let indentation = line.count_leading_whitespace();
-            let key_value = line.trim_leading_whitespace();
+            let key_value = line.trim_start();
+            let indentation = line.len() - key_value.len();
 
             let Some((key, value)) = key_value.split_once(char::is_whitespace) else {
-                error!("lines should be key value {:?}", line);
+                log::warn!("lines should be key value {:?}", line);
                 continue;
             };
 
@@ -59,14 +56,7 @@ impl CueLine {
             });
         }
 
-        cue_lines
-    }
-
-    pub fn from_file(path: &Path) -> io::Result<Vec<CueLine>> {
-        let file = File::open(path)?;
-
-        let reader = BufReader::new(file).lines();
-        Ok(Self::from_reader(reader))
+        Ok(cue_lines)
     }
 }
 

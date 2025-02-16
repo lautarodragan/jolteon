@@ -5,7 +5,10 @@ use std::{
     time::Duration,
 };
 
-use crate::cue::{cue_line::CueLine, cue_line_node::CueLineNode, cue_sheet_item::CueSheetItem};
+use crate::{
+    components::dir_entry_is_song,
+    cue::{cue_line::CueLine, cue_line_node::CueLineNode, cue_sheet_item::CueSheetItem},
+};
 
 #[allow(dead_code)]
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
@@ -127,7 +130,40 @@ impl CueSheet {
                 CueSheetItem::Title(s) => sheet.title = Some(s),
                 CueSheetItem::Performer(s) => sheet.performer = Some(s),
                 CueSheetItem::File(s, c) => {
-                    sheet.file = Some(CueFile::new(s, c));
+                    if s.contains(char::REPLACEMENT_CHARACTER) {
+                        // Super primitive way to support non-utf encodings.
+                        log::warn!("File name has invalid UTF8! {s}");
+
+                        if !path.join(Path::new(&s)).exists() {
+                            log::warn!(
+                                "The file with invalid UTF8 does not exist. Will try to guess which file it may be."
+                            );
+                        }
+
+                        let Ok(entries) = path.parent().unwrap().read_dir() else {
+                            log::warn!("No entries at path {path:?}.");
+                            continue;
+                        };
+
+                        for entry in entries.filter_map(|e| e.ok()).filter(dir_entry_is_song) {
+                            let entry_path = entry.path();
+                            let entry_path = entry_path.to_string_lossy();
+
+                            log::trace!("attempting entry {entry_path}");
+
+                            if !PathBuf::from(entry_path.to_string()).exists() {
+                                log::warn!("No dice. Will have to ignore {entry_path}");
+                                continue;
+                            }
+
+                            log::warn!("This one seems to work: {entry_path}");
+
+                            sheet.file = Some(CueFile::new(entry_path.to_string(), c));
+                            break;
+                        }
+                    } else {
+                        sheet.file = Some(CueFile::new(s, c));
+                    }
                 }
                 _ => {}
             }

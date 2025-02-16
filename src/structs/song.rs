@@ -98,7 +98,11 @@ impl Song {
 
     pub fn from_cue_sheet(cue_sheet: CueSheet) -> Vec<Self> {
         // TODO: attempt to read date from REM DATE comment
-        let cue_file = cue_sheet.file().unwrap();
+        let Some(cue_file) = cue_sheet.file() else {
+            log::warn!("This Cue sheet doesn't have a file field. I can't do anything with it. {cue_sheet:#?}");
+            return vec![];
+
+        };
         let performer = cue_sheet.performer();
         let file_name = cue_file.name();
         let tracks = cue_file.tracks();

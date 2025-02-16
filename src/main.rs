@@ -18,7 +18,6 @@ mod config;
 mod constants;
 mod cue;
 mod duration;
-mod extensions;
 mod files;
 mod main_player;
 mod mpris;
