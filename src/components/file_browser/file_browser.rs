@@ -12,6 +12,10 @@ use std::{
     time::Duration,
 };
 
+use super::{
+    current_directory::CurrentDirectory,
+    file_browser_selection::{directory_to_songs_and_folders, FileBrowserSelection},
+};
 use crate::{
     actions::Actions,
     components::{
@@ -22,11 +26,6 @@ use crate::{
     config::Theme,
     structs::Song,
     ui::{Component, Focusable},
-};
-
-use super::{
-    current_directory::CurrentDirectory,
-    file_browser_selection::{directory_to_songs_and_folders, FileBrowserSelection},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -63,31 +63,22 @@ mod tests {
 
         assert_eq!(cue_lines.len(), 31, "{cue_lines:#?}");
 
-        assert_eq!(
-            cue_lines[0],
-            CueLine {
-                indentation: 0,
-                key: "REM".to_string(),
-                value: "GENRE Folk/Blues".to_string(),
-            }
-        );
+        assert_eq!(cue_lines[0], CueLine {
+            indentation: 0,
+            key: "REM".to_string(),
+            value: "GENRE Folk/Blues".to_string(),
+        });
 
-        assert_eq!(
-            cue_lines[4],
-            CueLine {
-                indentation: 0,
-                key: "PERFORMER".to_string(),
-                value: "\"Tim Buckley\"".to_string(),
-            }
-        );
+        assert_eq!(cue_lines[4], CueLine {
+            indentation: 0,
+            key: "PERFORMER".to_string(),
+            value: "\"Tim Buckley\"".to_string(),
+        });
 
-        assert_eq!(
-            cue_lines[5],
-            CueLine {
-                indentation: 0,
-                key: "TITLE".to_string(),
-                value: "\"Happy Sad\"".to_string(),
-            }
-        );
+        assert_eq!(cue_lines[5], CueLine {
+            indentation: 0,
+            key: "TITLE".to_string(),
+            value: "\"Happy Sad\"".to_string(),
+        });
     }
 }

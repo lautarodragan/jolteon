@@ -118,7 +118,7 @@ impl CueSheet {
     pub fn from_file(path: &Path) -> io::Result<CueSheet> {
         let cue_lines = CueLine::from_file(path)?;
         let cue_nodes = CueLineNode::from_lines(cue_lines);
-        let mut top_cue_items: Vec<CueSheetItem> = cue_nodes.iter().map(CueSheetItem::from_cue_line_node).collect();
+        let top_cue_items: Vec<CueSheetItem> = cue_nodes.iter().map(CueSheetItem::from_cue_line_node).collect();
 
         let mut sheet = CueSheet::default();
         sheet.cue_sheet_file_path = path.to_path_buf();
@@ -210,15 +210,12 @@ mod tests {
         assert_eq!(cue.unknown.len(), 0);
         assert_eq!(cue.comments.len(), 4);
 
-        assert_eq!(
-            cue.comments,
-            vec![
-                "COMMENT \"Nice album\"",
-                "DATE 1969",
-                "DISCID 5B0A7D06",
-                "GENRE Folk/Blues",
-            ]
-        );
+        assert_eq!(cue.comments, vec![
+            "COMMENT \"Nice album\"",
+            "DATE 1969",
+            "DISCID 5B0A7D06",
+            "GENRE Folk/Blues",
+        ]);
 
         assert_eq!(cue.performer, Some("Tim Buckley".to_string()));
 
@@ -226,35 +223,26 @@ mod tests {
 
         assert_eq!(cue.files[0].tracks.len(), 6, "{:#?}", cue.files[0]);
 
-        assert_eq!(
-            cue.files[0].tracks[0],
-            Track {
-                index: "01 AUDIO".to_string(),
-                title: "Strange Feelin'".to_string(),
-                start_time: "01 00:00:00".to_string(),
-                performer: Some("Tim Buckley".to_string())
-            }
-        );
+        assert_eq!(cue.files[0].tracks[0], Track {
+            index: "01 AUDIO".to_string(),
+            title: "Strange Feelin'".to_string(),
+            start_time: "01 00:00:00".to_string(),
+            performer: Some("Tim Buckley".to_string())
+        });
 
-        assert_eq!(
-            cue.files[0].tracks[1],
-            Track {
-                index: "02 AUDIO".to_string(),
-                title: "Buzzin' Fly".to_string(),
-                start_time: "01 07:41:25".to_string(),
-                performer: Some("Tim Buckley".to_string())
-            }
-        );
+        assert_eq!(cue.files[0].tracks[1], Track {
+            index: "02 AUDIO".to_string(),
+            title: "Buzzin' Fly".to_string(),
+            start_time: "01 07:41:25".to_string(),
+            performer: Some("Tim Buckley".to_string())
+        });
 
-        assert_eq!(
-            cue.files[0].tracks[5],
-            Track {
-                index: "06 AUDIO".to_string(),
-                title: "Sing A Song For You".to_string(),
-                performer: Some("Tim Buckley".to_string()),
-                start_time: "01 42:06:30".to_string(),
-            }
-        );
+        assert_eq!(cue.files[0].tracks[5], Track {
+            index: "06 AUDIO".to_string(),
+            title: "Sing A Song For You".to_string(),
+            performer: Some("Tim Buckley".to_string()),
+            start_time: "01 42:06:30".to_string(),
+        });
     }
 
     #[test]
@@ -265,16 +253,13 @@ mod tests {
         assert_eq!(cue.unknown.len(), 0);
         assert_eq!(cue.comments.len(), 5);
 
-        assert_eq!(
-            cue.comments,
-            vec![
-                "DATE \"1977\"",
-                "DISCID 5B171C07",
-                "DISCNUMBER 1",
-                "GENRE \"Jazz-Rock\"",
-                "TOTALDISCS 1",
-            ]
-        );
+        assert_eq!(cue.comments, vec![
+            "DATE \"1977\"",
+            "DISCID 5B171C07",
+            "DISCNUMBER 1",
+            "GENRE \"Jazz-Rock\"",
+            "TOTALDISCS 1",
+        ]);
 
         assert_eq!(cue.performer, Some("Brand X".to_string()));
 
@@ -282,14 +267,11 @@ mod tests {
 
         assert_eq!(cue.files[0].tracks.len(), 1, "{:#?}", cue.files[0]);
 
-        assert_eq!(
-            cue.files[0].tracks[0],
-            Track {
-                index: "01 AUDIO".to_string(),
-                title: "Sun In The Night".to_string(),
-                start_time: "01 00:00:00".to_string(),
-                performer: None,
-            }
-        );
+        assert_eq!(cue.files[0].tracks[0], Track {
+            index: "01 AUDIO".to_string(),
+            title: "Sun In The Night".to_string(),
+            start_time: "01 00:00:00".to_string(),
+            performer: None,
+        });
     }
 }

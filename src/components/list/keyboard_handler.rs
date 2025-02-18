@@ -1,8 +1,7 @@
 use std::fmt::Debug;
 
-use crate::actions::{Action, OnAction};
-
 use super::component::List;
+use crate::actions::{Action, OnAction};
 
 impl<'a, T> OnAction for List<'a, T>
 where

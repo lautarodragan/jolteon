@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::cue::cue_line::CueLine;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -39,24 +41,28 @@ impl CueLineNode {
 
             assert!(!top_nodes.is_empty()); // this would mean the first node has non-zero indentation!
 
-            if node.line.indentation == depth {
-                // current `node` is a sibling of previous `node`
-                let parent = node_by_depth(&mut top_nodes, depth - 1);
-                parent.children.push(node);
-            } else if node.line.indentation > depth {
-                // current `node` is a child of previous `node`
-                let parent = node_by_depth(&mut top_nodes, depth);
-                parent.children.push(node);
-                depth += 1;
-            } else {
-                // current `node` is a sibling of _some_ ancestor of previous`node`
-                depth = node.line.indentation;
+            match node.line.indentation.cmp(&depth) {
+                Ordering::Less => {
+                    // current `node` is a sibling of _some_ ancestor of previous`node`
+                    depth = node.line.indentation;
 
-                if depth == 0 {
-                    top_nodes.push(node);
-                } else {
+                    if depth == 0 {
+                        top_nodes.push(node);
+                    } else {
+                        let parent = node_by_depth(&mut top_nodes, depth - 1);
+                        parent.children.push(node);
+                    }
+                }
+                Ordering::Equal => {
+                    // current `node` is a sibling of previous `node`
                     let parent = node_by_depth(&mut top_nodes, depth - 1);
                     parent.children.push(node);
+                }
+                Ordering::Greater => {
+                    // current `node` is a child of previous `node`
+                    let parent = node_by_depth(&mut top_nodes, depth);
+                    parent.children.push(node);
+                    depth += 1;
                 }
             }
         }
@@ -85,125 +91,113 @@ mod tests {
 
         let file = &cue_nodes[cue_nodes.len() - 1];
 
-        assert_eq!(
-            file.line,
-            CueLine {
-                indentation: 0,
-                key: "FILE".to_string(),
-                value: "\"Tim Buckley - Happy Sad.flac\" WAVE".to_string(),
-            }
-        );
+        assert_eq!(file.line, CueLine {
+            indentation: 0,
+            key: "FILE".to_string(),
+            value: "\"Tim Buckley - Happy Sad.flac\" WAVE".to_string(),
+        });
 
-        assert_eq!(
-            file.children[0],
-            CueLineNode {
-                line: CueLine {
-                    indentation: 1,
-                    key: "TRACK".to_string(),
-                    value: "01 AUDIO".to_string(),
+        assert_eq!(file.children[0], CueLineNode {
+            line: CueLine {
+                indentation: 1,
+                key: "TRACK".to_string(),
+                value: "01 AUDIO".to_string(),
+            },
+            children: vec![
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "TITLE".to_string(),
+                        value: "\"Strange Feelin'\"".to_string(),
+                    },
+                    children: vec![],
                 },
-                children: vec![
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "TITLE".to_string(),
-                            value: "\"Strange Feelin'\"".to_string(),
-                        },
-                        children: vec![],
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "PERFORMER".to_string(),
+                        value: "\"Tim Buckley\"".to_string(),
                     },
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "PERFORMER".to_string(),
-                            value: "\"Tim Buckley\"".to_string(),
-                        },
-                        children: vec![],
+                    children: vec![],
+                },
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "INDEX".to_string(),
+                        value: "01 00:00:00".to_string(),
                     },
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "INDEX".to_string(),
-                            value: "01 00:00:00".to_string(),
-                        },
-                        children: vec![],
-                    },
-                ]
-            }
-        );
+                    children: vec![],
+                },
+            ]
+        });
 
-        assert_eq!(
-            file.children[1],
-            CueLineNode {
-                line: CueLine {
-                    indentation: 1,
-                    key: "TRACK".to_string(),
-                    value: "02 AUDIO".to_string(),
+        assert_eq!(file.children[1], CueLineNode {
+            line: CueLine {
+                indentation: 1,
+                key: "TRACK".to_string(),
+                value: "02 AUDIO".to_string(),
+            },
+            children: vec![
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "TITLE".to_string(),
+                        value: "\"Buzzin' Fly\"".to_string(),
+                    },
+                    children: vec![],
                 },
-                children: vec![
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "TITLE".to_string(),
-                            value: "\"Buzzin' Fly\"".to_string(),
-                        },
-                        children: vec![],
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "PERFORMER".to_string(),
+                        value: "\"Tim Buckley\"".to_string(),
                     },
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "PERFORMER".to_string(),
-                            value: "\"Tim Buckley\"".to_string(),
-                        },
-                        children: vec![],
+                    children: vec![],
+                },
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "INDEX".to_string(),
+                        value: "01 07:41:25".to_string(),
                     },
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "INDEX".to_string(),
-                            value: "01 07:41:25".to_string(),
-                        },
-                        children: vec![],
-                    },
-                ]
-            }
-        );
+                    children: vec![],
+                },
+            ]
+        });
 
-        assert_eq!(
-            file.children[5],
-            CueLineNode {
-                line: CueLine {
-                    indentation: 1,
-                    key: "TRACK".to_string(),
-                    value: "06 AUDIO".to_string(),
+        assert_eq!(file.children[5], CueLineNode {
+            line: CueLine {
+                indentation: 1,
+                key: "TRACK".to_string(),
+                value: "06 AUDIO".to_string(),
+            },
+            children: vec![
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "TITLE".to_string(),
+                        value: "\"Sing A Song For You\"".to_string(),
+                    },
+                    children: vec![],
                 },
-                children: vec![
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "TITLE".to_string(),
-                            value: "\"Sing A Song For You\"".to_string(),
-                        },
-                        children: vec![],
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "PERFORMER".to_string(),
+                        value: "\"Tim Buckley\"".to_string(),
                     },
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "PERFORMER".to_string(),
-                            value: "\"Tim Buckley\"".to_string(),
-                        },
-                        children: vec![],
+                    children: vec![],
+                },
+                CueLineNode {
+                    line: CueLine {
+                        indentation: 2,
+                        key: "INDEX".to_string(),
+                        value: "01 42:06:30".to_string(),
                     },
-                    CueLineNode {
-                        line: CueLine {
-                            indentation: 2,
-                            key: "INDEX".to_string(),
-                            value: "01 42:06:30".to_string(),
-                        },
-                        children: vec![],
-                    },
-                ]
-            }
-        );
+                    children: vec![],
+                },
+            ]
+        });
     }
 
     #[test]
@@ -216,74 +210,65 @@ mod tests {
         assert_eq!(cue_top_nodes.len(), 16);
 
         let keys: Vec<String> = cue_top_nodes.iter().map(|n| n.line.key.clone()).collect();
-        assert_eq!(
-            keys,
-            vec![
-                "TITLE",
-                "PERFORMER",
-                "REM",
-                "REM",
-                "REM",
-                "REM",
-                "REM",
-                "FILE",
-                "FILE",
-                "FILE",
-                "FILE",
-                "FILE",
-                "FILE",
-                "FILE",
-                "FILE",
-                "FILE"
-            ]
-        );
+        assert_eq!(keys, vec![
+            "TITLE",
+            "PERFORMER",
+            "REM",
+            "REM",
+            "REM",
+            "REM",
+            "REM",
+            "FILE",
+            "FILE",
+            "FILE",
+            "FILE",
+            "FILE",
+            "FILE",
+            "FILE",
+            "FILE",
+            "FILE"
+        ]);
 
-        assert_eq!(
-            cue_top_nodes[0],
-            CueLineNode {
-                line: CueLine {
-                    indentation: 0,
-                    key: "TITLE".to_string(),
-                    value: "\"Moroccan Roll (LP)\"".to_string(),
-                },
-                children: vec![],
-            }
-        );
+        assert_eq!(cue_top_nodes[0], CueLineNode {
+            line: CueLine {
+                indentation: 0,
+                key: "TITLE".to_string(),
+                value: "\"Moroccan Roll (LP)\"".to_string(),
+            },
+            children: vec![],
+        });
 
-        assert_eq!(
-            cue_top_nodes[7],
-            CueLineNode {
+        assert_eq!(cue_top_nodes[7], CueLineNode {
+            line: CueLine {
+                indentation: 0,
+                key: "FILE".to_string(),
+                value: "\"01 Sun In The Night.flac\" WAVE".to_string(),
+            },
+            children: vec![CueLineNode {
                 line: CueLine {
-                    indentation: 0,
-                    key: "FILE".to_string(),
-                    value: "\"01 Sun In The Night.flac\" WAVE".to_string(),
+                    indentation: 1,
+                    key: "TRACK".to_string(),
+                    value: "01 AUDIO".to_string(),
                 },
-                children: vec![CueLineNode {
-                    line: CueLine {
-                        indentation: 1,
-                        key: "TRACK".to_string(),
-                        value: "01 AUDIO".to_string(),
+                children: vec![
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "TITLE".to_string(),
+                            value: "\"Sun In The Night\"".to_string(),
+                        },
+                        children: vec![],
                     },
-                    children: vec![
-                        CueLineNode {
-                            line: CueLine {
-                                indentation: 2,
-                                key: "TITLE".to_string(),
-                                value: "\"Sun In The Night\"".to_string(),
-                            },
-                            children: vec![],
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "INDEX".to_string(),
+                            value: "01 00:00:00".to_string(),
                         },
-                        CueLineNode {
-                            line: CueLine {
-                                indentation: 2,
-                                key: "INDEX".to_string(),
-                                value: "01 00:00:00".to_string(),
-                            },
-                            children: vec![],
-                        },
-                    ],
-                }]
-            }
-        );
+                        children: vec![],
+                    },
+                ],
+            }]
+        });
     }
 }

@@ -5,14 +5,13 @@ use std::{
     rc::Rc,
 };
 
+use super::album_tree_item::{Album, AlbumTreeItem, Artist};
 use crate::{
     components::{FocusGroup, List, Tree, TreeNode},
     config::Theme,
     structs::{Direction, Song},
     ui::{Component, Focusable},
 };
-
-use super::album_tree_item::{Album, AlbumTreeItem, Artist};
 
 pub struct Library<'a> {
     #[allow(dead_code)]

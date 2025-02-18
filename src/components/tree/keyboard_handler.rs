@@ -1,8 +1,7 @@
 use std::fmt::Debug;
 
-use crate::actions::{Action, OnActionMut};
-
 use super::component::Tree;
+use crate::actions::{Action, OnActionMut};
 
 impl<'a, T> OnActionMut for Tree<'a, T>
 where

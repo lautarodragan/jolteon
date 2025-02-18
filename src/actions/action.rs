@@ -2,7 +2,6 @@ use std::{collections::HashMap, fs::read_to_string, hash::Hash, path::PathBuf, s
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Serialize};
-
 use strum::EnumString;
 
 use crate::toml::TomlFileError;

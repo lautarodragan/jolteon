@@ -1,10 +1,9 @@
+use super::{AddMode, FileBrowser};
 use crate::{
     actions::{Action, FileBrowserAction, OnAction, OnActionMut},
     components::FileBrowserSelection,
     spawn_terminal::spawn_terminal,
 };
-
-use super::{AddMode, FileBrowser};
 
 impl OnActionMut for FileBrowser<'_> {
     fn on_action(&mut self, actions: Vec<Action>) {

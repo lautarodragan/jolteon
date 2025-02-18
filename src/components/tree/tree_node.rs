@@ -230,7 +230,12 @@ mod tests {
                 panic!("Expected Some(...), got None");
             };
             assert_eq!(node.inner, expected_inner, "Unexpected node.inner at path '{path}'");
-            assert_eq!(path, TreeNodePath::from_vec(expected_path.to_vec()), "Unexpected path for '{}'", node.inner);
+            assert_eq!(
+                path,
+                TreeNodePath::from_vec(expected_path.to_vec()),
+                "Unexpected path for '{}'",
+                node.inner
+            );
         };
 
         assert_iter_eq("child 1", &[0]);

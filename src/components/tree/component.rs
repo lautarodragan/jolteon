@@ -4,13 +4,12 @@ use std::{
     fmt::{Debug, Display},
 };
 
+use super::{TreeNode, TreeNodePath};
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},
     config::Theme,
     ui::Focusable,
 };
-
-use super::{TreeNode, TreeNodePath};
 
 pub struct Tree<'a, T: 'a> {
     pub(super) theme: Theme,

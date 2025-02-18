@@ -10,9 +10,8 @@ use ratatui::{
     widgets::{Widget, WidgetRef},
 };
 
-use crate::{config::Theme, ui::Focusable};
-
 use super::{Tree, TreeNode, TreeNodePath};
+use crate::{config::Theme, ui::Focusable};
 
 pub struct ListLine<'a> {
     theme: &'a crate::config::Theme,

@@ -78,23 +78,17 @@ mod tests {
 
         assert_eq!(top_cue_items.len(), 7);
 
-        assert_eq!(
-            top_cue_items[..4],
-            vec![
-                CueSheetItem::Comment("GENRE Folk/Blues".to_string()),
-                CueSheetItem::Comment("DATE 1969".to_string()),
-                CueSheetItem::Comment("DISCID 5B0A7D06".to_string()),
-                CueSheetItem::Comment("COMMENT \"Nice album\"".to_string()), // TODO: bug! need to be smarter with the stripping of double-quotes.
-            ]
-        );
+        assert_eq!(top_cue_items[..4], vec![
+            CueSheetItem::Comment("GENRE Folk/Blues".to_string()),
+            CueSheetItem::Comment("DATE 1969".to_string()),
+            CueSheetItem::Comment("DISCID 5B0A7D06".to_string()),
+            CueSheetItem::Comment("COMMENT \"Nice album\"".to_string()), // TODO: bug! need to be smarter with the stripping of double-quotes.
+        ]);
 
-        assert_eq!(
-            top_cue_items[4..6],
-            vec![
-                CueSheetItem::Performer("Tim Buckley".to_string()),
-                CueSheetItem::Title("Happy Sad".to_string()),
-            ]
-        );
+        assert_eq!(top_cue_items[4..6], vec![
+            CueSheetItem::Performer("Tim Buckley".to_string()),
+            CueSheetItem::Title("Happy Sad".to_string()),
+        ]);
 
         let CueSheetItem::File(file_name, children) = &top_cue_items[6] else {
             panic!("")
@@ -108,38 +102,29 @@ mod tests {
 
         assert_eq!(
             children[0],
-            CueSheetItem::Track(
-                "01 AUDIO".to_string(),
-                vec![
-                    CueSheetItem::Title("Strange Feelin'".to_string()),
-                    CueSheetItem::Performer("Tim Buckley".to_string()),
-                    CueSheetItem::Index("01 00:00:00".to_string()),
-                ]
-            )
+            CueSheetItem::Track("01 AUDIO".to_string(), vec![
+                CueSheetItem::Title("Strange Feelin'".to_string()),
+                CueSheetItem::Performer("Tim Buckley".to_string()),
+                CueSheetItem::Index("01 00:00:00".to_string()),
+            ])
         );
 
         assert_eq!(
             children[1],
-            CueSheetItem::Track(
-                "02 AUDIO".to_string(),
-                vec![
-                    CueSheetItem::Title("Buzzin' Fly".to_string()),
-                    CueSheetItem::Performer("Tim Buckley".to_string()),
-                    CueSheetItem::Index("01 07:41:25".to_string()),
-                ]
-            )
+            CueSheetItem::Track("02 AUDIO".to_string(), vec![
+                CueSheetItem::Title("Buzzin' Fly".to_string()),
+                CueSheetItem::Performer("Tim Buckley".to_string()),
+                CueSheetItem::Index("01 07:41:25".to_string()),
+            ])
         );
 
         assert_eq!(
             children[5],
-            CueSheetItem::Track(
-                "06 AUDIO".to_string(),
-                vec![
-                    CueSheetItem::Title("Sing A Song For You".to_string()),
-                    CueSheetItem::Performer("Tim Buckley".to_string()),
-                    CueSheetItem::Index("01 42:06:30".to_string()),
-                ]
-            )
+            CueSheetItem::Track("06 AUDIO".to_string(), vec![
+                CueSheetItem::Title("Sing A Song For You".to_string()),
+                CueSheetItem::Performer("Tim Buckley".to_string()),
+                CueSheetItem::Index("01 42:06:30".to_string()),
+            ])
         );
     }
 }

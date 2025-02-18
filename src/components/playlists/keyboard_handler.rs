@@ -1,5 +1,4 @@
 use super::Playlists;
-
 use crate::actions::{Action, OnAction, OnActionMut, PlaylistsAction};
 
 impl OnActionMut for Playlists<'_> {
