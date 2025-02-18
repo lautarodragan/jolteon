@@ -181,7 +181,7 @@ impl<'a> FileBrowser<'a> {
         }
 
         let mut parents_list = List::new(theme, items);
-        parents_list.set_auto_select_next(false);
+        parents_list.set_auto_select_next(true); // TODO: only on confirm_alt
 
         let children_list = Rc::new(children_list);
         parents_list.on_select({
