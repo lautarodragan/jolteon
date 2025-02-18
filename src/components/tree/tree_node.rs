@@ -200,7 +200,6 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
                 self.current_node = Some(&self.root.children[0]);
                 self.current_node
             }
-
         }
     }
 }
@@ -211,38 +210,20 @@ mod tests {
 
     #[test]
     pub fn test_1() {
-
         let mut child_2 = TreeNode::new("child 2");
-        child_2.children = vec![
-            TreeNode::new("child 2 - 1"),
-            TreeNode::new("child 2 - 2"),
-        ];
+        child_2.children = vec![TreeNode::new("child 2 - 1"), TreeNode::new("child 2 - 2")];
 
         let mut child_3_2 = TreeNode::new("child 3 - 2");
-        child_3_2.children = vec![
-            TreeNode::new("child 3 - 2 - 1"),
-            TreeNode::new("child 3 - 2 - 2"),
-        ];
+        child_3_2.children = vec![TreeNode::new("child 3 - 2 - 1"), TreeNode::new("child 3 - 2 - 2")];
 
         let mut child_3 = TreeNode::new("child 3");
-        child_3.children = vec![
-            TreeNode::new("child 3 - 1"),
-            child_3_2,
-            TreeNode::new("child 3 - 3"),
-        ];
+        child_3.children = vec![TreeNode::new("child 3 - 1"), child_3_2, TreeNode::new("child 3 - 3")];
 
         let mut child_4 = TreeNode::new("child 4");
-        child_4.children = vec![
-            TreeNode::new("child 4 - 1"),
-        ];
+        child_4.children = vec![TreeNode::new("child 4 - 1")];
 
         let mut root = TreeNode::new("root");
-        root.children = vec![
-            TreeNode::new("child 1"),
-            child_2,
-            child_3,
-            child_4,
-        ];
+        root.children = vec![TreeNode::new("child 1"), child_2, child_3, child_4];
 
         let mut iter = root.iter();
 

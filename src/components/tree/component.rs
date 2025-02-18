@@ -207,11 +207,21 @@ where
 
         let mut nodes = self.items.borrow_mut();
         for node in nodes.iter_mut() {
-            node.is_match = !filter.is_empty() && node.inner.to_string().to_lowercase().contains(filter.to_lowercase().as_str());
+            node.is_match = !filter.is_empty()
+                && node
+                    .inner
+                    .to_string()
+                    .to_lowercase()
+                    .contains(filter.to_lowercase().as_str());
 
             if node.is_open {
                 for node in node.children.iter_mut() {
-                    node.is_match = !filter.is_empty() && node.inner.to_string().to_lowercase().contains(filter.to_lowercase().as_str());
+                    node.is_match = !filter.is_empty()
+                        && node
+                            .inner
+                            .to_string()
+                            .to_lowercase()
+                            .contains(filter.to_lowercase().as_str());
                 }
 
                 // TODO: how can I implement node.iter_mut????
