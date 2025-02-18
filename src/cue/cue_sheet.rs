@@ -123,7 +123,7 @@ impl CueSheet {
         let mut sheet = CueSheet::default();
         sheet.cue_sheet_file_path = path.to_path_buf();
 
-        while let Some(e) = top_cue_items.pop() {
+        for e in top_cue_items {
             match e {
                 CueSheetItem::Comment(s) => sheet.comments.push(s),
                 CueSheetItem::Title(s) => sheet.title = Some(s),
@@ -177,7 +177,7 @@ impl CueSheet {
         self.cue_sheet_file_path.clone()
     }
 
-    pub fn file(&self) -> Vec<CueFile> {
+    pub fn files(&self) -> Vec<CueFile> {
         self.files.clone()
     }
 

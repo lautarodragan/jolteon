@@ -108,16 +108,18 @@ impl FileMeta<'_> {
             items.push(format!("Title: {title}"));
         }
 
-        for file in cue.file() {
-            items.push(format!("File: {}", file.name()));
-            items.push(" ".to_string());
-            items.push("Tracks:".to_string());
+        items.push(" ".to_string());
+        items.push("Files:".to_string());
+        for file in cue.files() {
+            items.push(format!("  {}", file.name()));
+            items.push("    Tracks:".to_string());
             for track in file.tracks() {
-                items.push(format!("  {} {}", track.index(), track.title()));
-                items.push(format!("    Start: {}", duration_to_string(track.start_time())));
+                items.push(format!("      {}:", track.index()));
                 if let Some(per) = track.performer() {
-                    items.push(format!("    Performer: {per}"));
+                    items.push(format!("        Performer: {per}"));
                 }
+                items.push(format!("        Title: {}", track.title()));
+                items.push(format!("        Start: {}", duration_to_string(track.start_time())));
             }
         }
 
