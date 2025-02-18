@@ -1,89 +1,69 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, rc::Rc};
 
 use crate::cue::cue_line::CueLine;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct CueLineNode {
-    pub line: Option<CueLine>,
+    pub line: CueLine,
     pub children: Vec<CueLineNode>,
 }
 
 impl CueLineNode {
     fn from_line(line: CueLine) -> Self {
         Self {
-            line: Some(line),
+            line,
             children: Vec::new(),
         }
     }
 
-    pub fn from_lines(mut cue_lines: VecDeque<CueLine>) -> Vec<CueLineNode> {
-        let mut stack = Vec::new();
+    pub fn from_lines(mut cue_lines: Vec<CueLine>) -> Vec<CueLineNode> {
+        fn node_by_depth<'a>(nodes: &'a mut [CueLineNode], depth: usize) -> &'a mut CueLineNode {
+            assert!(!nodes.is_empty());
 
-        stack.push(CueLineNode {
-            line: None,
-            children: Vec::new(),
-        });
+            let node = &mut nodes[nodes.len() - 1];
 
-        while let Some(line) = cue_lines.pop_front() {
-            let Some(stack_top) = stack.last_mut() else {
-                panic!("Stack should always have at least one element!")
-            };
-
-            let stack_top_indentation = match &stack_top.line {
-                Some(parent_line) => parent_line.indentation + 2,
-                None => 0,
-            };
-            let line_indentation = line.indentation + 2;
-
-            if line_indentation >= stack_top_indentation {
-                stack.push(CueLineNode::from_line(line))
+            if depth == 0 {
+                node
             } else {
-                let mut v = Vec::new();
-
-                while let Some(node) = stack.pop() {
-                    if node.line.as_ref().is_none()
-                        || node
-                            .line
-                            .as_ref()
-                            .is_some_and(|l| l.indentation + 2 != stack_top_indentation)
-                    {
-                        stack.push(node);
-                        break;
-                    } else {
-                        v.push(node);
-                    }
-                }
-
-                v.reverse();
-                stack.last_mut().unwrap().children = v;
-                stack.push(CueLineNode::from_line(line));
+                node_by_depth(&mut node.children, depth - 1)
             }
         }
 
-        while stack.len() > 1 {
-            let mut tmp_children = Vec::new();
-            let mut depth = 0;
+        let mut top_nodes = vec![];
+        let mut depth = 0;
 
-            while let Some(mut node) = stack.pop() {
-                if node.line.is_none() {
-                    tmp_children.reverse();
-                    node.children.append(&mut tmp_children);
-                    stack.push(node);
-                    break;
-                } else if tmp_children.is_empty() {
-                    depth = node.line.as_ref().unwrap().indentation;
-                    tmp_children.push(node);
-                } else if node.line.as_ref().unwrap().indentation == depth {
-                    tmp_children.push(node);
+        for node in cue_lines.into_iter().map(Self::from_line) {
+            if node.line.indentation == 0 {
+                depth = 0;
+                top_nodes.push(node);
+                continue;
+            }
+
+            assert!(!top_nodes.is_empty()); // this would mean the first node has non-zero indentation!
+
+            if node.line.indentation == depth {
+                // current `node` is a sibling of previous `node`
+                let parent = node_by_depth(&mut top_nodes, depth - 1);
+                parent.children.push(node);
+            } else if node.line.indentation > depth {
+                // current `node` is a child of previous `node`
+                let mut parent = node_by_depth(&mut top_nodes, depth);
+                parent.children.push(node);
+                depth += 1;
+            } else {
+                // current `node` is a sibling of _some_ ancestor of previous`node`
+                depth = node.line.indentation;
+
+                if depth == 0 {
+                    top_nodes.push(node);
                 } else {
-                    tmp_children.reverse();
-                    node.children.append(&mut tmp_children);
-                    stack.push(node);
+                    let mut parent = node_by_depth(&mut top_nodes, depth - 1);
+                    parent.children.push(node);
                 }
             }
         }
 
-        stack.pop().unwrap().children
+        top_nodes
     }
 }
 
@@ -94,53 +74,222 @@ mod tests {
     use super::*;
 
     #[test]
-    fn cue_line_nodes_from_lines() {
+    fn cue_line_nodes_from_lines_single_file() {
         let path = Path::new("src/cue/Tim Buckley - Happy Sad.cue");
         let cue_lines = CueLine::from_file(path).unwrap();
 
-        let cue_nodes = CueLineNode::from_lines(VecDeque::from(cue_lines));
+        let cue_nodes = CueLineNode::from_lines(cue_lines);
 
         assert_eq!(cue_nodes.len(), 7);
 
-        let keys: Vec<String> = cue_nodes.iter().map(|n| n.line.as_ref().unwrap().key.clone()).collect();
+        let keys: Vec<String> = cue_nodes.iter().map(|n| n.line.key.clone()).collect();
         assert_eq!(keys, vec!["REM", "REM", "REM", "REM", "PERFORMER", "TITLE", "FILE"]);
 
-        let file = cue_nodes.last().unwrap();
-        assert_eq!(file.line.as_ref().unwrap().key, "FILE");
-        assert_eq!(file.children.len(), 6);
+        let file = &cue_nodes[cue_nodes.len() - 1];
 
-        assert!(file.children.iter().all(|e| e.line.as_ref().unwrap().key == "TRACK"));
+        println!("{:#?}", file.children[0]);
 
-        let track = file.children[0].line.as_ref().unwrap();
-
-        assert_eq!(track.key, "TRACK");
-        assert_eq!(track.value, "01 AUDIO");
-        assert_eq!(file.children[0].children.len(), 3);
-
-        assert!(file.children[0].children[0].children.is_empty());
         assert_eq!(
-            file.children[0].children[0].line,
-            Some(CueLine {
-                indentation: 4,
-                key: "TITLE".to_string(),
-                value: "\"Strange Feelin'\"".to_string(),
-            })
+            file.line,
+            CueLine {
+                indentation: 0,
+                key: "FILE".to_string(),
+                value: "\"Tim Buckley - Happy Sad.flac\" WAVE".to_string(),
+            }
         );
+
         assert_eq!(
-            file.children[0].children[1].line,
-            Some(CueLine {
-                indentation: 4,
-                key: "PERFORMER".to_string(),
-                value: "\"Tim Buckley\"".to_string(),
-            })
+            file.children[0],
+            CueLineNode {
+                line: CueLine {
+                    indentation: 1,
+                    key: "TRACK".to_string(),
+                    value: "01 AUDIO".to_string(),
+                },
+                children: vec![
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "TITLE".to_string(),
+                            value: "\"Strange Feelin'\"".to_string(),
+                        },
+                        children: vec![],
+                    },
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "PERFORMER".to_string(),
+                            value: "\"Tim Buckley\"".to_string(),
+                        },
+                        children: vec![],
+                    },
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "INDEX".to_string(),
+                            value: "01 00:00:00".to_string(),
+                        },
+                        children: vec![],
+                    },
+                ]
+            }
         );
+
         assert_eq!(
-            file.children[0].children[2].line,
-            Some(CueLine {
-                indentation: 4,
-                key: "INDEX".to_string(),
-                value: "01 00:00:00".to_string(),
-            })
+            file.children[1],
+            CueLineNode {
+                line: CueLine {
+                    indentation: 1,
+                    key: "TRACK".to_string(),
+                    value: "02 AUDIO".to_string(),
+                },
+                children: vec![
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "TITLE".to_string(),
+                            value: "\"Buzzin' Fly\"".to_string(),
+                        },
+                        children: vec![],
+                    },
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "PERFORMER".to_string(),
+                            value: "\"Tim Buckley\"".to_string(),
+                        },
+                        children: vec![],
+                    },
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "INDEX".to_string(),
+                            value: "01 07:41:25".to_string(),
+                        },
+                        children: vec![],
+                    },
+                ]
+            }
+        );
+
+        assert_eq!(
+            file.children[5],
+            CueLineNode {
+                line: CueLine {
+                    indentation: 1,
+                    key: "TRACK".to_string(),
+                    value: "06 AUDIO".to_string(),
+                },
+                children: vec![
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "TITLE".to_string(),
+                            value: "\"Sing A Song For You\"".to_string(),
+                        },
+                        children: vec![],
+                    },
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "PERFORMER".to_string(),
+                            value: "\"Tim Buckley\"".to_string(),
+                        },
+                        children: vec![],
+                    },
+                    CueLineNode {
+                        line: CueLine {
+                            indentation: 2,
+                            key: "INDEX".to_string(),
+                            value: "01 42:06:30".to_string(),
+                        },
+                        children: vec![],
+                    },
+                ]
+            }
+        );
+    }
+
+    #[test]
+    fn cue_line_nodes_from_lines_multi_file() {
+        let path = Path::new("src/cue/Moroccan Roll.cue");
+        let cue_lines = CueLine::from_file(path).unwrap();
+
+        let mut cue_top_nodes = CueLineNode::from_lines(cue_lines);
+
+        assert_eq!(cue_top_nodes.len(), 16);
+
+        let keys: Vec<String> = cue_top_nodes.iter().map(|n| n.line.key.clone()).collect();
+        assert_eq!(
+            keys,
+            vec![
+                "TITLE",
+                "PERFORMER",
+                "REM",
+                "REM",
+                "REM",
+                "REM",
+                "REM",
+                "FILE",
+                "FILE",
+                "FILE",
+                "FILE",
+                "FILE",
+                "FILE",
+                "FILE",
+                "FILE",
+                "FILE"
+            ]
+        );
+
+        // println!("{cue_node:#?}");
+
+        assert_eq!(
+            cue_top_nodes[0],
+            CueLineNode {
+                line: CueLine {
+                    indentation: 0,
+                    key: "TITLE".to_string(),
+                    value: "\"Moroccan Roll (LP)\"".to_string(),
+                },
+                children: vec![],
+            }
+        );
+
+        assert_eq!(
+            cue_top_nodes[7],
+            CueLineNode {
+                line: CueLine {
+                    indentation: 0,
+                    key: "FILE".to_string(),
+                    value: "\"01 Sun In The Night.flac\" WAVE".to_string(),
+                },
+                children: vec![CueLineNode {
+                    line: CueLine {
+                        indentation: 1,
+                        key: "TRACK".to_string(),
+                        value: "01 AUDIO".to_string(),
+                    },
+                    children: vec![
+                        CueLineNode {
+                            line: CueLine {
+                                indentation: 2,
+                                key: "TITLE".to_string(),
+                                value: "\"Sun In The Night\"".to_string(),
+                            },
+                            children: vec![],
+                        },
+                        CueLineNode {
+                            line: CueLine {
+                                indentation: 2,
+                                key: "INDEX".to_string(),
+                                value: "01 00:00:00".to_string(),
+                            },
+                            children: vec![],
+                        },
+                    ],
+                }]
+            }
         );
     }
 }

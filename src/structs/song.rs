@@ -97,11 +97,13 @@ impl Song {
     }
 
     pub fn from_cue_sheet(cue_sheet: CueSheet) -> Vec<Self> {
-        // TODO: attempt to read date from REM DATE comment
-        let Some(cue_file) = cue_sheet.file() else {
+        let files = cue_sheet.file();
+        let cue_file = files.get(0);
+
+        let Some(cue_file) = cue_file else {
+            // TODO: nope!
             log::warn!("This Cue sheet doesn't have a file field. I can't do anything with it. {cue_sheet:#?}");
             return vec![];
-
         };
         let performer = cue_sheet.performer();
         let file_name = cue_file.name();
@@ -123,9 +125,17 @@ impl Song {
 
         let jolt = Jolt::from_path(song_path.parent().unwrap().join(".jolt")).ok();
 
-        let cue_date = cue_sheet.comments().into_iter().find(|comment| comment.starts_with("DATE "));
+        // TODO: attempt to read date from REM DATE comment
+        let cue_date = cue_sheet
+            .comments()
+            .into_iter()
+            .find(|comment| comment.starts_with("DATE "));
 
         log::debug!("DATE from cue sheet: {cue_date:?}");
+
+        let cue_year: Option<u32> = cue_date.unwrap()[5..].parse().ok();
+
+        log::debug!("DATE from cue sheet: {cue_year:?}");
 
         let mut songs: Vec<Song> = tracks
             .iter()
@@ -141,7 +151,7 @@ impl Song {
                 start_time: t.start_time(),
                 album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
                 track: t.index().split_whitespace().nth(0).and_then(|i| i.parse().ok()),
-                year: song.year, // TODO: cue sheet year as a fallback? (it's usually stored as a comment in it...)
+                year: song.year.or(cue_year), // TODO: cue sheet year as a fallback? (it's usually stored as a comment in it...)
                 disc_number: jolt.as_ref().and_then(|j| j.disc_number), // There seems to be no standard disc number field for Cue Sheets...
             })
             .collect();

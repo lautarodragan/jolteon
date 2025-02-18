@@ -108,7 +108,7 @@ impl FileMeta<'_> {
             items.push(format!("Title: {title}"));
         }
 
-        if let Some(file) = cue.file() {
+        for file in cue.file() {
             items.push(format!("File: {}", file.name()));
             items.push(" ".to_string());
             items.push("Tracks:".to_string());

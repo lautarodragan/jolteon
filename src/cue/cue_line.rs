@@ -7,7 +7,7 @@ use std::{
 
 use log::error;
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 pub struct CueLine {
     pub indentation: usize,
     pub key: String,
@@ -15,12 +15,6 @@ pub struct CueLine {
 }
 
 impl Display for CueLine {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.key, self.value)
-    }
-}
-
-impl Debug for CueLine {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {}", self.key, self.value)
     }
@@ -50,7 +44,7 @@ impl CueLine {
             };
 
             cue_lines.push(Self {
-                indentation,
+                indentation: indentation / 2,
                 key: key.to_string(),
                 value: value.to_string(),
             });

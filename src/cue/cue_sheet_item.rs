@@ -15,23 +15,20 @@ pub enum CueSheetItem {
 
 impl CueSheetItem {
     pub fn from_cue_line_node(cue_line_node: &CueLineNode) -> Self {
-        match &cue_line_node.line {
-            Some(line) => match line.key.as_str() {
-                "REM" => Self::Comment(line.value.clone()),
-                "PERFORMER" => Self::Performer(line.value.trim_matches('"').to_string()),
-                "TITLE" => Self::Title(line.value.trim_matches('"').to_string()),
-                "INDEX" => Self::Index(line.value.clone()),
-                "FILE" => {
-                    let children = cue_line_node.children.iter().map(Self::from_cue_line_node).collect();
-                    Self::File(line.value.clone(), children)
-                }
-                "TRACK" => {
-                    let children = cue_line_node.children.iter().map(Self::from_cue_line_node).collect();
-                    Self::Track(line.value.clone(), children)
-                }
-                _ => Self::Unknown,
-            },
-            None => Self::Unknown,
+        match cue_line_node.line.key.as_str() {
+            "REM" => Self::Comment(cue_line_node.line.value.clone()),
+            "PERFORMER" => Self::Performer(cue_line_node.line.value.trim_matches('"').to_string()),
+            "TITLE" => Self::Title(cue_line_node.line.value.trim_matches('"').to_string()),
+            "INDEX" => Self::Index(cue_line_node.line.value.clone()),
+            "FILE" => {
+                let children = cue_line_node.children.iter().map(Self::from_cue_line_node).collect();
+                Self::File(cue_line_node.line.value.clone(), children)
+            }
+            "TRACK" => {
+                let children = cue_line_node.children.iter().map(Self::from_cue_line_node).collect();
+                Self::Track(cue_line_node.line.value.clone(), children)
+            }
+            _ => Self::Unknown,
         }
     }
 }
@@ -46,11 +43,11 @@ mod tests {
     #[test]
     fn cue_sheet_item_from_cue_line_node() {
         let cue_line_node = CueLineNode {
-            line: Some(CueLine {
+            line: CueLine {
                 indentation: 4,
                 key: "REM".to_string(),
                 value: "GENRE Folk/Blues".to_string(),
-            }),
+            },
             children: Vec::new(),
         };
 
@@ -59,11 +56,11 @@ mod tests {
         assert_eq!(cue_sheet_item, CueSheetItem::Comment("GENRE Folk/Blues".to_string()));
 
         let cue_line_node = CueLineNode {
-            line: Some(CueLine {
+            line: CueLine {
                 indentation: 4,
                 key: "TITLE".to_string(),
                 value: "Happy Sad".to_string(),
-            }),
+            },
             children: Vec::new(),
         };
 
@@ -76,7 +73,7 @@ mod tests {
     fn cue_sheet_items_from_file() {
         let path = Path::new("src/cue/Tim Buckley - Happy Sad.cue");
         let cue_lines = CueLine::from_file(path).unwrap();
-        let cue_nodes = CueLineNode::from_lines(VecDeque::from(cue_lines));
+        let cue_nodes = CueLineNode::from_lines(cue_lines);
         let top_cue_items: Vec<CueSheetItem> = cue_nodes.iter().map(CueSheetItem::from_cue_line_node).collect();
 
         assert_eq!(top_cue_items.len(), 7);

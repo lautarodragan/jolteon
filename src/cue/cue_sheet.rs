@@ -18,7 +18,7 @@ pub struct CueSheet {
     comments: Vec<String>,
     performer: Option<String>,
     title: Option<String>,
-    file: Option<CueFile>,
+    files: Vec<CueFile>,
 }
 
 #[derive(Debug, PartialEq, Eq, Default, Clone)]
@@ -29,6 +29,7 @@ pub struct CueFile {
 
 impl CueFile {
     fn new(name: String, mut c: Vec<CueSheetItem>) -> Self {
+        println!("new cue file {name} {c:?}");
         let mut tracks = Vec::new();
 
         while let Some(t) = c.pop() {
@@ -118,7 +119,7 @@ impl Track {
 impl CueSheet {
     pub fn from_file(path: &Path) -> io::Result<CueSheet> {
         let cue_lines = CueLine::from_file(path)?;
-        let cue_nodes = CueLineNode::from_lines(VecDeque::from(cue_lines));
+        let cue_nodes = CueLineNode::from_lines(cue_lines);
         let mut top_cue_items: Vec<CueSheetItem> = cue_nodes.iter().map(CueSheetItem::from_cue_line_node).collect();
 
         let mut sheet = CueSheet::default();
@@ -158,11 +159,11 @@ impl CueSheet {
 
                             log::warn!("This one seems to work: {entry_path}");
 
-                            sheet.file = Some(CueFile::new(entry_path.to_string(), c));
+                            sheet.files.push(CueFile::new(entry_path.to_string(), c));
                             break;
                         }
                     } else {
-                        sheet.file = Some(CueFile::new(s, c));
+                        sheet.files.push(CueFile::new(s, c));
                     }
                 }
                 _ => {}
@@ -178,8 +179,8 @@ impl CueSheet {
         self.cue_sheet_file_path.clone()
     }
 
-    pub fn file(&self) -> Option<CueFile> {
-        self.file.clone()
+    pub fn file(&self) -> Vec<CueFile> {
+        self.files.clone()
     }
 
     pub fn title(&self) -> Option<String> {
@@ -223,12 +224,12 @@ mod tests {
 
         assert_eq!(cue.performer, Some("Tim Buckley".to_string()));
 
-        let Some(file) = cue.file else { panic!() };
+        assert_eq!(cue.files.len(), 1);
 
-        assert_eq!(file.tracks.len(), 6, "{file:#?}");
+        assert_eq!(cue.files[0].tracks.len(), 6, "{:#?}", cue.files[0]);
 
         assert_eq!(
-            file.tracks[0],
+            cue.files[0].tracks[0],
             Track {
                 index: "01 AUDIO".to_string(),
                 title: "Strange Feelin'".to_string(),
@@ -238,7 +239,7 @@ mod tests {
         );
 
         assert_eq!(
-            file.tracks[1],
+            cue.files[0].tracks[1],
             Track {
                 index: "02 AUDIO".to_string(),
                 title: "Buzzin' Fly".to_string(),
@@ -248,12 +249,48 @@ mod tests {
         );
 
         assert_eq!(
-            file.tracks[5],
+            cue.files[0].tracks[5],
             Track {
                 index: "06 AUDIO".to_string(),
                 title: "Sing A Song For You".to_string(),
                 performer: Some("Tim Buckley".to_string()),
                 start_time: "01 42:06:30".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn cue_sheet_from_file_2() {
+        let path = Path::new("./src/cue/Moroccan Roll.cue");
+        let cue = CueSheet::from_file(path).unwrap();
+
+        assert_eq!(cue.unknown.len(), 0);
+        assert_eq!(cue.comments.len(), 5);
+
+        assert_eq!(
+            cue.comments,
+            vec![
+                "DATE \"1977\"",
+                "DISCID 5B171C07",
+                "DISCNUMBER 1",
+                "GENRE \"Jazz-Rock\"",
+                "TOTALDISCS 1",
+            ]
+        );
+
+        assert_eq!(cue.performer, Some("Brand X".to_string()));
+
+        assert_eq!(cue.files.len(), 9);
+
+        assert_eq!(cue.files[0].tracks.len(), 1, "{:#?}", cue.files[0]);
+
+        assert_eq!(
+            cue.files[0].tracks[0],
+            Track {
+                index: "01 AUDIO".to_string(),
+                title: "Sun In The Night".to_string(),
+                start_time: "01 00:00:00".to_string(),
+                performer: None,
             }
         );
     }
