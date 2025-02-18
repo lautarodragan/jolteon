@@ -1,11 +1,9 @@
 use std::{
     fmt::{Debug, Display, Formatter},
-    fs::{read_to_string, File},
-    io::{self, BufRead, BufReader, Read},
+    fs::File,
+    io::{self, BufRead, Read},
     path::Path,
 };
-
-use log::error;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct CueLine {

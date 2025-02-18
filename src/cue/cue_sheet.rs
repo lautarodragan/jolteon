@@ -1,5 +1,4 @@
 use std::{
-    collections::VecDeque,
     io::{self},
     path::{Path, PathBuf},
     time::Duration,
@@ -29,7 +28,6 @@ pub struct CueFile {
 
 impl CueFile {
     fn new(name: String, mut c: Vec<CueSheetItem>) -> Self {
-        println!("new cue file {name} {c:?}");
         let mut tracks = Vec::new();
 
         while let Some(t) = c.pop() {

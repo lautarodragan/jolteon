@@ -35,7 +35,7 @@ impl CueSheetItem {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::VecDeque, path::Path};
+    use std::path::Path;
 
     use super::*;
     use crate::cue::{cue_line::CueLine, cue_line_node::CueLineNode};

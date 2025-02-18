@@ -1,5 +1,3 @@
-use std::{collections::VecDeque, rc::Rc};
-
 use crate::cue::cue_line::CueLine;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -16,8 +14,8 @@ impl CueLineNode {
         }
     }
 
-    pub fn from_lines(mut cue_lines: Vec<CueLine>) -> Vec<CueLineNode> {
-        fn node_by_depth<'a>(nodes: &'a mut [CueLineNode], depth: usize) -> &'a mut CueLineNode {
+    pub fn from_lines(cue_lines: Vec<CueLine>) -> Vec<CueLineNode> {
+        fn node_by_depth(nodes: &mut [CueLineNode], depth: usize) -> &mut CueLineNode {
             assert!(!nodes.is_empty());
 
             let node = &mut nodes[nodes.len() - 1];
@@ -47,7 +45,7 @@ impl CueLineNode {
                 parent.children.push(node);
             } else if node.line.indentation > depth {
                 // current `node` is a child of previous `node`
-                let mut parent = node_by_depth(&mut top_nodes, depth);
+                let parent = node_by_depth(&mut top_nodes, depth);
                 parent.children.push(node);
                 depth += 1;
             } else {
@@ -57,7 +55,7 @@ impl CueLineNode {
                 if depth == 0 {
                     top_nodes.push(node);
                 } else {
-                    let mut parent = node_by_depth(&mut top_nodes, depth - 1);
+                    let parent = node_by_depth(&mut top_nodes, depth - 1);
                     parent.children.push(node);
                 }
             }
@@ -86,8 +84,6 @@ mod tests {
         assert_eq!(keys, vec!["REM", "REM", "REM", "REM", "PERFORMER", "TITLE", "FILE"]);
 
         let file = &cue_nodes[cue_nodes.len() - 1];
-
-        println!("{:#?}", file.children[0]);
 
         assert_eq!(
             file.line,
@@ -215,7 +211,7 @@ mod tests {
         let path = Path::new("src/cue/Moroccan Roll.cue");
         let cue_lines = CueLine::from_file(path).unwrap();
 
-        let mut cue_top_nodes = CueLineNode::from_lines(cue_lines);
+        let cue_top_nodes = CueLineNode::from_lines(cue_lines);
 
         assert_eq!(cue_top_nodes.len(), 16);
 
@@ -241,8 +237,6 @@ mod tests {
                 "FILE"
             ]
         );
-
-        // println!("{cue_node:#?}");
 
         assert_eq!(
             cue_top_nodes[0],

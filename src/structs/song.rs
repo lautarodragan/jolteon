@@ -98,7 +98,7 @@ impl Song {
 
     pub fn from_cue_sheet(cue_sheet: CueSheet) -> Vec<Self> {
         let files = cue_sheet.file();
-        let cue_file = files.get(0);
+        let cue_file = files.first();
 
         let Some(cue_file) = cue_file else {
             // TODO: nope!

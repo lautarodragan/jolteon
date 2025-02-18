@@ -129,13 +129,12 @@ impl<T> TreeNode<T> {
 
     pub fn iter(&self) -> TreeNodeIterator<T> {
         // TODO: iter_mut???
-        let iter = TreeNodeIterator {
+
+        TreeNodeIterator {
             root: self,
             current_node: None,
             current_path: TreeNodePath::empty(),
-        };
-
-        iter
+        }
     }
 }
 
@@ -192,14 +191,12 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
                     }
                 }
             }
+        } else if self.root.children.is_empty() {
+            None
         } else {
-            if self.root.children.is_empty() {
-                None
-            } else {
-                self.current_path = self.current_path.with_child(0);
-                self.current_node = Some(&self.root.children[0]);
-                self.current_node
-            }
+            self.current_path = self.current_path.with_child(0);
+            self.current_node = Some(&self.root.children[0]);
+            self.current_node
         }
     }
 }
