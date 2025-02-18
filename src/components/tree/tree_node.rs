@@ -146,7 +146,7 @@ pub struct TreeNodeIterator<'a, T> {
 
 impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
     // type Item = (&'a TreeNode<T>, &'a TreeNodePath); // enumerate?
-    type Item = &'a TreeNode<T>;
+    type Item = (TreeNodePath, &'a TreeNode<T>);
 
     fn next(&mut self) -> Option<Self::Item> {
         // TODO: avoid calling .get_child(). store branch: Vec<&'a TreeNode<T>> (or VecDeque?)
@@ -158,7 +158,7 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
             if current_node_first_child.is_some() {
                 self.current_path = self.current_path.with_child(0);
                 self.current_node = current_node_first_child;
-                current_node_first_child
+                self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
             } else {
                 // current_node has no children. move to next sibling, if there are more;
                 // otherwise, move up, if we are not the root;
@@ -168,8 +168,8 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
                     // no more parents. we're at the top level.
                     // we return the next sibling if there is one, None otherwise.
                     self.current_path = self.current_path.next();
-                    self.current_node = self.root.children.get(self.current_path.last());
-                    self.current_node
+                    self.current_node = self.root.children.get(self.current_path.clone().last());
+                    self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
                 } else {
                     // get next sibling
                     let parent_path = self.current_path.parent();
@@ -180,14 +180,14 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
                     if next_sibling.is_some() {
                         self.current_path = next_sibling_path;
                         self.current_node = next_sibling;
-                        self.current_node
+                        self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
                     } else {
                         // go up. may need to go many levels!
 
                         self.current_path = self.current_path.parent().next();
                         self.current_node = self.root.get_child(&self.current_path);
 
-                        self.current_node
+                        self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
                     }
                 }
             }
@@ -196,17 +196,18 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
         } else {
             self.current_path = self.current_path.with_child(0);
             self.current_node = Some(&self.root.children[0]);
-            self.current_node
+            self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
+            // Some((self.current_path.clone(), self.current_node.unwrap()))
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::components::TreeNode;
+    use crate::components::{TreeNode, TreeNodePath};
 
     #[test]
-    pub fn test_1() {
+    pub fn test_1() -> Result<(), ()> {
         let mut child_2 = TreeNode::new("child 2");
         child_2.children = vec![TreeNode::new("child 2 - 1"), TreeNode::new("child 2 - 2")];
 
@@ -224,18 +225,28 @@ mod tests {
 
         let mut iter = root.iter();
 
-        assert!(iter.next().is_some_and(|n| n.inner == "child 1"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 2"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 2 - 1"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 2 - 2"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 3"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 3 - 1"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 3 - 2"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 3 - 2 - 1"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 3 - 2 - 2"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 3 - 3"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 4"));
-        assert!(iter.next().is_some_and(|n| n.inner == "child 4 - 1"));
+        let mut assert_iter_eq = |expected_inner: &str, expected_path: &[usize]| {
+            let Some((path, node)) = iter.next() else {
+                panic!("Expected Some(...), got None");
+            };
+            assert_eq!(node.inner, expected_inner, "Unexpected node.inner at path '{path}'");
+            assert_eq!(path, TreeNodePath::from_vec(expected_path.to_vec()), "Unexpected path for '{}'", node.inner);
+        };
+
+        assert_iter_eq("child 1", &[0]);
+        assert_iter_eq("child 2", &[1]);
+        assert_iter_eq("child 2 - 1", &[1, 0]);
+        assert_iter_eq("child 2 - 2", &[1, 1]);
+        assert_iter_eq("child 3", &[2]);
+        assert_iter_eq("child 3 - 1", &[2, 0]);
+        assert_iter_eq("child 3 - 2", &[2, 1]);
+        assert_iter_eq("child 3 - 2 - 1", &[2, 1, 0]);
+        assert_iter_eq("child 3 - 2 - 2", &[2, 1, 1]);
+        assert_iter_eq("child 3 - 3", &[2, 2]);
+        assert_iter_eq("child 4", &[3]);
+        assert_iter_eq("child 4 - 1", &[3, 0]);
         assert!(iter.next().is_none());
+
+        Ok(())
     }
 }
