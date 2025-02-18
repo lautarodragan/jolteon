@@ -65,6 +65,12 @@ impl TreeNodePath {
         path
     }
 
+    pub fn with_parent(&self, i: usize) -> Self {
+        let mut path = self.clone();
+        path.0.insert(0, i);
+        path
+    }
+
     pub fn with_value(&self, index: usize, value: usize) -> Self {
         let mut new = self.clone();
         new.0[index] = value;

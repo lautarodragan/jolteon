@@ -385,13 +385,32 @@ where
             //     };
             //     n
             // }
-            // NavigationAction::Down if is_filtering => {
-            //     let items = self.items.borrow();
-            //     let Some(n) = items.iter().skip(initial_i + 1).position(|item| item.is_match) else {
-            //         return;
-            //     };
-            //     initial_i + n + 1
-            // }
+            NavigationAction::Down if is_filtering => {
+                let mut new_path = initial_i.clone();
+
+                'outer: for (root_node_index, root_node) in nodes.iter().enumerate() {
+                    let path = TreeNodePath::from_vec(vec![root_node_index]);
+
+                    if root_node.is_match {
+                        if path <= *initial_i {
+                            continue;
+                        }
+                        new_path = path;
+                    } else if root_node.is_open {
+                        for (path, node) in root_node.iter() {
+                            let path = path.with_parent(root_node_index);
+                            if path <= *initial_i {
+                                continue;
+                            } else if node.is_match {
+                                new_path = path;
+                                break 'outer;
+                            }
+                        }
+                    }
+                }
+
+                new_path
+            }
             NavigationAction::PageUp if !is_filtering => {
                 // NOTE: PageUp MUST result in the same as pressing Up `page_size` times.
                 // It'll make more sense to implement the logic here, and have the "normal" Up/Down
