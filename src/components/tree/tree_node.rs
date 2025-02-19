@@ -202,7 +202,7 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
     }
 }
 
-impl<'a, T> DoubleEndedIterator for TreeNodeIterator<'a, T> {
+impl<T> DoubleEndedIterator for TreeNodeIterator<'_, T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.root.children.is_empty() {
             None
@@ -227,10 +227,10 @@ impl<'a, T> DoubleEndedIterator for TreeNodeIterator<'a, T> {
             self.current_path = self.current_path.parent();
             self.current_node = self.root.get_child(&self.current_path);
             self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
-        } else { // self.current_path.last() > 0
-            // We have at least one sibling before us. Move onto it.
-            self.current_path = self.current_path.with_value(self.current_path.len() - 1, self.current_path.last() - 1);
-            let mut node =  self.root.get_child(&self.current_path).unwrap();
+        } else {
+            // We have at least one sibling before us. Move onto it. (self.current_path.last() > 0)
+            self.current_path = self.current_path.prev();
+            let mut node = self.root.get_child(&self.current_path).unwrap();
 
             // This sibling may have children. We now must find its last child.
             loop {

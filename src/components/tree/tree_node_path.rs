@@ -52,6 +52,14 @@ impl TreeNodePath {
         }
     }
 
+    pub fn prev(&self) -> Self {
+        if self.is_empty() {
+            self.clone()
+        } else {
+            self.with_value(self.len() - 1, self.last() - 1)
+        }
+    }
+
     pub fn parent(&self) -> Self {
         let mut parent = self.clone();
         let new_len = parent.len().saturating_sub(1);

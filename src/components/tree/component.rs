@@ -377,13 +377,27 @@ where
                     }
                 }
             }
-            // NavigationAction::Up if is_filtering => {
-            //     let items = self.items.borrow();
-            //     let Some(n) = items.iter().take(initial_i).rposition(|item| item.is_match) else {
-            //         return;
-            //     };
-            //     n
-            // }
+            NavigationAction::Up if is_filtering => {
+                let mut new_path = initial_i.clone();
+
+                'outer: for (root_node_index, root_node) in nodes.iter().enumerate().rev() {
+                    for (path, node) in root_node.iter().rev() {
+                        let path = path.with_parent(root_node_index);
+                        if path < *initial_i && node.is_match {
+                            new_path = path;
+                            break 'outer;
+                        }
+                    }
+
+                    let path = TreeNodePath::from_vec(vec![root_node_index]);
+                    if root_node.is_match && path < *initial_i {
+                        new_path = path;
+                        break 'outer;
+                    }
+                }
+
+                new_path
+            }
             NavigationAction::Down if is_filtering => {
                 let mut new_path = initial_i.clone();
 
