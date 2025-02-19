@@ -390,11 +390,9 @@ where
                 'outer: for (root_node_index, root_node) in nodes.iter().enumerate() {
                     let path = TreeNodePath::from_vec(vec![root_node_index]);
 
-                    if root_node.is_match {
-                        if path <= *initial_i {
-                            continue;
-                        }
+                    if root_node.is_match && path > *initial_i {
                         new_path = path;
+                        break 'outer;
                     } else if root_node.is_open {
                         for (path, node) in root_node.iter() {
                             let path = path.with_parent(root_node_index);
