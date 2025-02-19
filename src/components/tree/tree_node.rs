@@ -202,6 +202,50 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
     }
 }
 
+impl<'a, T> DoubleEndedIterator for TreeNodeIterator<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.root.children.is_empty() {
+            None
+        } else if self.current_node.is_none() {
+            // We're just getting started. Find the very last node and return it.
+            let mut node = self.root;
+
+            loop {
+                if let Some(child) = node.children.last() {
+                    self.current_path = self.current_path.with_child(node.children.len() - 1);
+                    node = child;
+                } else {
+                    self.current_node = Some(node);
+                    break self.current_node.as_ref().map(|n| (self.current_path.clone(), *n));
+                }
+            }
+        } else if self.current_path.is_empty() || self.current_path[0] == 0 {
+            // Can't proceed any further. We're done.
+            None
+        } else if self.current_path.last() == 0 {
+            // We're the last child. Move upwards, return parent.
+            self.current_path = self.current_path.parent();
+            self.current_node = self.root.get_child(&self.current_path);
+            self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
+        } else { // self.current_path.last() > 0
+            // We have at least one sibling before us. Move onto it.
+            self.current_path = self.current_path.with_value(self.current_path.len() - 1, self.current_path.last() - 1);
+            let mut node =  self.root.get_child(&self.current_path).unwrap();
+
+            // This sibling may have children. We now must find its last child.
+            loop {
+                if let Some(child) = node.children.last() {
+                    self.current_path = self.current_path.with_child(node.children.len() - 1);
+                    node = child;
+                } else {
+                    self.current_node = Some(node);
+                    break self.current_node.as_ref().map(|n| (self.current_path.clone(), *n));
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::components::{TreeNode, TreeNodePath};
@@ -250,6 +294,55 @@ mod tests {
         assert_iter_eq("child 3 - 3", &[2, 2]);
         assert_iter_eq("child 4", &[3]);
         assert_iter_eq("child 4 - 1", &[3, 0]);
+        assert!(iter.next().is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_1_rev() -> Result<(), ()> {
+        let mut child_2 = TreeNode::new("child 2");
+        child_2.children = vec![TreeNode::new("child 2 - 1"), TreeNode::new("child 2 - 2")];
+
+        let mut child_3_2 = TreeNode::new("child 3 - 2");
+        child_3_2.children = vec![TreeNode::new("child 3 - 2 - 1"), TreeNode::new("child 3 - 2 - 2")];
+
+        let mut child_3 = TreeNode::new("child 3");
+        child_3.children = vec![TreeNode::new("child 3 - 1"), child_3_2, TreeNode::new("child 3 - 3")];
+
+        let mut child_4 = TreeNode::new("child 4");
+        child_4.children = vec![TreeNode::new("child 4 - 1")];
+
+        let mut root = TreeNode::new("root");
+        root.children = vec![TreeNode::new("child 1"), child_2, child_3, child_4];
+
+        let mut iter = root.iter().rev();
+
+        let mut assert_iter_eq = |expected_inner: &str, expected_path: &[usize]| {
+            let Some((path, node)) = iter.next() else {
+                panic!("Expected Some(...), got None");
+            };
+            assert_eq!(node.inner, expected_inner, "Unexpected node.inner at path '{path}'");
+            assert_eq!(
+                path,
+                TreeNodePath::from_vec(expected_path.to_vec()),
+                "Unexpected path for '{}'",
+                node.inner
+            );
+        };
+
+        assert_iter_eq("child 4 - 1", &[3, 0]);
+        assert_iter_eq("child 4", &[3]);
+        assert_iter_eq("child 3 - 3", &[2, 2]);
+        assert_iter_eq("child 3 - 2 - 2", &[2, 1, 1]);
+        assert_iter_eq("child 3 - 2 - 1", &[2, 1, 0]);
+        assert_iter_eq("child 3 - 2", &[2, 1]);
+        assert_iter_eq("child 3 - 1", &[2, 0]);
+        assert_iter_eq("child 3", &[2]);
+        assert_iter_eq("child 2 - 2", &[1, 1]);
+        assert_iter_eq("child 2 - 1", &[1, 0]);
+        assert_iter_eq("child 2", &[1]);
+        assert_iter_eq("child 1", &[0]);
         assert!(iter.next().is_none());
 
         Ok(())
