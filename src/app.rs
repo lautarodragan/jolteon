@@ -23,7 +23,10 @@ use crate::{
 };
 
 pub async fn run() -> Result<(), Box<dyn Error>> {
-    let mpris = Mpris::new().await?;
+    #[cfg(target_os = "linux")]
+    let mpris = Some(Mpris::new().await?);
+    #[cfg(not(target_os = "linux"))]
+    let mpris = None;
 
     task::spawn_blocking(move || {
         if let Err(err) = run_sync(mpris) {
@@ -35,7 +38,7 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_sync(mpris: Mpris) -> Result<(), Box<dyn Error>> {
+fn run_sync(mpris: Option<Mpris>) -> Result<(), Box<dyn Error>> {
     let actions = Actions::from_file_or_default();
     assert!(
         actions.contains(Action::Quit),

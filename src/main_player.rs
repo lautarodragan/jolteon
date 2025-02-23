@@ -46,25 +46,27 @@ pub struct MainPlayer {
 }
 
 impl MainPlayer {
-    pub fn spawn(output_stream_handle: OutputStreamHandle, mpris: Mpris, queue_songs: Vec<Song>) -> Self {
+    pub fn spawn(output_stream_handle: OutputStreamHandle, mpris: Option<Mpris>, queue_songs: Vec<Song>) -> Self {
         let (tx, rx) = channel::<MainPlayerMessage>();
 
-        let mpris = Arc::new(mpris);
+        let mpris = mpris.map(Arc::new);
         let player = Arc::new(SingleTrackPlayer::spawn(output_stream_handle, mpris.clone()));
         let queue = Arc::new(Queue::new(queue_songs));
 
-        mpris.on_play_pause({
-            let player = player.clone();
-            move || {
-                player.toggle();
-            }
-        });
-        mpris.on_stop({
-            let player = player.clone();
-            move || {
-                player.stop();
-            }
-        });
+        if let Some(mpris) = &mpris {
+            mpris.on_play_pause({
+                let player = player.clone();
+                move || {
+                    player.toggle();
+                }
+            });
+            mpris.on_stop({
+                let player = player.clone();
+                move || {
+                    player.stop();
+                }
+            });
+        }
 
         player.on_playback_end({
             let tx = tx.clone();

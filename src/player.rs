@@ -45,7 +45,7 @@ enum Command {
 }
 
 impl SingleTrackPlayer {
-    pub fn spawn(output_stream: OutputStreamHandle, mpris: Arc<Mpris>) -> Self {
+    pub fn spawn(output_stream: OutputStreamHandle, mpris: Option<Arc<Mpris>>) -> Self {
         let (command_sender, command_receiver) = channel();
 
         let playing_song = Arc::new(Mutex::new(None));
@@ -84,12 +84,14 @@ impl SingleTrackPlayer {
                             .as_secs();
                         currently_playing_start_time.store(start_time, Ordering::Relaxed);
 
-                        match song {
-                            Some(ref song) => {
-                                mpris.set_song(song.clone());
-                                mpris.play();
+                        if let Some(mpris) = &mpris {
+                            match song {
+                                Some(ref song) => {
+                                    mpris.set_song(song.clone());
+                                    mpris.play();
+                                }
+                                None => mpris.clear_song(),
                             }
-                            None => mpris.clear_song(),
                         }
 
                         match currently_playing.lock() {
@@ -157,8 +159,10 @@ impl SingleTrackPlayer {
                         let song = loop {
                             match command_receiver.recv() {
                                 Ok(Command::SetSong(song)) => {
-                                    mpris.set_song(song.clone());
-                                    mpris.play();
+                                    if let Some(mpris) = &mpris {
+                                        mpris.set_song(song.clone());
+                                        mpris.play();
+                                    }
                                     break song;
                                 }
                                 Ok(Command::Quit) => return,
@@ -230,11 +234,15 @@ impl SingleTrackPlayer {
                                         }
                                         Command::Play => {
                                             pause.store(false, Ordering::SeqCst);
-                                            mpris.play();
+                                            if let Some(mpris) = &mpris {
+                                                mpris.play();
+                                            }
                                         }
                                         Command::Pause => {
                                             pause.store(true, Ordering::SeqCst);
-                                            mpris.pause();
+                                            if let Some(mpris) = &mpris {
+                                                mpris.pause();
+                                            }
                                         }
                                         Command::Stop => {
                                             break;
