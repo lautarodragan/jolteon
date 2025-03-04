@@ -22,7 +22,7 @@ pub struct Tree<'a, T: 'a> {
     pub(super) on_enter_alt_fn: Option<Box<dyn Fn(&T) + 'a>>,
     pub(super) on_reorder_fn: Option<Box<dyn Fn(TreeNodePath, usize, usize) + 'a>>,
     pub(super) on_insert_fn: Option<Box<dyn Fn() + 'a>>,
-    pub(super) on_delete_fn: Option<Box<dyn Fn(T, Vec<usize>) + 'a>>,
+    pub(super) on_delete_fn: Option<Box<dyn Fn(TreeNode<T>, TreeNodePath) + 'a>>,
     pub(super) on_rename_fn: Option<Box<dyn Fn(String) + 'a>>,
     pub(super) on_request_focus_trap: Option<Box<dyn Fn(bool) + 'a>>,
 
@@ -142,7 +142,7 @@ where
         self.on_insert_fn = Some(Box::new(cb));
     }
 
-    pub fn on_delete(&mut self, cb: impl Fn(T, Vec<usize>) + 'a) {
+    pub fn on_delete(&mut self, cb: impl Fn(TreeNode<T>, TreeNodePath) + 'a) {
         self.on_delete_fn = Some(Box::new(cb));
     }
 
@@ -556,26 +556,33 @@ where
                 f();
             }
             ListAction::Delete => {
-                let Some(_on_delete) = &self.on_delete_fn else {
+                let Some(on_delete) = &self.on_delete_fn else {
                     return;
                 };
 
-                let items = self.items.borrow_mut();
+                let mut items = self.items.borrow_mut();
 
                 if items.is_empty() {
                     return;
                 }
 
-                let _selected_item_path = self.selected_item_path.borrow_mut();
-                // let removed_item = items.remove(i);
-                //
-                // if i >= items.len() {
-                //     // self.selected_item_index.set(items.len().saturating_sub(1));
-                // }
-                //
-                // drop(items);
-                //
-                // on_delete(removed_item.inner, i.clone());
+                let selected_item_path = self.selected_item_path.borrow_mut();
+                if selected_item_path.is_empty() {
+                    log::warn!("selected_item_path.is_empty()");
+                    return;
+                }
+
+                let removed_item = if selected_item_path.len() == 1 {
+                    items.remove(selected_item_path.first())
+                } else {
+                    let parent_path = selected_item_path.parent();
+                    let parent = TreeNode::get_node_at_path_mut(parent_path.clone(), &mut items);
+                    parent.children.remove(selected_item_path.last())
+                };
+
+                drop(items);
+
+                on_delete(removed_item, selected_item_path.clone());
             }
             ListAction::SwapUp | ListAction::SwapDown => {
                 let Some(on_reorder) = &self.on_reorder_fn else {

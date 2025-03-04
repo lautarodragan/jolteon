@@ -42,9 +42,7 @@ impl<'a> Library<'a> {
                 })
                 .unwrap_or_default(),
         );
-        let mut album_tree = Tree::new(theme, album_tree_items);
-
-        // album_tree.set_is_open_all(false);
+        let album_tree = Rc::new(RefCell::new(Tree::new(theme, album_tree_items)));
 
         song_list.find_next_item_by_fn({
             |songs, i, direction| {
@@ -75,42 +73,105 @@ impl<'a> Library<'a> {
             }
         });
         song_list.on_select(|song| log::debug!("library: selected song {song:#?}"));
+        song_list.on_delete({
+            let album_tree = Rc::downgrade(&album_tree);
+            move |song, index| {
+                log::debug!(
+                    "deleted {}(at {index}) from song_list. will now delete from album_tree.",
+                    song.title
+                );
 
+                let Some(album_tree) = album_tree.upgrade() else {
+                    log::warn!("song_list.on_delete: album_tree is gone");
+                    return;
+                };
+
+                // the following code is pretty terrible.
+                // for it to work correctly, it depends on:
+                //   - both lists being sorted in the same way, since we're removing by index
+                //   - the song's album name in the song list and the album's name in the album tree matching, since we're comparing strings
+                //   - the selection on the album_tree not changing after the song is deleted from the song_list,
+                //     and before this callback is called (which is impossible TODAY, but nothing guarantees that)
+                // if either isn't true, we'll crash if we're lucky, but, most likely, delete the incorrect thing.
+                // TODO: give artists, albums and songs unique ids, and stop relying on indexes and strings.
+                //   `album_tree.get_album_by_id_mut(song.album_unique_id) -> Option<&mut Album>`
+
+                let album_tree = album_tree.borrow_mut();
+                album_tree.with_selected_node_mut(|selected_node| {
+                    match &mut selected_node.inner {
+                        AlbumTreeItem::Artist(_) => {
+                            let album = selected_node
+                                .children
+                                .iter_mut()
+                                .find_map(|item| match &mut item.inner {
+                                    AlbumTreeItem::Album(album) if album.name == *song.album.as_ref().unwrap() => {
+                                        Some(album)
+                                    }
+                                    _ => None,
+                                });
+                            if let Some(album) = album {
+                                log::debug!("deleting from album {}", album.name);
+                                album.songs.remove(index);
+                            } else {
+                                log::error!("couldn't find the song we're trying to delete! this is a bug.");
+                            }
+                        }
+                        AlbumTreeItem::Album(album) => {
+                            album.songs.remove(index);
+                        }
+                    };
+                });
+            }
+        });
         let song_list = Rc::new(song_list);
 
-        album_tree.on_select({
-            let song_list = song_list.clone();
+        {
+            let mut album_tree = album_tree.borrow_mut();
+            album_tree.on_select({
+                let song_list = song_list.clone();
 
-            move |item| {
-                // log::trace!(target: "::library.album_tree.on_select", "selected {:#?}", item);
+                move |item| {
+                    // log::trace!(target: "::library.album_tree.on_select", "selected {:#?}", item);
 
-                let songs = match &item.inner {
-                    AlbumTreeItem::Artist(_) => item.children.iter().flat_map(|child| child.inner.songs()).collect(),
-                    AlbumTreeItem::Album(album) => album.songs.clone(),
-                };
-                song_list.set_items(songs.clone());
-            }
-        });
-        album_tree.on_confirm({
-            let on_select_songs_fn = on_select_songs_fn.clone();
+                    let songs = match &item.inner {
+                        AlbumTreeItem::Artist(_) => {
+                            item.children.iter().flat_map(|child| child.inner.songs()).collect()
+                        }
+                        AlbumTreeItem::Album(album) => album.songs.clone(),
+                    };
+                    song_list.set_items(songs.clone());
+                }
+            });
+            album_tree.on_confirm({
+                let on_select_songs_fn = on_select_songs_fn.clone();
 
-            move |item| {
-                log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
+                move |item| {
+                    log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
 
-                let songs = match item {
-                    AlbumTreeItem::Artist(artist) => artist.albums.iter().flat_map(|album| &album.songs).collect(),
-                    AlbumTreeItem::Album(album) => album.songs.iter().collect(),
-                };
-                on_select_songs_fn.borrow_mut()(songs);
-            }
-        });
-        album_tree.on_reorder({
-            move |parent_path, old_index, new_index| {
-                log::debug!("album_tree.on_reorder({parent_path}, {old_index}, {new_index})")
-            }
-        });
-
-        let album_tree = Rc::new(RefCell::new(album_tree));
+                    let songs = match item {
+                        AlbumTreeItem::Artist(artist) => artist.albums.iter().flat_map(|album| &album.songs).collect(),
+                        AlbumTreeItem::Album(album) => album.songs.iter().collect(),
+                    };
+                    on_select_songs_fn.borrow_mut()(songs);
+                }
+            });
+            album_tree.on_reorder({
+                move |parent_path, old_index, new_index| {
+                    log::debug!("album_tree.on_reorder({parent_path}, {old_index}, {new_index})")
+                }
+            });
+            album_tree.on_delete({
+                |ati, index| {
+                    log::debug!("deleted {index} {:?}", ati);
+                    // nothing to do here, because the list itself is the source of truth.
+                    // but, right now, the tree doesn't allow deletions if there's no on_delete callback,
+                    // so we need to pass this callback.
+                    // TODO: album_tree.set_allow_deletions(true) or something like that.
+                    // we'll still want this callback with the log::debug! anyways, but this refactor would
+                    // make the code more intuitive and sensible
+                }
+            });
+        }
 
         let focus_group = FocusGroup::new(vec![
             Component::Mut(album_tree.clone()),
