@@ -57,7 +57,7 @@ impl Song {
             album: jolt.as_ref().and_then(|j| j.album.clone()).or(album),
             disc_number,
             track,
-            year,
+            year: jolt.as_ref().and_then(|j| j.year.clone()).or(year),
         })
     }
 
@@ -143,7 +143,7 @@ impl Song {
                 start_time: t.start_time(),
                 album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
                 track: t.index().split_whitespace().nth(0).and_then(|i| i.parse().ok()),
-                year: song.year.or(cue_year),
+                year: jolt.as_ref().and_then(|j| j.year.clone()).or(song.year).or(cue_year),
                 disc_number: jolt.as_ref().and_then(|j| j.disc_number), // There seems to be no standard disc number field for Cue Sheets...
             })
             .collect();

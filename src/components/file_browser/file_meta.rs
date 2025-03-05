@@ -149,6 +149,7 @@ impl FileMeta<'_> {
         items.push(format!("Artist: {:?}", jolt.artist));
         items.push(format!("Album: {:?}", jolt.album));
         items.push(format!("Disc Number: {:?}", jolt.disc_number));
+        items.push(format!("Year: {:?}", jolt.year));
 
         self.list.set_items(items);
     }
