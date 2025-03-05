@@ -1,11 +1,13 @@
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::structs::Song;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Artist {
+    pub library_id: Option<Uuid>,
     pub name: String,
     pub albums: Vec<Album>,
 }
@@ -18,6 +20,7 @@ impl Artist {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Album {
+    pub library_id: Option<Uuid>,
     pub artist: String,
     pub name: String,
     pub year: Option<u32>,

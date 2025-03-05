@@ -11,6 +11,7 @@ use lofty::{
     tag::Accessor,
 };
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     components::{directory_to_songs_and_folders, FileBrowserSelection},
@@ -20,6 +21,7 @@ use crate::{
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Song {
+    pub library_id: Option<Uuid>,
     pub path: PathBuf,
     pub start_time: Duration,
     pub length: Duration,
@@ -49,6 +51,7 @@ impl Song {
         };
 
         Ok(Song {
+            library_id: None,
             path: PathBuf::from(path),
             start_time: Duration::ZERO,
             length: tagged_file.properties().duration(),
@@ -57,7 +60,7 @@ impl Song {
             album: jolt.as_ref().and_then(|j| j.album.clone()).or(album),
             disc_number,
             track,
-            year: jolt.as_ref().and_then(|j| j.year.clone()).or(year),
+            year: jolt.as_ref().and_then(|j| j.year).or(year),
         })
     }
 
@@ -132,6 +135,7 @@ impl Song {
         let mut songs: Vec<Song> = tracks
             .iter()
             .map(|t| Song {
+                library_id: None,
                 path: song_path.clone(),
                 length: Duration::ZERO,
                 artist: jolt
@@ -143,7 +147,7 @@ impl Song {
                 start_time: t.start_time(),
                 album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
                 track: t.index().split_whitespace().nth(0).and_then(|i| i.parse().ok()),
-                year: jolt.as_ref().and_then(|j| j.year.clone()).or(song.year).or(cue_year),
+                year: jolt.as_ref().and_then(|j| j.year).or(song.year).or(cue_year),
                 disc_number: jolt.as_ref().and_then(|j| j.disc_number), // There seems to be no standard disc number field for Cue Sheets...
             })
             .collect();

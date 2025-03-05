@@ -5,6 +5,8 @@ use std::{
     rc::Rc,
 };
 
+use uuid::Uuid;
+
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};
 use crate::{
     components::{FocusGroup, List, Tree, TreeNode},
@@ -201,12 +203,15 @@ impl<'a> Library<'a> {
         *self.on_select_songs_fn.borrow_mut() = Box::new(cb);
     }
 
-    pub fn add_songs(&self, songs: Vec<Song>) {
+    pub fn add_songs(&self, mut songs: Vec<Song>) {
         log::debug!(
             "Library.add_songs({:?})",
             songs.iter().map(|s| s.title.as_str()).collect::<Vec<&str>>()
         );
 
+        for song in &mut songs {
+            song.library_id = Some(Uuid::new_v4());
+        }
         let songs = song_vec_to_map(songs);
 
         self.album_tree.borrow_mut().with_nodes_mut(|artist_nodes| {
@@ -275,6 +280,7 @@ fn add_artist_node(
     artist_nodes.push({
         TreeNode::new_with_children(
             AlbumTreeItem::Artist(Artist {
+                library_id: Some(Uuid::new_v4()),
                 name: artist.clone(),
                 albums: vec![], // the albums are stored as children nodes
             }),
@@ -282,6 +288,7 @@ fn add_artist_node(
                 .into_iter()
                 .map(|(album_name, album_songs)| {
                     TreeNode::new(AlbumTreeItem::Album(Album {
+                        library_id: Some(Uuid::new_v4()),
                         artist: artist.clone(),
                         name: album_name,
                         year: album_songs.first().and_then(|s| s.year),
@@ -309,6 +316,7 @@ fn add_album_nodes(artist_node: &mut TreeNode<AlbumTreeItem>, artist_name: Strin
             album.songs.extend(songs);
         } else {
             artist_node.children.push(TreeNode::new(AlbumTreeItem::Album(Album {
+                library_id: Some(Uuid::new_v4()),
                 artist: artist_name.clone(),
                 name: album_name,
                 year: songs.iter().find_map(|song| song.year),
