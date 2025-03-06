@@ -326,51 +326,58 @@ where
         self.visible_items.borrow()[i]
     }
 
-    pub fn exec_action(&self, action: Action) {
+    pub fn exec_action(&self, actions: Vec<Action>) {
         let target = "::List.on_action";
 
+        log::debug!("actions {actions:?}");
+
         if self.rename.borrow().is_some() {
-            self.exec_rename_action(action);
+            self.exec_rename_action(actions);
         } else {
-            match action {
-                Action::Navigation(action) => self.exec_navigation_action(action),
-                Action::Confirm | Action::ConfirmAlt => {
-                    self.filter_mut(|filter| {
-                        filter.clear();
-                    });
+            for action in actions {
+                match action {
+                    Action::Navigation(action) => self.exec_navigation_action(action),
+                    Action::Confirm | Action::ConfirmAlt => {
+                        self.filter_mut(|filter| {
+                            filter.clear();
+                        });
 
-                    let items = self.items.borrow();
+                        let items = self.items.borrow();
 
-                    let i = self.selected_item_index.get();
-                    if i >= items.len() {
-                        log::error!(target: target, "selected_item_index > items.len");
-                        return;
-                    }
-                    let item = items[i].inner.clone();
-                    drop(items);
-
-                    if action == Action::Confirm {
-                        self.on_enter_fn.borrow_mut()(item);
-                        if self.auto_select_next.get() {
-                            self.exec_navigation_action(NavigationAction::Down);
+                        let i = self.selected_item_index.get();
+                        if i >= items.len() {
+                            log::error!(target: target, "selected_item_index > items.len");
+                            return;
                         }
-                    } else if action == Action::ConfirmAlt {
-                        if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
-                            on_enter_alt_fn(item);
+                        let item = items[i].inner.clone();
+                        drop(items);
+
+                        if action == Action::Confirm {
+                            self.on_enter_fn.borrow_mut()(item);
                             if self.auto_select_next.get() {
                                 self.exec_navigation_action(NavigationAction::Down);
                             }
+                        } else if action == Action::ConfirmAlt {
+                            if let Some(on_enter_alt_fn) = &*self.on_enter_alt_fn.borrow_mut() {
+                                on_enter_alt_fn(item);
+                                if self.auto_select_next.get() {
+                                    self.exec_navigation_action(NavigationAction::Down);
+                                }
+                            }
                         }
                     }
+                    Action::Cancel => {
+                        self.filter_mut(|filter| {
+                            filter.clear();
+                        });
+                    }
+                    Action::ListAction(action) => self.exec_list_action(action),
+                    Action::Text(action) => self.exec_text_action(action),
+                    _ => {
+                        continue;
+                    }
                 }
-                Action::Cancel => {
-                    self.filter_mut(|filter| {
-                        filter.clear();
-                    });
-                }
-                Action::ListAction(action) => self.exec_list_action(action),
-                Action::Text(action) => self.exec_text_action(action),
-                _ => {}
+                break;
             }
         };
     }
@@ -491,44 +498,55 @@ where
         (self.on_select_fn)(newly_selected_item);
     }
 
-    fn exec_rename_action(&self, action: Action) {
+    fn exec_rename_action(&self, actions: Vec<Action>) {
         let mut rename_option = self.rename.borrow_mut();
         let Some(ref mut rename) = *rename_option else {
             return;
         };
-        match action {
-            Action::Confirm => {
-                self.on_request_focus_trap_fn.borrow_mut()(false);
+        for action in actions {
+            log::debug!("exec_rename_action {action:?}");
+            match action {
+                Action::Confirm => {
+                    self.on_request_focus_trap_fn.borrow_mut()(false);
 
-                if rename.is_empty() {
-                    return;
+                    if rename.is_empty() {
+                        return;
+                    }
+
+                    let on_rename_fn = self.on_rename_fn.borrow_mut();
+
+                    let Some(ref on_rename_fn) = *on_rename_fn else {
+                        return;
+                    };
+
+                    on_rename_fn(rename_option.take().unwrap());
                 }
-
-                let on_rename_fn = self.on_rename_fn.borrow_mut();
-
-                let Some(ref on_rename_fn) = *on_rename_fn else {
-                    return;
-                };
-
-                on_rename_fn(rename_option.take().unwrap());
+                Action::Cancel => {
+                    *rename_option = None;
+                    self.on_request_focus_trap_fn.borrow_mut()(false);
+                }
+                Action::Text(TextAction::Char(char)) => {
+                    rename.push(char);
+                }
+                Action::Text(TextAction::DeleteBack) => {
+                    if !rename.is_empty() {
+                        rename.remove(rename.len() - 1);
+                    }
+                }
+                Action::Text(TextAction::Delete) => {
+                    // TODO: caret
+                    if !rename.is_empty() {
+                        rename.remove(rename.len() - 1);
+                    }
+                }
+                Action::ListAction(ListAction::RenameClear) => {
+                    rename.clear();
+                }
+                _ => {
+                    continue;
+                }
             }
-            Action::Cancel => {
-                *rename_option = None;
-                self.on_request_focus_trap_fn.borrow_mut()(false);
-            }
-            Action::Text(TextAction::Char(char)) => {
-                rename.push(char);
-            }
-            Action::Text(TextAction::DeleteBack) => {
-                rename.remove(rename.len().saturating_sub(1));
-            }
-            Action::Text(TextAction::Delete) => {
-                rename.remove(rename.len().saturating_sub(1));
-            }
-            Action::ListAction(ListAction::RenameClear) => {
-                rename.clear();
-            }
-            _ => {}
+            break;
         }
     }
 

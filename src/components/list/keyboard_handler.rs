@@ -7,7 +7,7 @@ impl<'a, T> OnAction for List<'a, T>
 where
     T: 'a + Clone + std::fmt::Display + Debug,
 {
-    fn on_action(&self, action: Vec<Action>) {
-        self.exec_action(action[0]);
+    fn on_action(&self, actions: Vec<Action>) {
+        self.exec_action(actions);
     }
 }

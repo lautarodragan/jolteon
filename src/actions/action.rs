@@ -216,25 +216,26 @@ impl Actions {
         Self::from_file().unwrap_or_default()
     }
 
-    #[allow(dead_code)]
-    pub fn to_file(&self) {}
-
     pub fn action_by_key(&self, key: KeyEvent) -> Vec<Action> {
         // log::debug!("action_by_key {key:?}");
 
-        if let KeyCode::Char(c) = key.code
-            && key.modifiers.is_empty()
-            && c.is_alphabetic()
-        {
-            return vec![Action::Text(TextAction::Char(c))];
-        }
-
         let kb = KeyBinding::from(key);
-        self.actions
+        let mut actions = self
+            .actions
             .get(&kb)
             .or(DEFAULT_ACTIONS.get(&kb))
             .cloned()
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        if let KeyCode::Char(c) = key.code
+            && (c.is_alphanumeric() || c.is_ascii_whitespace())
+        {
+            actions.push(Action::Text(TextAction::Char(c)));
+        }
+
+        // log::debug!("action_by_key actions {actions:?}");
+
+        actions
     }
 
     pub fn key_by_action(&self, action: Action) -> Option<KeyBinding> {
