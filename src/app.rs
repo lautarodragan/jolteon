@@ -24,7 +24,14 @@ use crate::{
 
 pub async fn run() -> Result<(), Box<dyn Error>> {
     #[cfg(target_os = "linux")]
-    let mpris = Some(Mpris::new().await?);
+    let mpris = match Mpris::new().await {
+        Ok(mpris) => Some(mpris),
+        Err(err) => {
+            log::warn!("Could not create MPRIS instance. Error was: {err:?}");
+            None
+        }
+    };
+
     #[cfg(not(target_os = "linux"))]
     let mpris = None;
 
