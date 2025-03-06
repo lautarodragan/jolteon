@@ -53,6 +53,7 @@ pub struct List<'a, T: 'a> {
 
     pub(super) filter: RefCell<String>,
     pub(super) rename: RefCell<Option<String>>,
+    pub(super) renaming_caret_position: RefCell<usize>,
 
     pub(super) padding: u8,
     pub(super) page_size: u8,
@@ -91,6 +92,7 @@ where
 
             filter: RefCell::new("".to_string()),
             rename: RefCell::new(None),
+            renaming_caret_position: RefCell::new(0),
 
             padding: 5,
             page_size: 5,
@@ -329,7 +331,7 @@ where
     pub fn exec_action(&self, actions: Vec<Action>) {
         let target = "::List.on_action";
 
-        log::debug!("actions {actions:?}");
+        log::debug!("exec_action {actions:?}");
 
         if self.rename.borrow().is_some() {
             self.exec_rename_action(actions);
@@ -526,21 +528,49 @@ where
                     self.on_request_focus_trap_fn.borrow_mut()(false);
                 }
                 Action::Text(TextAction::Char(char)) => {
-                    rename.push(char);
+                    let mut renaming_caret_position = self.renaming_caret_position.borrow_mut();
+                    if *renaming_caret_position >= rename.len() {
+                        rename.push(char);
+                    } else {
+                        rename.insert(*renaming_caret_position, char);
+                    }
+                    *renaming_caret_position += 1;
                 }
                 Action::Text(TextAction::DeleteBack) => {
-                    if !rename.is_empty() {
-                        rename.remove(rename.len() - 1);
+                    let mut renaming_caret_position = self.renaming_caret_position.borrow_mut();
+                    if !rename.is_empty() && *renaming_caret_position > 0 {
+                        *renaming_caret_position = renaming_caret_position.min(rename.len());
+                        rename.remove(*renaming_caret_position - 1);
+
+                        if *renaming_caret_position > 0 {
+                            *renaming_caret_position -= 1;
+                        }
                     }
                 }
                 Action::Text(TextAction::Delete) => {
-                    // TODO: caret
-                    if !rename.is_empty() {
-                        rename.remove(rename.len() - 1);
+                    let mut renaming_caret_position = self.renaming_caret_position.borrow_mut();
+                    if !rename.is_empty() && *renaming_caret_position < rename.len() {
+                        *renaming_caret_position = renaming_caret_position.min(rename.len());
+                        rename.remove(*renaming_caret_position);
                     }
                 }
                 Action::ListAction(ListAction::RenameClear) => {
                     rename.clear();
+                }
+                Action::Navigation(NavigationAction::Left) => {
+                    let mut r = self.renaming_caret_position.borrow_mut();
+                    if *r > 0 {
+                        *r -= 1;
+                    }
+                    log::debug!("ohh {r}");
+                }
+                Action::Navigation(NavigationAction::Right) => {
+                    let mut r = self.renaming_caret_position.borrow_mut();
+                    if *r < rename.len() {
+                        // caret can be one past string length
+                        *r += 1;
+                    }
+                    log::debug!("ahh {r}");
                 }
                 _ => {
                     continue;
@@ -608,7 +638,9 @@ where
                 on_reorder(i, next_i);
             }
             ListAction::RenameStart if self.on_rename_fn.borrow().is_some() => {
-                *self.rename.borrow_mut() = self.with_selected_item(|item| Some(item.to_string()));
+                let name = self.with_selected_item(|item| item.to_string());
+                *self.renaming_caret_position.borrow_mut() = name.len();
+                *self.rename.borrow_mut() = Some(name);
                 self.on_request_focus_trap_fn.borrow_mut()(true);
             }
             _ => {}

@@ -1,12 +1,10 @@
-use std::{
-    borrow::Cow,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::borrow::Cow;
 
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Style,
+    style::{Modifier, Style},
+    text::{Line, Span},
     widgets::{Widget, WidgetRef},
 };
 
@@ -19,13 +17,17 @@ pub struct ListLine<'a> {
     is_selected: bool,
     is_match: bool,
     is_renaming: bool,
+    renaming_caret_position: usize,
     overrides: Option<Style>,
 }
 
-impl<'a> Widget for ListLine<'a> {
+impl Widget for ListLine<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut style = if self.is_renaming {
-            Style::default().fg(self.theme.background).bg(self.theme.search)
+            Style::default()
+                .fg(self.theme.background)
+                .bg(self.theme.search)
+                .add_modifier(Modifier::SLOW_BLINK)
         } else if self.is_selected {
             if self.list_has_focus {
                 Style::default()
@@ -49,16 +51,25 @@ impl<'a> Widget for ListLine<'a> {
             style = style.patch(overrides);
         }
 
-        let line: Cow<'a, str> = if self.is_renaming {
-            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-            let caret = if now % 500 < 250 { '⎸' } else { ' ' };
-            format!("{}{}", self.text, caret).into()
-        } else {
-            self.text
-        };
+        let line = if self.is_renaming {
+            let spans = if self.renaming_caret_position >= self.text.len() {
+                let l = Span::from(self.text);
+                let r = Span::from(" ").style(style.bg(self.theme.foreground_selected).fg(self.theme.search));
+                vec![l, r]
+            } else {
+                let (l, r) = self.text.split_at(self.renaming_caret_position);
+                let (c, r) = r.split_at(1);
 
-        let line = ratatui::text::Line::from(line).style(style);
-        line.render_ref(area, buf);
+                let l = Span::from(l);
+                let c = Span::from(c).style(style.bg(self.theme.foreground_selected).fg(self.theme.search));
+                let r = Span::from(r);
+                vec![l, c, r]
+            };
+            Line::from(spans)
+        } else {
+            Line::from(self.text)
+        };
+        line.style(style).render_ref(area, buf);
     }
 }
 
@@ -117,6 +128,7 @@ where
                 is_selected,
                 is_match: item.is_match,
                 is_renaming,
+                renaming_caret_position: *self.renaming_caret_position.borrow(),
                 overrides: style_overrides,
             };
 

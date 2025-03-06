@@ -77,6 +77,7 @@ fn run_sync(mpris: Option<Mpris>) -> Result<(), Box<dyn Error>> {
         }
     });
 
+    let focus_stolen = Arc::new(AtomicBool::default());
     let mut root_component = Root::new(&actions, settings, theme, Arc::downgrade(&player));
 
     root_component.on_queue_changed({
@@ -130,7 +131,8 @@ fn run_sync(mpris: Option<Mpris>) -> Result<(), Box<dyn Error>> {
                 } else {
                     None
                 }
-            }) {
+            }) && !focus_stolen.load(Ordering::Relaxed)
+            {
                 player.on_action(vec![*action]);
                 player.single_track_player().on_action(vec![*action]);
             } else {
