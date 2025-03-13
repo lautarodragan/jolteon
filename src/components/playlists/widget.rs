@@ -35,9 +35,9 @@ impl Display for crate::structs::Playlist {
 impl WidgetRef for Playlists<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let [area_left, _, area_right] = Layout::horizontal([
-            Constraint::Percentage(50),
+            Constraint::Percentage(40),
             Constraint::Length(5),
-            Constraint::Percentage(50),
+            Constraint::Percentage(60),
         ])
         .horizontal_margin(2)
         .areas(area);
