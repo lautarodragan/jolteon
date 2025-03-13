@@ -1,6 +1,7 @@
 use std::{
     collections::VecDeque,
     sync::{
+        atomic::{AtomicBool, Ordering},
         mpsc::{channel, Sender},
         Arc,
         Mutex,
@@ -43,6 +44,7 @@ pub struct MainPlayer {
     player: Arc<SingleTrackPlayer>,
     queue: Arc<Queue>,
     on_queue_changed: Arc<Mutex<Option<Box<dyn Fn() + Send + 'static>>>>,
+    is_repeating: Arc<AtomicBool>,
 }
 
 impl MainPlayer {
@@ -77,6 +79,7 @@ impl MainPlayer {
         });
 
         let on_queue_changed = Arc::new(Mutex::new(None));
+        let is_repeating = Arc::new(AtomicBool::new(false));
 
         let t = thread::Builder::new()
             .name("main_player".to_string())
@@ -84,6 +87,7 @@ impl MainPlayer {
                 let player = player.clone();
                 let queue = queue.clone();
                 let on_queue_changed = on_queue_changed.clone();
+                let is_repeating = Arc::clone(&is_repeating);
 
                 move || {
                     let mut repeat = false;
@@ -121,10 +125,12 @@ impl MainPlayer {
                                 MainPlayerMessage::Action(PlayerAction::RepeatOne) => {
                                     log::debug!("will repeat one song");
                                     repeat = true;
+                                    is_repeating.store(true, Ordering::Release);
                                 }
                                 MainPlayerMessage::Action(PlayerAction::RepeatOff) => {
                                     log::debug!("will not repeat");
                                     repeat = false;
+                                    is_repeating.store(false, Ordering::Release);
                                 }
                                 m => {
                                     log::warn!("MainPlayer received unknown message {m:?}");
@@ -146,6 +152,7 @@ impl MainPlayer {
             player,
             on_queue_changed,
             queue,
+            is_repeating,
         }
     }
 
@@ -184,6 +191,10 @@ impl MainPlayer {
 
     pub fn is_paused(&self) -> bool {
         self.player.is_paused()
+    }
+
+    pub fn is_repeating(&self) -> bool {
+        self.is_repeating.load(Ordering::Acquire)
     }
 
     pub fn play(&self, song: Song) {

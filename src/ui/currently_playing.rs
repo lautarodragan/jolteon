@@ -28,6 +28,7 @@ pub struct CurrentlyPlaying {
     queue_total_time: Duration,
     queue_song_count: usize,
     is_paused: bool,
+    is_repeating: bool,
 }
 
 impl CurrentlyPlaying {
@@ -38,6 +39,7 @@ impl CurrentlyPlaying {
         queue_total_time: Duration,
         queue_song_count: usize,
         is_paused: bool,
+        is_repeating: bool,
     ) -> Self {
         Self {
             theme,
@@ -46,6 +48,7 @@ impl CurrentlyPlaying {
             queue_total_time,
             queue_song_count,
             is_paused,
+            is_repeating,
         }
     }
 }
@@ -115,10 +118,15 @@ impl Widget for CurrentlyPlaying {
         }
 
         let [_, area_bottom_right] =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Length(6)]).areas(area_bottom);
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(10)]).areas(area_bottom);
 
         if self.is_paused {
             Line::from("PAUSED")
+                .style(Style::default().fg(self.theme.foreground).bg(self.theme.background))
+                .alignment(Alignment::Right)
+                .render(area_bottom_right, buf);
+        } else if self.is_repeating {
+            Line::from("REPEAT ONE")
                 .style(Style::default().fg(self.theme.foreground).bg(self.theme.background))
                 .alignment(Alignment::Right)
                 .render(area_bottom_right, buf);
