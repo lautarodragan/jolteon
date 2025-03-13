@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use log::error;
 use ratatui::{
     layout::{Constraint, Layout},
     prelude::*,
@@ -100,7 +99,7 @@ impl Widget for CurrentlyPlaying {
             let song_progress = match self.current_song {
                 Some(ref song) => match song.length.as_secs_f64() {
                     0.0 => {
-                        error!("Song length is zero! {:?}", song.path);
+                        log::error!("Song length is zero! {:?}", song.path);
                         0.0
                     }
                     n => f64::clamp(self.current_song_position.as_secs_f64() / n, 0.0, 1.0),
