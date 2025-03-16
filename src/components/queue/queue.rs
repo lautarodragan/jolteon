@@ -47,6 +47,10 @@ impl<'a> Queue<'a> {
     pub fn on_delete(&self, cb: impl Fn(Song, usize) + 'a) {
         self.song_list.on_delete(cb);
     }
+
+    pub fn with_items<R>(&self, cb: impl FnOnce(Vec<&Song>) -> R) -> R {
+        self.song_list.with_items(cb)
+    }
 }
 
 impl Drop for Queue<'_> {

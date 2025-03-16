@@ -122,7 +122,13 @@ impl<'a> Root<'a> {
                 let queue_screen = queue_screen.clone();
                 let on_queue_changed_fn = on_queue_changed_fn.clone();
                 move |song| {
-                    queue_screen.borrow_mut().append(vec![song.clone()]);
+                    let qs = queue_screen.borrow_mut();
+                    if qs.with_items(|items| items.last().is_some_and(|last| last.path == song.path)) {
+                        // ux: "debounce" repeat appends of the last song. TODO: debounce timeout
+                        // better ux would be to "reset" debounce on key up
+                        return;
+                    }
+                    qs.append(vec![song.clone()]);
                     on_queue_changed_fn.call(QueueChange::AddBack(song));
                 }
             });
