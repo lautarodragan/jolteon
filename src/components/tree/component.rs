@@ -487,22 +487,47 @@ where
                     node = &node.children[i];
                 }
             }
-            // NavigationAction::Home if is_filtering => {
-            //     let v_items = self.visible_items.borrow();
-            //     let items = self.items.borrow();
-            //     let Some(n) = v_items.iter().position(|item| items[*item].is_match) else {
-            //         return;
-            //     };
-            //     n
-            // }
-            // NavigationAction::End if is_filtering => {
-            //     let v_items = self.visible_items.borrow();
-            //     let items = self.items.borrow();
-            //     let Some(n) = v_items.iter().rposition(|item| items[*item].is_match) else {
-            //         return;
-            //     };
-            //     n
-            // }
+            NavigationAction::Home if is_filtering => {
+                for (root_node_index, root_node) in root_nodes.iter().enumerate() {
+                    let path = TreeNodePath::from_vec(vec![root_node_index]);
+
+                    if root_node.is_match {
+                        return Some(path);
+                    } else if root_node.is_open {
+                        let path = root_node
+                            .iter()
+                            .find(|(path, node)| node.is_match)
+                            .map(|(path, node)| path)
+                            .map(|path| path.with_parent(root_node_index));
+
+                        if path.is_some() {
+                            return path;
+                        }
+                    }
+                }
+                None
+            }
+            NavigationAction::End if is_filtering => {
+                for (root_node_index, root_node) in root_nodes.iter().enumerate().rev() {
+                    let path = TreeNodePath::from_vec(vec![root_node_index]);
+
+                    if root_node.is_match {
+                        return Some(path);
+                    } else if root_node.is_open {
+                        let path = root_node
+                            .iter()
+                            .rev()
+                            .find(|(path, node)| node.is_match)
+                            .map(|(path, node)| path)
+                            .map(|path| path.with_parent(root_node_index));
+
+                        if path.is_some() {
+                            return path;
+                        }
+                    }
+                }
+                None
+            }
             _ => None,
         }
     }
