@@ -339,14 +339,14 @@ where
         }
 
         match action {
-            NavigationAction::PreviousSpecial => {
+            NavigationAction::PreviousSpecial if !is_filtering => {
                 if current_path.len() > 1 {
                     Some(current_path.parent())
                 } else {
                     current_path.prev_sibling()
                 }
             }
-            NavigationAction::NextSpecial => {
+            NavigationAction::NextSpecial if !is_filtering => {
                 // TODO: maybe define these as "next / previous node with children"? (and implement them so)
                 if current_path.len() > 1 {
                     let parent_path = current_path.parent();
