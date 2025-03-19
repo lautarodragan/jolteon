@@ -44,7 +44,7 @@ impl TreeNodePath {
         self[self.len().saturating_sub(1)]
     }
 
-    pub fn next(&self) -> Self {
+    pub fn next_sibling(&self) -> Self {
         if self.is_empty() {
             self.clone()
         } else {
@@ -52,11 +52,13 @@ impl TreeNodePath {
         }
     }
 
-    pub fn prev(&self) -> Self {
+    pub fn prev_sibling(&self) -> Option<Self> {
         if self.is_empty() {
-            self.clone()
+            Some(self.clone())
+        } else if self.last() > 0 {
+            Some(self.with_value(self.len() - 1, self.last() - 1))
         } else {
-            self.with_value(self.len() - 1, self.last() - 1)
+            None
         }
     }
 

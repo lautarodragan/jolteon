@@ -316,82 +316,85 @@ where
     }
 
     fn exec_navigation_action(&self, action: NavigationAction) {
-        let new_path = self.navigation_action_to_new_path(action);
-        self.set_selected_path(new_path);
+        if let Some(new_path) = self.navigation_action_to_new_path(action) {
+            self.set_selected_path(new_path);
+        }
     }
 
-    fn navigation_action_to_new_path(&self, action: NavigationAction) -> TreeNodePath {
+    fn navigation_action_to_new_path(&self, action: NavigationAction) -> Option<TreeNodePath> {
         let is_filtering = !self.filter.borrow().is_empty();
-        let mut current_path = self.selected_item_path.borrow().clone();
-        let nodes = self.items.borrow();
+        let current_path = {
+            let current_path = self.selected_item_path.borrow().clone();
+            if current_path.is_empty() {
+                log::error!("exec_navigation_action: self.selected_item_path was empty.");
+                TreeNodePath::zero()
+            } else {
+                current_path
+            }
+        };
+        let root_nodes = self.items.borrow();
 
-        if nodes.is_empty() {
-            return current_path.clone();
+        if root_nodes.is_empty() {
+            return None;
         }
 
-        if current_path.is_empty() {
-            log::error!("exec_navigation_action: self.selected_item_path was empty.");
-            current_path = TreeNodePath::zero();
-        }
-
-        let new_path = match action {
+        match action {
             NavigationAction::PreviousSpecial => {
                 if current_path.len() > 1 {
-                    current_path.parent()
-                } else if current_path.first() > 0 {
-                    current_path.with_value(0, current_path.first() - 1)
+                    Some(current_path.parent())
                 } else {
-                    current_path.clone()
+                    current_path.prev_sibling()
                 }
             }
             NavigationAction::NextSpecial => {
                 // TODO: maybe define these as "next / previous node with children"? (and implement them so)
                 if current_path.len() > 1 {
-                    let new_i = current_path.parent();
+                    let parent_path = current_path.parent();
 
                     let sibling_count = {
-                        if new_i.len() == 1 {
-                            nodes.len()
+                        if parent_path.len() == 1 {
+                            root_nodes.len()
                         } else {
-                            let parent_path = new_i.parent();
-                            let node = TreeNode::get_node_at_path(&parent_path, &nodes).unwrap();
+                            let grand_parent_path = parent_path.parent();
+                            let node = TreeNode::get_node_at_path(&grand_parent_path, &root_nodes).unwrap();
                             node.children.len()
                         }
                     };
 
-                    if new_i.last() + 1 < sibling_count {
-                        new_i.with_value(new_i.len() - 1, new_i.last() + 1)
+                    if parent_path.last() + 1 < sibling_count {
+                        Some(parent_path.next_sibling())
                     } else {
-                        new_i
+                        Some(parent_path)
                     }
-                } else if current_path.first() + 1 < nodes.len() {
-                    current_path.with_value(0, current_path.first() + 1)
+                } else if current_path.first() + 1 < root_nodes.len() {
+                    Some(current_path.next_sibling())
                 } else {
-                    current_path.clone()
+                    None
                 }
             }
             NavigationAction::Up if !is_filtering => {
-                if current_path.last() > 0 {
-                    let new_path = current_path.with_value(current_path.len() - 1, current_path.last() - 1);
-                    let node = TreeNode::get_node_at_path(&new_path, &nodes).unwrap();
+                if let Some(new_path) = current_path.prev_sibling() {
+                    let node = TreeNode::get_node_at_path(&new_path, &root_nodes).unwrap(); // safety: we can unwrap because there will always be a previous node!
 
-                    if node.is_open && !node.children.is_empty() {
+                    Some(if node.is_open && !node.children.is_empty() {
                         new_path.with_child(node.children.len() - 1)
                     } else {
                         new_path
-                    }
+                    })
                 } else if current_path.len() > 1 {
-                    current_path.parent()
+                    Some(current_path.parent())
                 } else {
-                    current_path.clone()
+                    None
                 }
             }
             NavigationAction::Down if !is_filtering => {
-                let node = TreeNode::get_node_at_path(&current_path, &nodes).unwrap();
+                let Some(node) = TreeNode::get_node_at_path(&current_path, &root_nodes) else {
+                    panic!("No node at path {current_path:?}. Either TreeNode::get_node_at_path is broken, or something is incorrectly setting current_path.");
+                };
 
                 if node.is_open && !node.children.is_empty() {
                     // Walk down / into
-                    current_path.with_child(0)
+                    Some(current_path.with_child(0))
                 } else {
                     // Walk next/up/next
                     let mut path = current_path.clone();
@@ -401,85 +404,86 @@ where
                         path = path.parent();
 
                         if path.is_empty() {
-                            if last == nodes.len() - 1 {
-                                break current_path.clone();
+                            return if last == root_nodes.len() - 1 {
+                                None
                             } else {
-                                break TreeNodePath::from_vec(vec![(last + 1).min(nodes.len().saturating_sub(1))]);
-                            }
+                                Some(TreeNodePath::from_vec(vec![
+                                    (last + 1).min(root_nodes.len().saturating_sub(1))
+                                ]))
+                            };
                         }
 
-                        let parent_node = TreeNode::get_node_at_path(&path, &nodes).unwrap();
+                        let parent_node = TreeNode::get_node_at_path(&path, &root_nodes).unwrap();
 
                         if parent_node.children.len() > last + 1 {
-                            break path.with_child(last + 1);
+                            return Some(path.with_child(last + 1));
                         }
                     }
                 }
             }
             NavigationAction::Up if is_filtering => {
-                let mut new_path = current_path.clone();
-
-                'outer: for (root_node_index, root_node) in nodes.iter().enumerate().rev() {
-                    for (path, node) in root_node.iter().rev() {
-                        let path = path.with_parent(root_node_index);
-                        if path < current_path && node.is_match {
-                            new_path = path;
-                            break 'outer;
-                        }
+                for (root_node_index, root_node) in root_nodes.iter().enumerate().rev() {
+                    if let Some(path) = root_node
+                        .iter()
+                        .rev()
+                        .filter(|(_, node)| node.is_match)
+                        .map(|(path, _)| path)
+                        .map(|path| path.with_parent(root_node_index))
+                        .find(|path| *path < current_path)
+                    {
+                        return Some(path);
                     }
 
-                    let path = TreeNodePath::from_vec(vec![root_node_index]);
-                    if root_node.is_match && path < current_path {
-                        new_path = path;
-                        break 'outer;
+                    if root_node.is_match {
+                        let path = TreeNodePath::from_vec(vec![root_node_index]);
+                        if path < current_path {
+                            return Some(path);
+                        }
                     }
                 }
 
-                new_path
+                None
             }
             NavigationAction::Down if is_filtering => {
-                let mut new_path = current_path.clone();
-
-                'outer: for (root_node_index, root_node) in nodes.iter().enumerate() {
+                for (root_node_index, root_node) in root_nodes.iter().enumerate() {
                     let path = TreeNodePath::from_vec(vec![root_node_index]);
 
                     if root_node.is_match && path > current_path {
-                        new_path = path;
-                        break 'outer;
+                        return Some(path);
                     } else if root_node.is_open {
-                        for (path, node) in root_node.iter() {
-                            let path = path.with_parent(root_node_index);
-                            if path <= current_path {
-                                continue;
-                            } else if node.is_match {
-                                new_path = path;
-                                break 'outer;
-                            }
+                        if let Some(path) = root_node
+                            .iter()
+                            .filter(|(path, node)| node.is_match)
+                            .map(|(path, node)| path)
+                            .map(|path| path.with_parent(root_node_index))
+                            .find(|path| *path > current_path)
+                        {
+                            return Some(path);
                         }
                     }
                 }
 
-                new_path
+                None
             }
             NavigationAction::PageUp if !is_filtering => {
                 // NOTE: PageUp MUST result in the same as pressing Up `page_size` times.
                 // It'll make more sense to implement the logic here, and have the "normal" Up/Down
                 // call this code with a page_size of 1.
-                current_path.clone()
+                None
             }
-            NavigationAction::PageDown if !is_filtering => current_path.clone(),
-            NavigationAction::Home if !is_filtering => TreeNodePath::zero(),
+            NavigationAction::PageDown if !is_filtering => None,
+            NavigationAction::Home if !is_filtering => Some(TreeNodePath::zero()),
             NavigationAction::End if !is_filtering => {
-                let mut new_i = vec![nodes.len() - 1];
-                let mut node = &nodes[nodes.len() - 1];
+                let mut new_path = vec![root_nodes.len() - 1];
+                let mut node = &root_nodes[root_nodes.len() - 1];
 
                 loop {
                     if !node.is_open || node.children.is_empty() {
-                        break TreeNodePath::from_vec(new_i);
+                        return Some(TreeNodePath::from_vec(new_path));
                     }
 
                     let i = node.children.len() - 1;
-                    new_i.push(i);
+                    new_path.push(i);
                     node = &node.children[i];
                 }
             }
@@ -499,12 +503,8 @@ where
             //     };
             //     n
             // }
-            _ => {
-                return current_path.clone();
-            }
-        };
-
-        new_path
+            _ => None,
+        }
     }
 
     fn set_selected_path(&self, new_path: TreeNodePath) {
@@ -520,10 +520,9 @@ where
 
         let nodes = self.items.borrow();
 
-        let node = TreeNode::get_node_at_path(&new_path, &nodes);
-        if node.is_none() {
+        let Some(node_at_new_path) = TreeNode::get_node_at_path(&new_path, &nodes) else {
             panic!("No node at path {new_path:?}");
-        }
+        };
 
         let total_visible_node_count = TreeNode::total_open_count(&nodes) as isize;
         let visible_node_count_until_selection = TreeNode::open_count(&nodes, &new_path) as isize - 1;
@@ -550,11 +549,10 @@ where
         }
 
         *current_path = new_path;
-
-        let newly_selected_item = TreeNode::get_node_at_path(&current_path, &nodes).unwrap();
+        drop(current_path);
 
         if let Some(on_select_fn) = &self.on_select_fn {
-            on_select_fn(newly_selected_item);
+            on_select_fn(node_at_new_path);
         }
     }
 

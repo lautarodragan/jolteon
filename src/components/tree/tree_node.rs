@@ -167,14 +167,14 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
                 if self.current_path.len() == 1 {
                     // no more parents. we're at the top level.
                     // we return the next sibling if there is one, None otherwise.
-                    self.current_path = self.current_path.next();
+                    self.current_path = self.current_path.next_sibling();
                     self.current_node = self.root.children.get(self.current_path.clone().last());
                     self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
                 } else {
                     // get next sibling
                     let parent_path = self.current_path.parent();
                     let parent = self.root.get_child(&parent_path).unwrap();
-                    let next_sibling_path = self.current_path.next();
+                    let next_sibling_path = self.current_path.next_sibling();
                     let next_sibling = parent.children.get(next_sibling_path.last());
 
                     if next_sibling.is_some() {
@@ -184,7 +184,7 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
                     } else {
                         // go up. may need to go many levels!
 
-                        self.current_path = self.current_path.parent().next();
+                        self.current_path = self.current_path.parent().next_sibling();
                         self.current_node = self.root.get_child(&self.current_path);
 
                         self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
@@ -229,7 +229,7 @@ impl<T> DoubleEndedIterator for TreeNodeIterator<'_, T> {
             self.current_node.as_ref().map(|n| (self.current_path.clone(), *n))
         } else {
             // We have at least one sibling before us. Move onto it. (self.current_path.last() > 0)
-            self.current_path = self.current_path.prev();
+            self.current_path = self.current_path.prev_sibling().unwrap();
             let mut node = self.root.get_child(&self.current_path).unwrap();
 
             // This sibling may have children. We now must find its last child.
