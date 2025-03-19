@@ -205,7 +205,11 @@ where
         cb(&mut filter);
 
         let mut nodes = self.items.borrow_mut();
-        for node in nodes.iter_mut() {
+        let selected_item_path = self.selected_item_path.borrow_mut();
+        let mut selected_node_match_status_changed = false;
+
+        // TODO: recursive iter_mut. this is hard-coded to go down 1 level deep.
+        for (index, node) in nodes.iter_mut().enumerate() {
             node.is_match = !filter.is_empty()
                 && node
                     .inner
@@ -213,29 +217,60 @@ where
                     .to_lowercase()
                     .contains(filter.to_lowercase().as_str());
 
+            if selected_item_path.len() == 1 && selected_item_path[0] == index && !node.is_match {
+                selected_node_match_status_changed = true;
+            }
+
             if node.is_open {
-                for node in node.children.iter_mut() {
+                for (child_index, node) in node.children.iter_mut().enumerate() {
                     node.is_match = !filter.is_empty()
                         && node
                             .inner
                             .to_string()
                             .to_lowercase()
                             .contains(filter.to_lowercase().as_str());
-                }
 
-                // TODO: how can I implement node.iter_mut????
-                // for node in node.iter() {
-                //     // log::debug!("filtering child: {}", node.inner)
-                // }
+                    if selected_item_path.len() == 2
+                        && selected_item_path[0] == index
+                        && selected_item_path[1] == child_index
+                        && !node.is_match
+                    {
+                        selected_node_match_status_changed = true;
+                    }
+                }
             }
         }
-    }
 
-    #[allow(unused)]
-    pub fn set_selected_path(&self, new_i: TreeNodePath) {
-        log::debug!("set_selected_index {new_i:?}");
-        // TODO: assert the path is valid
-        *self.selected_item_path.borrow_mut() = new_i;
+        if selected_node_match_status_changed {
+            log::debug!("selected_node_match_status_changed {filter} {selected_item_path:?}");
+
+            let mut new_path = selected_item_path.clone();
+
+            'outer: for (root_node_index, root_node) in nodes.iter().enumerate() {
+                let path = TreeNodePath::from_vec(vec![root_node_index]);
+
+                if root_node.is_match && path > *selected_item_path {
+                    new_path = path;
+                    break 'outer;
+                } else if root_node.is_open {
+                    for (path, node) in root_node.iter() {
+                        let path = path.with_parent(root_node_index);
+                        if path <= *selected_item_path {
+                            continue;
+                        } else if node.is_match {
+                            new_path = path;
+                            break 'outer;
+                        }
+                    }
+                }
+            }
+
+            drop(nodes);
+            drop(selected_item_path);
+            drop(filter);
+
+            self.set_selected_path(new_path);
+        }
     }
 
     pub fn exec_action(&mut self, action: Action) {
@@ -281,34 +316,38 @@ where
     }
 
     fn exec_navigation_action(&self, action: NavigationAction) {
-        let is_filtering = !self.filter.borrow_mut().is_empty();
+        let new_path = self.navigation_action_to_new_path(action);
+        self.set_selected_path(new_path);
+    }
+
+    fn navigation_action_to_new_path(&self, action: NavigationAction) -> TreeNodePath {
+        let is_filtering = !self.filter.borrow().is_empty();
+        let mut current_path = self.selected_item_path.borrow().clone();
         let nodes = self.items.borrow();
 
         if nodes.is_empty() {
-            return;
+            return current_path.clone();
         }
 
-        let mut initial_i = self.selected_item_path.borrow_mut();
-
-        if initial_i.is_empty() {
+        if current_path.is_empty() {
             log::error!("exec_navigation_action: self.selected_item_path was empty.");
-            *initial_i = TreeNodePath::zero();
+            current_path = TreeNodePath::zero();
         }
 
-        let i = match action {
+        let new_path = match action {
             NavigationAction::PreviousSpecial => {
-                if initial_i.len() > 1 {
-                    initial_i.parent()
-                } else if initial_i.first() > 0 {
-                    initial_i.with_value(0, initial_i.first() - 1)
+                if current_path.len() > 1 {
+                    current_path.parent()
+                } else if current_path.first() > 0 {
+                    current_path.with_value(0, current_path.first() - 1)
                 } else {
-                    initial_i.clone()
+                    current_path.clone()
                 }
             }
             NavigationAction::NextSpecial => {
                 // TODO: maybe define these as "next / previous node with children"? (and implement them so)
-                if initial_i.len() > 1 {
-                    let new_i = initial_i.parent();
+                if current_path.len() > 1 {
+                    let new_i = current_path.parent();
 
                     let sibling_count = {
                         if new_i.len() == 1 {
@@ -325,15 +364,15 @@ where
                     } else {
                         new_i
                     }
-                } else if initial_i.first() + 1 < nodes.len() {
-                    initial_i.with_value(0, initial_i.first() + 1)
+                } else if current_path.first() + 1 < nodes.len() {
+                    current_path.with_value(0, current_path.first() + 1)
                 } else {
-                    initial_i.clone()
+                    current_path.clone()
                 }
             }
             NavigationAction::Up if !is_filtering => {
-                if initial_i.last() > 0 {
-                    let new_path = initial_i.with_value(initial_i.len() - 1, initial_i.last() - 1);
+                if current_path.last() > 0 {
+                    let new_path = current_path.with_value(current_path.len() - 1, current_path.last() - 1);
                     let node = TreeNode::get_node_at_path(&new_path, &nodes).unwrap();
 
                     if node.is_open && !node.children.is_empty() {
@@ -341,21 +380,21 @@ where
                     } else {
                         new_path
                     }
-                } else if initial_i.len() > 1 {
-                    initial_i.parent()
+                } else if current_path.len() > 1 {
+                    current_path.parent()
                 } else {
-                    initial_i.clone()
+                    current_path.clone()
                 }
             }
             NavigationAction::Down if !is_filtering => {
-                let node = TreeNode::get_node_at_path(&initial_i, &nodes).unwrap();
+                let node = TreeNode::get_node_at_path(&current_path, &nodes).unwrap();
 
                 if node.is_open && !node.children.is_empty() {
                     // Walk down / into
-                    initial_i.with_child(0)
+                    current_path.with_child(0)
                 } else {
                     // Walk next/up/next
-                    let mut path = initial_i.clone();
+                    let mut path = current_path.clone();
 
                     loop {
                         let last = path.last();
@@ -363,7 +402,7 @@ where
 
                         if path.is_empty() {
                             if last == nodes.len() - 1 {
-                                break initial_i.clone();
+                                break current_path.clone();
                             } else {
                                 break TreeNodePath::from_vec(vec![(last + 1).min(nodes.len().saturating_sub(1))]);
                             }
@@ -378,19 +417,19 @@ where
                 }
             }
             NavigationAction::Up if is_filtering => {
-                let mut new_path = initial_i.clone();
+                let mut new_path = current_path.clone();
 
                 'outer: for (root_node_index, root_node) in nodes.iter().enumerate().rev() {
                     for (path, node) in root_node.iter().rev() {
                         let path = path.with_parent(root_node_index);
-                        if path < *initial_i && node.is_match {
+                        if path < current_path && node.is_match {
                             new_path = path;
                             break 'outer;
                         }
                     }
 
                     let path = TreeNodePath::from_vec(vec![root_node_index]);
-                    if root_node.is_match && path < *initial_i {
+                    if root_node.is_match && path < current_path {
                         new_path = path;
                         break 'outer;
                     }
@@ -399,18 +438,18 @@ where
                 new_path
             }
             NavigationAction::Down if is_filtering => {
-                let mut new_path = initial_i.clone();
+                let mut new_path = current_path.clone();
 
                 'outer: for (root_node_index, root_node) in nodes.iter().enumerate() {
                     let path = TreeNodePath::from_vec(vec![root_node_index]);
 
-                    if root_node.is_match && path > *initial_i {
+                    if root_node.is_match && path > current_path {
                         new_path = path;
                         break 'outer;
                     } else if root_node.is_open {
                         for (path, node) in root_node.iter() {
                             let path = path.with_parent(root_node_index);
-                            if path <= *initial_i {
+                            if path <= current_path {
                                 continue;
                             } else if node.is_match {
                                 new_path = path;
@@ -426,9 +465,9 @@ where
                 // NOTE: PageUp MUST result in the same as pressing Up `page_size` times.
                 // It'll make more sense to implement the logic here, and have the "normal" Up/Down
                 // call this code with a page_size of 1.
-                initial_i.clone()
+                current_path.clone()
             }
-            NavigationAction::PageDown if !is_filtering => initial_i.clone(),
+            NavigationAction::PageDown if !is_filtering => current_path.clone(),
             NavigationAction::Home if !is_filtering => TreeNodePath::zero(),
             NavigationAction::End if !is_filtering => {
                 let mut new_i = vec![nodes.len() - 1];
@@ -461,18 +500,33 @@ where
             //     n
             // }
             _ => {
-                return;
+                return current_path.clone();
             }
         };
 
-        let dir = i.cmp(&initial_i);
+        new_path
+    }
+
+    fn set_selected_path(&self, new_path: TreeNodePath) {
+        log::debug!("set_selected_path {new_path:?}");
+
+        let mut current_path = self.selected_item_path.borrow_mut();
+
+        let dir = new_path.cmp(&current_path);
 
         if dir == Ordering::Equal {
             return;
         }
 
+        let nodes = self.items.borrow();
+
+        let node = TreeNode::get_node_at_path(&new_path, &nodes);
+        if node.is_none() {
+            panic!("No node at path {new_path:?}");
+        }
+
         let total_visible_node_count = TreeNode::total_open_count(&nodes) as isize;
-        let visible_node_count_until_selection = TreeNode::open_count(&nodes, &i) as isize - 1;
+        let visible_node_count_until_selection = TreeNode::open_count(&nodes, &new_path) as isize - 1;
         let height = self.height.get() as isize;
         let offset = self.offset.get() as isize;
         let padding = self.padding as isize;
@@ -495,9 +549,9 @@ where
             self.offset.set(offset as usize);
         }
 
-        *initial_i = i;
+        *current_path = new_path;
 
-        let newly_selected_item = TreeNode::get_node_at_path(&initial_i, &nodes).unwrap();
+        let newly_selected_item = TreeNode::get_node_at_path(&current_path, &nodes).unwrap();
 
         if let Some(on_select_fn) = &self.on_select_fn {
             on_select_fn(newly_selected_item);
