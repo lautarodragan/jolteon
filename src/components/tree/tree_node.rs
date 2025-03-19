@@ -150,7 +150,7 @@ impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         // TODO: avoid calling .get_child(). store branch: Vec<&'a TreeNode<T>> (or VecDeque?)
-        // TODO: skip closed nodes? can that be achieved with .filter (is filter lazy and ordered and deterministic?)
+        // TODO: skip closed nodes?
 
         if let Some(current_node) = self.current_node {
             let current_node_first_child = current_node.children().first();
