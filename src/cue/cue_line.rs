@@ -1,7 +1,7 @@
 use std::{
     fmt::{Debug, Display, Formatter},
     fs::File,
-    io::{self, BufRead, Read},
+    io::{self, Read},
     path::Path,
 };
 
