@@ -389,7 +389,7 @@ where
                     None
                 }
             }
-            NavigationAction::Down if !is_filtering => TreeIterator::new(&*root_nodes)
+            NavigationAction::Down if !is_filtering => TreeIterator::new(&root_nodes)
                 .map(|i| i.0)
                 .find(|path| *path > current_path),
             NavigationAction::Up if is_filtering => {
@@ -415,16 +415,17 @@ where
 
                 None
             }
-            NavigationAction::Down if is_filtering => TreeIterator::new(&*root_nodes)
+            NavigationAction::Down if is_filtering => TreeIterator::new(&root_nodes)
                 .find(|(path, node)| *path > current_path && node.is_match)
-                .map(|(path, node)| path),
+                .map(|(path, _)| path),
             NavigationAction::PageUp if !is_filtering => {
-                // NOTE: PageUp MUST result in the same as pressing Up `page_size` times.
-                // It'll make more sense to implement the logic here, and have the "normal" Up/Down
-                // call this code with a page_size of 1.
+                // TODO: impl DoubleEndedIterator for TreeIterator
                 None
             }
-            NavigationAction::PageDown if !is_filtering => None,
+            NavigationAction::PageDown if !is_filtering => TreeIterator::new(&root_nodes)
+                .map(|i| i.0)
+                .filter(|path| *path > current_path)
+                .nth(self.page_size as usize - 1),
             NavigationAction::Home if !is_filtering => Some(TreeNodePath::zero()),
             NavigationAction::End if !is_filtering => {
                 let mut new_path = vec![root_nodes.len() - 1];
@@ -441,7 +442,7 @@ where
                 }
             }
             NavigationAction::Home if is_filtering => {
-                TreeIterator::new(&*root_nodes).find_map(|(path, node)| if node.is_match { Some(path) } else { None })
+                TreeIterator::new(&root_nodes).find_map(|(path, node)| if node.is_match { Some(path) } else { None })
             }
             NavigationAction::End if is_filtering => {
                 for (root_node_index, root_node) in root_nodes.iter().enumerate().rev() {
@@ -453,8 +454,8 @@ where
                         let path = root_node
                             .iter()
                             .rev()
-                            .find(|(path, node)| node.is_match)
-                            .map(|(path, node)| path)
+                            .find(|(_, node)| node.is_match)
+                            .map(|(path, _)| path)
                             .map(|path| path.with_parent(root_node_index));
 
                         if path.is_some() {
@@ -723,7 +724,7 @@ pub struct TreeIterator<'a, T: 'a> {
 }
 
 impl<'a, T: 'a> TreeIterator<'a, T> {
-    pub fn new(items: &'a Vec<TreeNode<T>>) -> TreeIterator<'a, T> {
+    pub fn new(items: &'a [TreeNode<T>]) -> TreeIterator<'a, T> {
         let root_iter = items.iter();
 
         TreeIterator {
@@ -733,7 +734,7 @@ impl<'a, T: 'a> TreeIterator<'a, T> {
             pick_locks: false,
         }
     }
-    pub fn new_thief(items: &'a Vec<TreeNode<T>>) -> TreeIterator<'a, T> {
+    pub fn new_thief(items: &'a [TreeNode<T>]) -> TreeIterator<'a, T> {
         let root_iter = items.iter();
 
         TreeIterator {
