@@ -1,14 +1,18 @@
 # See https://docs.rs/ratatui/latest/ratatui/style/enum.Color.html
+# Inspired by https://github.com/lonre/gruvbox-intellij-theme/blob/master/src/main/resources/gruvbox_dark_hard.theme.json
 
 top_bar_background = "#443222"
 top_bar_foreground_selected = "#e5c07b"
 
 foreground = "#d19a66"
-foreground_selected = "#000000"
-foreground_secondary = "#ffffff"
+foreground_selected = "#312418"
+foreground_secondary = "#efe7e0"
 
-background = "#000000"
+background = "#030303"
 background_selected = "#d19a66"
 background_selected_blur = "#865528"
 
-search = "#ff0000"
+search = "#ffae62"
+search_selected = "#312418"
+
+#red1 = "#fb4934"

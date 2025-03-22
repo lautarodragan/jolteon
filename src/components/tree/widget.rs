@@ -9,7 +9,7 @@ use ratatui::{
     style::Style,
     widgets::{Widget, WidgetRef},
 };
-
+use ratatui::style::{Modifier, Styled};
 use super::{Tree, TreeNode, TreeNodePath};
 use crate::{config::Theme, ui::Focusable};
 
@@ -29,9 +29,11 @@ impl<'a> Widget for ListLine<'a> {
             Style::default().fg(self.theme.background).bg(self.theme.search)
         } else if self.is_selected {
             if self.list_has_focus {
-                Style::default()
-                    .fg(self.theme.foreground_selected)
-                    .bg(self.theme.background_selected)
+                if self.is_match {
+                    Style::default().fg(self.theme.search_selected).bg(self.theme.background_selected).add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(self.theme.foreground_selected).bg(self.theme.background_selected)
+                }
             } else {
                 Style::default()
                     .fg(self.theme.foreground_selected)

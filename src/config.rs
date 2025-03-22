@@ -12,4 +12,5 @@ pub struct Theme {
     pub background_selected: Color,
     pub background_selected_blur: Color,
     pub search: Color,
+    pub search_selected: Color,
 }
