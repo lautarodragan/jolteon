@@ -6,10 +6,10 @@ use std::{
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Style,
+    style::{Modifier, Style, Styled},
     widgets::{Widget, WidgetRef},
 };
-use ratatui::style::{Modifier, Styled};
+
 use super::{Tree, TreeNode, TreeNodePath};
 use crate::{config::Theme, ui::Focusable};
 
@@ -30,9 +30,14 @@ impl<'a> Widget for ListLine<'a> {
         } else if self.is_selected {
             if self.list_has_focus {
                 if self.is_match {
-                    Style::default().fg(self.theme.search_selected).bg(self.theme.background_selected).add_modifier(Modifier::BOLD)
+                    Style::default()
+                        .fg(self.theme.search_selected)
+                        .bg(self.theme.background_selected)
+                        .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(self.theme.foreground_selected).bg(self.theme.background_selected)
+                    Style::default()
+                        .fg(self.theme.foreground_selected)
+                        .bg(self.theme.background_selected)
                 }
             } else {
                 Style::default()

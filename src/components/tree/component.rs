@@ -206,12 +206,15 @@ where
 
         cb(&mut filter);
 
-        let mut nodes = self.items.borrow_mut();
         let selected_item_path = self.selected_item_path.borrow_mut();
         let mut selected_node_match_status_changed = false;
 
-        // TODO: recursive iter_mut. this is hard-coded to go down 1 level deep.
-        for (index, node) in nodes.iter_mut().enumerate() {
+        let mut current_match_index: usize = 0;
+        let mut prev_match: Option<(TreeNodePath, usize)> = None;
+        let mut next_match: Option<(TreeNodePath, usize)> = None;
+        let mut i: usize = 0;
+
+        self.for_each_mut(|node, path| {
             node.is_match = !filter.is_empty()
                 && node
                     .inner
@@ -219,58 +222,48 @@ where
                     .to_lowercase()
                     .contains(filter.to_lowercase().as_str());
 
-            if selected_item_path.len() == 1 && selected_item_path[0] == index && !node.is_match {
-                selected_node_match_status_changed = true;
-            }
-
-            if node.is_open {
-                for (child_index, node) in node.children.iter_mut().enumerate() {
-                    node.is_match = !filter.is_empty()
-                        && node
-                            .inner
-                            .to_string()
-                            .to_lowercase()
-                            .contains(filter.to_lowercase().as_str());
-
-                    if selected_item_path.len() == 2
-                        && selected_item_path[0] == index
-                        && selected_item_path[1] == child_index
-                        && !node.is_match
-                    {
-                        selected_node_match_status_changed = true;
-                    }
-                }
-            }
-        }
-
-        if selected_node_match_status_changed {
-            log::debug!("selected_node_match_status_changed {filter} {selected_item_path:?}");
-
-            let mut new_path = selected_item_path.clone();
-
-            'outer: for (root_node_index, root_node) in nodes.iter().enumerate() {
-                let path = TreeNodePath::from_vec(vec![root_node_index]);
-
-                if root_node.is_match && path > *selected_item_path {
-                    new_path = path;
-                    break 'outer;
-                } else if root_node.is_open {
-                    for (path, node) in root_node.iter() {
-                        let path = path.with_parent(root_node_index);
-                        if path <= *selected_item_path {
-                            continue;
-                        } else if node.is_match {
-                            new_path = path;
-                            break 'outer;
-                        }
-                    }
+            // UX: if the currently selected node no longer matches the filter, we'll want to select another node.
+            if path == *selected_item_path {
+                current_match_index = i;
+                if !node.is_match {
+                    selected_node_match_status_changed = true
                 }
             }
 
-            drop(nodes);
-            drop(selected_item_path);
-            drop(filter);
+            if node.is_match {
+                // UX: store references to the newly matching elements closest to the current selection
+                if path < *selected_item_path {
+                    // the iterator is ordered, so:
+                    //   - we don't need to check prev_match.is_some_and(|prev_path, _| path > prev_path). this will always be true.
+                    //   - we *always* overwrite the existing value, because it'll always be closer to the selection
+                    //     than the previous one.
+                    prev_match = Some((path, i));
+                } else if next_match.is_none() && path > *selected_item_path {
+                    // the iterator is ordered, so the first match with `path > *selected_item_path` will be the closest one.
+                    next_match = Some((path, i));
+                }
+            }
 
+            i += 1;
+        });
+
+        drop(selected_item_path);
+        drop(filter);
+
+        let new_path = match (prev_match, next_match) {
+            (Some((prev_path, prev_i)), Some((next_path, next_i))) => {
+                // UX: if we have matches both before and after the current selection,
+                // we grab the one closest to the current selection.
+                if (current_match_index - prev_i) < (next_i - current_match_index) {
+                    Some(prev_path)
+                } else {
+                    Some(next_path)
+                }
+            }
+            (prev_match, next_match) => prev_match.or(next_match).map(|(path, _)| path),
+        };
+
+        if selected_node_match_status_changed && let Some(new_path) = new_path {
             self.set_selected_path(new_path);
         }
     }
@@ -696,6 +689,20 @@ where
                 });
             }
             _ => {}
+        }
+    }
+
+    fn for_each_mut(&self, mut cb: impl FnMut(&mut TreeNode<T>, TreeNodePath)) {
+        // TODO: recursive iter_mut. this is hard-coded to go down 1 level deep.
+        let mut nodes = self.items.borrow_mut();
+        for (index, node) in nodes.iter_mut().enumerate() {
+            cb(node, TreeNodePath::from_vec(vec![index]));
+
+            if node.is_open {
+                for (child_index, node) in node.children.iter_mut().enumerate() {
+                    cb(node, TreeNodePath::from_vec(vec![index, child_index]));
+                }
+            }
         }
     }
 }
