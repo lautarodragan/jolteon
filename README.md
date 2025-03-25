@@ -14,16 +14,14 @@ The best music player.
 
 ## Installation
 
-*Tested only on Linux*
-
 ### Binaries
 
 Binaries are automatically built and published here, in the GitHub repo, built for Linux and Mac, for every new commit to `main`.
 
-🚧 They are currently being published as zipped artifacts uploaded to workflow runs, but not yet as releases.
-They will be automatically published as releases in the future. For now, the only way to get the releases it to navigate to 
-the [CD workflow](https://github.com/lautarodragan/jolteon/actions/workflows/cd.yml?query=is%3Asuccess+branch%3Amain++), select the most recent one,
-and download one of the files listed in the _Artifacts_ section in the lower part of that page.
+See [releases](https://github.com/lautarodragan/jolteon/releases).
+
+Every commit to `main` also has the binaries build and uploaded. 
+See [Release](https://github.com/lautarodragan/jolteon/actions/workflows/cd.yml) workflow.
 
 ### Build From Source
 

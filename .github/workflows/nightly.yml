@@ -1,0 +1,61 @@
+name: Nightly Build
+on:
+  workflow_dispatch: # Allows manual trigger
+  schedule:
+    - cron: '0 0 * * *'
+permissions:
+  contents: write
+jobs:
+  nightly:
+    name: "${{ matrix.platform.os }} ${{ matrix.platform.target }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu  }
+          - { os: macos-latest , target: x86_64-apple-darwin       }
+          - { os: macos-latest , target: aarch64-apple-darwin      }
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: which brew
+        if: ${{ matrix.platform.os == 'macos-latest' }}
+
+      - run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
+          chmod a+x rustup.sh
+          ./rustup.sh -y
+
+      - run: rustc --print target-list
+      - run: rustup target add ${{ matrix.platform.target }}
+      - run: rustc --target=${{ matrix.platform.target }} --print target-cpus
+
+      - run: sudo apt-get update && sudo apt-get install libasound2-dev
+        if: ${{ matrix.platform.os == 'ubuntu-latest' }}
+
+      - run: cargo build --locked --release --target ${{ matrix.platform.target }}
+
+      - run: |
+          pwd
+          ls
+          cp "target/${{ matrix.platform.target }}/release/jolteon" "jolteon-${{ matrix.platform.target }}"
+          tar -czvf "jolteon-${{ matrix.platform.target }}.tar.gz" "jolteon-${{ matrix.platform.target }}"
+          ls
+
+      - name: Update the tag
+        run: |
+          # git config user.name "github-actions[bot]"
+          # git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag --force nightly && git push --force origin tag nightly
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Nightly Build"
+          tag_name: nightly
+          files: "jolteon-${{ matrix.platform.target }}.tar.gz"
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
