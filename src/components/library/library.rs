@@ -102,7 +102,7 @@ impl<'a> Library<'a> {
                 let album_tree = album_tree.borrow_mut();
                 album_tree.with_selected_node_mut(|selected_node| {
                     match &mut selected_node.inner {
-                        AlbumTreeItem::Category(category) => {
+                        AlbumTreeItem::Folder(category) => {
                             // TODO
                         }
                         AlbumTreeItem::Artist(_) => {
@@ -140,7 +140,7 @@ impl<'a> Library<'a> {
                     // log::trace!(target: "::library.album_tree.on_select", "selected {:#?}", item);
 
                     let songs = match &item.inner {
-                        AlbumTreeItem::Category(category) => {
+                        AlbumTreeItem::Folder(category) => {
                             // TODO
                             vec![]
                         }
@@ -159,7 +159,7 @@ impl<'a> Library<'a> {
                     log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
 
                     let songs = match item {
-                        AlbumTreeItem::Category(category) => {
+                        AlbumTreeItem::Folder(category) => {
                             // TODO
                             vec![]
                         }
