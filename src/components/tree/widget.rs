@@ -129,6 +129,7 @@ fn render_node<'a, T>(
         *skip -= 1;
     } else {
         let parent_area = Rect {
+            x: area.x + path.len().saturating_sub(1) as u16 * 2,
             y: area.y + *y,
             height: 1,
             ..area

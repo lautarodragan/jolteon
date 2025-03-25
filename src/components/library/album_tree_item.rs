@@ -46,7 +46,7 @@ impl Display for AlbumTreeItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             AlbumTreeItem::Artist(s) => write!(f, "{}", s.name),
-            AlbumTreeItem::Album(album) => write!(f, "  {} - {}", album.year.unwrap_or_default(), album.name),
+            AlbumTreeItem::Album(album) => write!(f, "{} - {}", album.year.unwrap_or_default(), album.name),
         }
     }
 }
