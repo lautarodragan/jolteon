@@ -37,10 +37,11 @@ impl<'a> Library<'a> {
             album_tree_items
                 .first()
                 .map(|node| {
-                    let AlbumTreeItem::Artist(ref artist) = node.inner else {
-                        panic!("oops");
-                    };
-                    artist.songs()
+                    if let AlbumTreeItem::Artist(ref artist) = node.inner {
+                        artist.songs()
+                    } else {
+                        vec![]
+                    }
                 })
                 .unwrap_or_default(),
         );
