@@ -101,6 +101,9 @@ impl<'a> Library<'a> {
                 let album_tree = album_tree.borrow_mut();
                 album_tree.with_selected_node_mut(|selected_node| {
                     match &mut selected_node.inner {
+                        AlbumTreeItem::Category(category) => {
+                            // TODO
+                        }
                         AlbumTreeItem::Artist(_) => {
                             let album = selected_node
                                 .children
@@ -136,6 +139,10 @@ impl<'a> Library<'a> {
                     // log::trace!(target: "::library.album_tree.on_select", "selected {:#?}", item);
 
                     let songs = match &item.inner {
+                        AlbumTreeItem::Category(category) => {
+                            // TODO
+                            vec![]
+                        }
                         AlbumTreeItem::Artist(_) => {
                             item.children.iter().flat_map(|child| child.inner.songs()).collect()
                         }
@@ -151,6 +158,10 @@ impl<'a> Library<'a> {
                     log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
 
                     let songs = match item {
+                        AlbumTreeItem::Category(category) => {
+                            // TODO
+                            vec![]
+                        }
                         AlbumTreeItem::Artist(artist) => artist.albums.iter().flat_map(|album| &album.songs).collect(),
                         AlbumTreeItem::Album(album) => album.songs.iter().collect(),
                     };

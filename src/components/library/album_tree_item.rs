@@ -31,11 +31,13 @@ pub struct Album {
 pub enum AlbumTreeItem {
     Artist(Artist),
     Album(Album),
+    Category(String),
 }
 
 impl AlbumTreeItem {
     pub fn songs(&self) -> Vec<Song> {
         match self {
+            AlbumTreeItem::Category(_) => vec![],
             AlbumTreeItem::Artist(_) => vec![],
             AlbumTreeItem::Album(a) => a.songs.clone(),
         }
@@ -45,6 +47,7 @@ impl AlbumTreeItem {
 impl Display for AlbumTreeItem {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            AlbumTreeItem::Category(s) => write!(f, "{}", s),
             AlbumTreeItem::Artist(s) => write!(f, "{}", s.name),
             AlbumTreeItem::Album(album) => write!(f, "{} - {}", album.year.unwrap_or_default(), album.name),
         }
