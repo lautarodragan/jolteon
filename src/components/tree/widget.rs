@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use ratatui::{
     buffer::Buffer,
@@ -14,8 +11,8 @@ use super::{Tree, TreeNode, TreeNodePath};
 use crate::{config::Theme, ui::Focusable};
 
 pub struct ListLine<'a> {
-    theme: &'a crate::config::Theme,
-    text: Cow<'a, str>,
+    theme: &'a Theme,
+    text: String,
     list_has_focus: bool,
     is_selected: bool,
     is_match: bool,
@@ -23,7 +20,7 @@ pub struct ListLine<'a> {
     overrides: Option<Style>,
 }
 
-impl<'a> Widget for ListLine<'a> {
+impl Widget for ListLine<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let mut style = if self.is_renaming {
             Style::default().fg(self.theme.background).bg(self.theme.search)
@@ -57,10 +54,10 @@ impl<'a> Widget for ListLine<'a> {
             style = style.patch(overrides);
         }
 
-        let line: Cow<'a, str> = if self.is_renaming {
+        let line = if self.is_renaming {
             let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
             let caret = if now % 500 < 250 { '⎸' } else { ' ' };
-            format!("{}{}", self.text, caret).into()
+            format!("{}{}", self.text, caret)
         } else {
             self.text
         };
@@ -129,7 +126,6 @@ fn render_node<'a, T>(
         *skip -= 1;
     } else {
         let parent_area = Rect {
-            x: area.x + path.len().saturating_sub(1) as u16 * 2,
             y: area.y + *y,
             height: 1,
             ..area
@@ -139,10 +135,19 @@ fn render_node<'a, T>(
         let is_selected = selected_item_path == &path;
         let is_renaming = is_selected && rename.is_some();
 
-        let text = match *rename {
-            Some(ref rename) if is_selected => rename.as_str().into(),
-            _ => node.inner.to_string().into(),
+        let indent = if !path.is_empty() {
+            let i = (path.len() - 1) * 2;
+            " ".repeat(i)
+        } else {
+            "".to_string()
         };
+
+        let text = match *rename {
+            Some(ref rename) if is_selected => rename.clone(),
+            _ => node.inner.to_string(),
+        };
+
+        let text = indent + text.as_str();
 
         let style_overrides = line_style.as_ref().and_then(|ls| ls(&node.inner));
 
