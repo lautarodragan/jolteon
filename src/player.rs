@@ -175,17 +175,26 @@ impl SingleTrackPlayer {
                         let start_time = song.start_time;
                         let length = song.length;
 
-                        is_stopped.store(false, Ordering::SeqCst);
-
-                        set_currently_playing(Some(song.clone()));
-
-                        let mut source = Source::from_file(path, periodic_access(), position.clone(), {
+                        let source = Source::from_file(path, periodic_access(), position.clone(), {
                             let song_ended_tx = song_ended_tx.clone();
                             move || {
                                 log::trace!("source.on_playback_ended");
                                 let _ = song_ended_tx.send(());
                             }
                         });
+
+                        let mut source = match source {
+                            Ok(source) => source,
+                            Err(err) => {
+                                log::error!("{err}");
+                                on_playback_end.lock().unwrap().as_ref().inspect(|f| f(song));
+                                continue;
+                            }
+                        };
+
+                        is_stopped.store(false, Ordering::SeqCst);
+
+                        set_currently_playing(Some(song.clone()));
 
                         if start_time > Duration::ZERO {
                             log::debug!("start_time > Duration::ZERO, {:?}", start_time);

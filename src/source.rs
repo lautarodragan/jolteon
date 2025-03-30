@@ -84,7 +84,7 @@ impl Source<()> {
         periodic_access: impl Fn(&mut Controls) + Send,
         shared_pos: Arc<Mutex<Duration>>,
         on_playback_end: impl FnOnce() + Send + 'static,
-    ) -> Source<Box<impl FnMut(&mut FullRodioSource) + Send>> {
+    ) -> Result<Source<Box<impl FnMut(&mut FullRodioSource) + Send>>, String> {
         let periodic_access_inner = {
             Box::new(move |src: &mut FullRodioSource| {
                 let mut controls = Controls {
@@ -96,8 +96,8 @@ impl Source<()> {
             })
         };
 
-        let file = BufReader::new(File::open(path.clone()).unwrap());
-        let source = Decoder::new(file).unwrap();
+        let file = BufReader::new(File::open(path.clone()).map_err(|e| e.to_string())?);
+        let source = Decoder::new(file).map_err(|e| e.to_string())?;
         let input = source
             .speed(1.0)
             .track_position()
@@ -108,10 +108,10 @@ impl Source<()> {
             .periodic_access(Duration::from_millis(5), periodic_access_inner)
             .convert_samples();
 
-        Source {
+        Ok(Source {
             input,
             on_playback_end: Some(Box::new(on_playback_end)),
-        }
+        })
     }
 }
 
