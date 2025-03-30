@@ -325,7 +325,7 @@ where
 
     pub fn selected_index(&self) -> usize {
         let i = self.selected_item_index.get();
-        self.visible_items.borrow()[i]
+        self.visible_items.borrow().get(i).cloned().unwrap_or_default()
     }
 
     pub fn exec_action(&self, actions: Vec<Action>) {
