@@ -43,6 +43,7 @@ pub struct List<'a, T: 'a> {
     pub(super) on_rename_fn: RefCell<Option<Box<dyn Fn(String) + 'a>>>,
     pub(super) on_request_focus_trap_fn: RefCell<Box<dyn Fn(bool) + 'a>>,
     pub(super) find_next_item_by_fn: RefCell<Option<Box<dyn Fn(&[&T], usize, Direction) -> Option<usize> + 'a>>>,
+    pub(super) render_fn: RefCell<Option<Box<dyn Fn(&T) -> String + 'a>>>,
 
     pub(super) auto_select_next: Cell<bool>,
 
@@ -78,6 +79,7 @@ where
             on_rename_fn: RefCell::new(None),
             on_request_focus_trap_fn: RefCell::new(Box::new(|_| {}) as _),
             find_next_item_by_fn: RefCell::new(None),
+            render_fn: RefCell::new(None),
 
             items: RefCell::new(items),
             visible_items: RefCell::default(),
@@ -181,6 +183,10 @@ where
     /// ```
     pub fn find_next_item_by_fn(&self, cb: impl Fn(&[&T], usize, Direction) -> Option<usize> + 'a) {
         *self.find_next_item_by_fn.borrow_mut() = Some(Box::new(cb));
+    }
+
+    pub fn render_fn(&self, cb: impl Fn(&T) -> String + 'a) {
+        *self.render_fn.borrow_mut() = Some(Box::new(cb));
     }
 
     /// Sets the list of items and resets selection and scroll

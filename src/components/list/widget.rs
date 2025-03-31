@@ -91,6 +91,7 @@ where
         let offset = self.offset.get();
 
         let rename = self.rename.borrow();
+        let render_fn = self.render_fn.borrow();
 
         for i in 0..visible_items.len().min(area.height as usize) {
             let item_index = i + offset;
@@ -116,7 +117,13 @@ where
 
             let text = match *rename {
                 Some(ref rename) if is_selected => rename.as_str().into(),
-                _ => item.inner.to_string().into(),
+                _ => {
+                    if let Some(render_fn) = &*render_fn {
+                        render_fn(&item.inner).into()
+                    } else {
+                        item.inner.to_string().into()
+                    }
+                }
             };
 
             let style_overrides = self.line_style.as_ref().and_then(|ls| ls(&item.inner));
