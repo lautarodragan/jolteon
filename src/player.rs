@@ -32,6 +32,7 @@ pub struct SingleTrackPlayer {
     volume: Arc<Mutex<f32>>,
 
     on_playback_end: Arc<Mutex<Option<Box<dyn Fn(Song) + Send + 'static>>>>,
+    on_error: Arc<Mutex<Option<Box<dyn Fn(String) + Send + 'static>>>>,
 }
 
 #[derive(Debug)]
@@ -57,11 +58,13 @@ impl SingleTrackPlayer {
         let volume = Arc::new(Mutex::new(1.0));
 
         let on_playback_end = Arc::new(Mutex::new(None::<Box<dyn Fn(Song) + Send + 'static>>));
+        let on_error = Arc::new(Mutex::new(None::<Box<dyn Fn(String) + Send + 'static>>));
 
         let thread = thread::Builder::new()
             .name("single_track_player".to_string())
             .spawn({
                 let on_playback_end = on_playback_end.clone();
+                let on_error = Arc::clone(&on_error);
                 let mpris = mpris.clone();
                 let currently_playing = playing_song.clone();
                 let currently_playing_start_time = playing_song_start_time.clone();
@@ -186,8 +189,8 @@ impl SingleTrackPlayer {
                         let mut source = match source {
                             Ok(source) => source,
                             Err(err) => {
-                                log::error!("{err}");
                                 on_playback_end.lock().unwrap().as_ref().inspect(|f| f(song));
+                                on_error.lock().unwrap().as_ref().inspect(|f| f(err));
                                 continue;
                             }
                         };
@@ -327,6 +330,7 @@ impl SingleTrackPlayer {
             volume,
 
             on_playback_end,
+            on_error,
         }
     }
 
@@ -342,6 +346,10 @@ impl SingleTrackPlayer {
 
     pub fn on_playback_end(&self, f: impl Fn(Song) + Send + 'static) {
         *self.on_playback_end.lock().unwrap() = Some(Box::new(f));
+    }
+
+    pub fn on_error(&self, f: impl Fn(String) + Send + 'static) {
+        *self.on_error.lock().unwrap() = Some(Box::new(f));
     }
 
     //// Controls

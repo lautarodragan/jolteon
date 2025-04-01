@@ -77,6 +77,13 @@ fn run_sync(mpris: Option<Mpris>) -> Result<(), Box<dyn Error>> {
         }
     });
 
+    player.on_error({
+        move |error| {
+            log::error!("Error reported by multi_track_player: {error}");
+            // TODO: communicate to root component
+        }
+    });
+
     let focus_stolen = Arc::new(AtomicBool::default());
     let mut root_component = Root::new(&actions, settings, theme, Arc::downgrade(&player));
 

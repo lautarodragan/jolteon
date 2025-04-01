@@ -44,6 +44,7 @@ pub struct MainPlayer {
     player: Arc<SingleTrackPlayer>,
     queue: Arc<Queue>,
     on_queue_changed: Arc<Mutex<Option<Box<dyn Fn() + Send + 'static>>>>,
+    on_error: Arc<Mutex<Option<Box<dyn Fn(String) + Send + 'static>>>>,
     is_repeating: Arc<AtomicBool>,
 }
 
@@ -54,6 +55,7 @@ impl MainPlayer {
         let mpris = mpris.map(Arc::new);
         let player = Arc::new(SingleTrackPlayer::spawn(output_stream_handle, mpris.clone()));
         let queue = Arc::new(Queue::new(queue_songs));
+        let on_error = Arc::new(Mutex::new(None::<Box<dyn Fn(String) + Send + 'static>>));
 
         if let Some(mpris) = &mpris {
             mpris.on_play_pause({
@@ -75,6 +77,14 @@ impl MainPlayer {
             move |song| {
                 tx.send(MainPlayerMessage::Event(MainPlayerEvent::PlaybackEnded(song)))
                     .unwrap();
+            }
+        });
+
+        player.on_error({
+            let on_error = Arc::clone(&on_error);
+            move |error| {
+                log::warn!("Error reported by single_track_player: {error}");
+                on_error.lock().unwrap().as_ref().inspect(|f| f(error));
             }
         });
 
@@ -151,6 +161,7 @@ impl MainPlayer {
             sender: tx,
             player,
             on_queue_changed,
+            on_error,
             queue,
             is_repeating,
         }
@@ -209,6 +220,10 @@ impl MainPlayer {
 
     pub fn on_queue_changed(&self, f: impl Fn() + Send + 'static) {
         *self.on_queue_changed.lock().unwrap() = Some(Box::new(f));
+    }
+
+    pub fn on_error(&self, f: impl Fn(String) + Send + 'static) {
+        *self.on_error.lock().unwrap() = Some(Box::new(f));
     }
 
     fn notify_queue_changed(&self) {
