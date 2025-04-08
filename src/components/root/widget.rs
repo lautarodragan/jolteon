@@ -2,7 +2,6 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     prelude::{Style, Widget},
-    text::Line,
     widgets::Block,
 };
 
@@ -15,11 +14,10 @@ impl Widget for &mut Root<'_> {
             .style(Style::default().bg(self.theme.background))
             .render(area, buf);
 
-        let [area_top, _, area_center, area_noti, area_player] = Layout::vertical([
+        let [area_top, _, area_center, area_player] = Layout::vertical([
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Min(0),
-            Constraint::Length(1),
             Constraint::Length(3),
         ])
         .areas(area);
@@ -42,9 +40,9 @@ impl Widget for &mut Root<'_> {
 
         component.borrow().render_ref(area_center, buf);
 
-        Line::from(" Error: file not found.")
-            .style(Style::new().fg(self.theme.foreground))
-            .render(area_noti, buf);
+        // Line::from("  Error: file not found.")
+        //     .style(Style::new().fg(self.theme.foreground))
+        //     .render(area_noti, buf);
 
         let Some(player) = self.player.upgrade() else {
             return;
@@ -66,6 +64,7 @@ impl Widget for &mut Root<'_> {
             self.queue_screen.borrow().len(),
             is_paused,
             is_repeating,
+            self.frame,
         )
         .render(area_player, buf);
 

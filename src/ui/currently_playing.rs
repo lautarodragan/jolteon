@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, Gauge},
 };
 
-use crate::{duration::duration_to_string, structs::Song};
+use crate::{config::Theme, duration::duration_to_string, structs::Song};
 
 pub fn song_to_string(song: &Song) -> String {
     let title = song.title.clone();
@@ -28,6 +28,7 @@ pub struct CurrentlyPlaying {
     queue_song_count: usize,
     is_paused: bool,
     is_repeating: bool,
+    frame: u64,
 }
 
 impl CurrentlyPlaying {
@@ -39,6 +40,7 @@ impl CurrentlyPlaying {
         queue_song_count: usize,
         is_paused: bool,
         is_repeating: bool,
+        frame: u64,
     ) -> Self {
         Self {
             theme,
@@ -48,8 +50,58 @@ impl CurrentlyPlaying {
             queue_song_count,
             is_paused,
             is_repeating,
+            frame,
         }
     }
+}
+
+fn render_anim(area: Rect, buf: &mut Buffer, frame: u64, theme: Theme) {
+    const JOLTEON: &str = "jolteon";
+    const STARS: [&str; 2] = ["+", "×"];
+    const STAR_LEN: usize = 5;
+    const REST_LEN: usize = 3;
+    const FRAMES_PER_LETTER: usize = STAR_LEN + REST_LEN;
+    const ANIM_LEN: usize = FRAMES_PER_LETTER * JOLTEON.len();
+
+    let frame = (frame % (ANIM_LEN as u64 * 4)) as usize;
+
+    if frame < ANIM_LEN {
+        return;
+    }
+
+    let area = Rect {
+        x: area.width / 2 - JOLTEON.len() as u16 / 2,
+        y: area.y + 1,
+        ..area
+    };
+
+    let frame = if frame < ANIM_LEN * 2 {
+        frame - ANIM_LEN
+    } else if frame >= ANIM_LEN * 3 {
+        ANIM_LEN * 4 - frame - 1
+    } else {
+        JOLTEON.len() * FRAMES_PER_LETTER
+    };
+
+    let letter = frame / FRAMES_PER_LETTER;
+
+    for i in 0..letter {
+        buf[(area.x + i as u16, area.y)]
+            .set_symbol(&JOLTEON[i..i + 1])
+            .set_bg(theme.background)
+            .set_fg(theme.foreground);
+    }
+
+    if letter < JOLTEON.len() {
+        let part_of_letter = frame % FRAMES_PER_LETTER;
+        if part_of_letter >= REST_LEN {
+            let frame = part_of_letter - REST_LEN;
+            buf[(area.x + letter as u16 + STAR_LEN as u16 - frame as u16, area.y)]
+                .set_symbol(STARS[frame % 2])
+                .set_bg(theme.background)
+                .set_fg(theme.foreground);
+        }
+    };
 }
 
 impl Widget for CurrentlyPlaying {
@@ -64,6 +116,8 @@ impl Widget for CurrentlyPlaying {
                 .title_alignment(Alignment::Center)
                 .title_position(ratatui::widgets::block::Position::Bottom);
             playing_file.render(area_top, buf);
+        } else {
+            render_anim(area_top, buf, self.frame, self.theme);
         }
 
         let playing_song_label = self.current_song.as_ref().map(|song| {
