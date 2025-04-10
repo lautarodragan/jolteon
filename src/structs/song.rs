@@ -1,5 +1,6 @@
 use std::{
     cmp::Ordering,
+    fs::DirEntry,
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -14,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    components::{directory_to_songs_and_folders, FileBrowserSelection},
+    components::{dir_entry_is_song, directory_to_songs_and_folders, FileBrowserSelection},
     cue::{CueFile, CueSheet},
     structs::Jolt,
 };
@@ -105,7 +106,32 @@ impl Song {
         let tracks = cue_file.tracks();
 
         let cue_path = cue_sheet.cue_sheet_file_path();
-        let song_path = cue_path.parent().unwrap().join(file_name);
+        let mut song_path = cue_path.parent().unwrap().join(file_name);
+
+        if !song_path.exists() {
+            log::warn!("File path doesn't exist: {song_path:?}");
+            let Ok(entries) = cue_path.parent().unwrap().read_dir() else {
+                log::warn!("Error attempting to list files in dir of {song_path:?}");
+                return Vec::new();
+            };
+
+            let candidates: Vec<DirEntry> = entries.filter_map(|e| e.ok()).filter(dir_entry_is_song).collect();
+
+            if candidates.is_empty() {
+                log::warn!("Found no candidates at all. Nothing to do.");
+                return Vec::new();
+            }
+
+            if candidates.len() > 1 {
+                log::warn!("Found more than one candidate. Will arbitrarily pick one.");
+            }
+
+            log::debug!("Found {candidates:?}");
+
+            // TODO: communicate to user
+
+            song_path = candidates[0].path();
+        }
 
         let song = match Song::from_file(&song_path) {
             Ok(s) => s,
