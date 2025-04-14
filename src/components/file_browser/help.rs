@@ -1,9 +1,6 @@
-use std::{
-    cell::Cell,
-    fmt::{Display, Formatter},
-};
+use std::fmt::{Display, Formatter};
 
-use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::WidgetRef};
+use ratatui::{buffer::Buffer, layout::Rect, prelude::Stylize, style::Style, text::Span, widgets::WidgetRef};
 
 use crate::{
     actions::{Action, Actions, FileBrowserAction, KeyBinding},
@@ -40,48 +37,55 @@ impl Display for KeyBinding {
 
 pub struct FileBrowserHelp<'a> {
     theme: Theme,
-    pills: Vec<(KeyBinding, Cell<Action>)>,
+    pills: Vec<KeyBindingPill<'a>>,
     actions: &'a Actions,
 }
 
 impl<'a> FileBrowserHelp<'a> {
     pub fn new(actions: &'a Actions, theme: Theme) -> Self {
         let pills = vec![
-            (
+            KeyBindingPill::new(
+                theme,
                 actions.list_primary(),
-                Cell::new(Action::FileBrowser(FileBrowserAction::AddToQueue)),
+                Action::FileBrowser(FileBrowserAction::AddToQueue),
             ),
-            (
+            KeyBindingPill::new(
+                theme,
                 actions.list_secondary(),
-                Cell::new(Action::FileBrowser(FileBrowserAction::AddToLibrary)),
+                Action::FileBrowser(FileBrowserAction::AddToLibrary),
             ),
-            (
+            KeyBindingPill::new(
+                theme,
                 actions
                     .key_by_action(Action::FileBrowser(FileBrowserAction::ToggleMode))
                     .unwrap(),
-                Cell::new(Action::FileBrowser(FileBrowserAction::ToggleMode)),
+                Action::FileBrowser(FileBrowserAction::ToggleMode),
             ),
-            (
+            KeyBindingPill::new(
+                theme,
                 actions
                     .key_by_action(Action::FileBrowser(FileBrowserAction::OpenTerminal))
                     .unwrap(),
-                Cell::new(Action::FileBrowser(FileBrowserAction::OpenTerminal)),
+                Action::FileBrowser(FileBrowserAction::OpenTerminal),
             ),
-            (
+            KeyBindingPill::new(
+                theme,
                 actions
                     .key_by_action(Action::FileBrowser(FileBrowserAction::ToggleShowHidden))
                     .unwrap(),
-                Cell::new(Action::FileBrowser(FileBrowserAction::ToggleShowHidden)),
+                Action::FileBrowser(FileBrowserAction::ToggleShowHidden),
             ),
         ];
 
         Self { theme, pills, actions }
     }
 
-    pub fn set_add_mode(&self, add_mode: AddMode) {
+    pub fn set_add_mode(&mut self, add_mode: AddMode) {
         let kb_secondary = self.actions.list_secondary();
-
-        let key_binding = self.pills.iter().find(|(k, _)| *k == kb_secondary);
+        let Some(pill) = self.pills.iter_mut().find(|p| p.key_binding == kb_secondary) else {
+            log::error!("Missing pill for {:?}?", kb_secondary);
+            return;
+        };
 
         let action = if add_mode == AddMode::AddToLibrary {
             Action::FileBrowser(FileBrowserAction::AddToLibrary)
@@ -89,26 +93,93 @@ impl<'a> FileBrowserHelp<'a> {
             Action::FileBrowser(FileBrowserAction::AddToPlaylist)
         };
 
-        if let Some(key_binding) = key_binding {
-            key_binding.1.set(action);
-        }
+        pill.set_action(action);
     }
 }
 
 impl WidgetRef for FileBrowserHelp<'_> {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+    fn render_ref(&self, mut area: Rect, buf: &mut Buffer) {
+        for kbp in &self.pills {
+            kbp.render_ref(area, buf);
+            area.x += kbp.width() + 1;
+        }
+    }
+}
+
+struct KeyBindingPill<'a> {
+    key_binding: KeyBinding,
+    action: Action,
+    theme: Theme,
+    span_key_binding: Span<'a>,
+    span_action: Span<'a>,
+    span_key_binding_width: u16,
+    span_action_width: u16,
+}
+
+impl KeyBindingPill<'_> {
+    pub fn new(theme: Theme, key_binding: KeyBinding, action: Action) -> Self {
+        let help_pill_style = Style::new().fg(theme.foreground).bg(theme.top_bar_background);
+
+        let span_key_binding = Span::raw(key_binding.to_string()).style(help_pill_style);
+        let span_key_binding_width = u16::try_from(span_key_binding.width()).unwrap_or(u16::MAX);
+
+        let span_action = Span::raw(action.to_string()).style(help_pill_style);
+        let span_action_width = u16::try_from(span_action.width()).unwrap_or(u16::MAX);
+
+        Self {
+            key_binding,
+            action,
+            theme,
+            span_key_binding,
+            span_action,
+            span_key_binding_width,
+            span_action_width,
+        }
+    }
+
+    pub fn width(&self) -> u16 {
+        self.span_key_binding_width + self.span_action_width + 4
+    }
+
+    // pub fn set_key_binding(&mut self, key_binding: KeyBinding) {
+    //     self.key_binding = key_binding;
+    // }
+
+    pub fn set_action(&mut self, action: Action) {
+        self.action = action;
         let help_pill_style = Style::new().fg(self.theme.foreground).bg(self.theme.top_bar_background);
-        let help_pill_border_style = Style::new().fg(self.theme.top_bar_background);
+        self.span_action = Span::raw(action.to_string()).style(help_pill_style);
+        self.span_action_width = u16::try_from(self.span_action.width()).unwrap_or(u16::MAX);
+    }
+}
 
-        let mut pills = vec![];
-
-        for (key, action) in self.pills.iter() {
-            pills.push(ratatui::text::Span::raw("▐").style(help_pill_border_style));
-            pills.push(ratatui::text::Span::raw(format!("{key}: {}", action.get())).style(help_pill_style));
-            pills.push(ratatui::text::Span::raw("▌ ").style(help_pill_border_style));
+impl WidgetRef for KeyBindingPill<'_> {
+    fn render_ref(&self, mut area: Rect, buf: &mut Buffer) {
+        if area.x + self.width() > buf.area().right() {
+            return;
         }
 
-        let line = ratatui::text::Line::from(pills);
-        line.render_ref(area, buf);
+        buf[area].set_symbol("▐").set_fg(self.theme.top_bar_background);
+        area.x += 1;
+
+        self.span_key_binding.render_ref(area, buf);
+        area.x += self.span_key_binding_width;
+
+        buf[area]
+            .set_symbol(":")
+            .set_fg(self.theme.foreground)
+            .set_bg(self.theme.top_bar_background);
+        area.x += 1;
+
+        buf[area]
+            .set_symbol(" ")
+            .set_fg(self.theme.foreground)
+            .set_bg(self.theme.top_bar_background);
+        area.x += 1;
+
+        self.span_action.render_ref(area, buf);
+        area.x += self.span_action_width;
+
+        buf[area].set_symbol("▌").set_fg(self.theme.top_bar_background);
     }
 }
