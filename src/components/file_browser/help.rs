@@ -23,6 +23,7 @@ impl Display for Action {
             FileBrowserAction::ToggleMode => "toggle add mode",
             FileBrowserAction::OpenTerminal => "open terminal",
             FileBrowserAction::NavigateUp => "navigate up",
+            FileBrowserAction::ToggleShowHidden => "toggle show hidden files",
         })
     }
 }
@@ -65,6 +66,12 @@ impl<'a> FileBrowserHelp<'a> {
                     .key_by_action(Action::FileBrowser(FileBrowserAction::OpenTerminal))
                     .unwrap(),
                 Cell::new(Action::FileBrowser(FileBrowserAction::OpenTerminal)),
+            ),
+            (
+                actions
+                    .key_by_action(Action::FileBrowser(FileBrowserAction::ToggleShowHidden))
+                    .unwrap(),
+                Cell::new(Action::FileBrowser(FileBrowserAction::ToggleShowHidden)),
             ),
         ];
 

@@ -4,6 +4,7 @@ use std::{
     path::PathBuf,
     rc::Rc,
     sync::{
+        atomic::{AtomicBool, Ordering},
         mpsc::{channel, RecvTimeoutError},
         Arc,
         Mutex,
@@ -53,11 +54,14 @@ pub struct FileBrowser<'a> {
     pub(super) on_add_to_lib_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) on_add_to_playlist_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) add_mode: Rc<Cell<AddMode>>,
+
+    pub(super) show_hidden_files: Arc<AtomicBool>,
 }
 
 impl<'a> FileBrowser<'a> {
     pub fn new(actions: &'a Actions, theme: Theme, current_directory: PathBuf) -> Self {
-        let items = directory_to_songs_and_folders(&current_directory);
+        let show_hidden_files = Arc::new(AtomicBool::new(false));
+        let items = directory_to_songs_and_folders(&current_directory, show_hidden_files.load(Ordering::Acquire));
         let mut children_list = List::new(theme, vec![]);
         let file_meta = Rc::new(FileMeta::new(theme));
         let current_directory = Rc::new(CurrentDirectory::new(theme, current_directory));
@@ -70,6 +74,7 @@ impl<'a> FileBrowser<'a> {
         let (io_thread, files_from_io_thread) = {
             let (tx, rx) = channel::<PathBuf>();
             let files_from_io_thread = Arc::new(Mutex::new(vec![]));
+            let show_hidden_files = Arc::clone(&show_hidden_files);
             thread::spawn({
                 let files_from_io_thread = Arc::clone(&files_from_io_thread);
                 move || loop {
@@ -94,7 +99,8 @@ impl<'a> FileBrowser<'a> {
                             }
                         }
                     };
-                    let files = directory_to_songs_and_folders(path.as_path());
+                    let files =
+                        directory_to_songs_and_folders(path.as_path(), show_hidden_files.load(Ordering::Acquire));
                     *files_from_io_thread.lock().unwrap() = files;
                 }
             });
@@ -167,7 +173,7 @@ impl<'a> FileBrowser<'a> {
             if let Some(first_parent) = items.first()
                 && let FileBrowserSelection::Directory(path) = first_parent
             {
-                let files = directory_to_songs_and_folders(path.as_path());
+                let files = directory_to_songs_and_folders(path.as_path(), show_hidden_files.load(Ordering::Acquire));
 
                 if let Some(f) = files.first() {
                     file_meta.set_file(f.clone());
@@ -205,6 +211,7 @@ impl<'a> FileBrowser<'a> {
             let parents_list = Rc::downgrade(&parents_list);
             let children_list = children_list.clone();
             let history = Rc::clone(&history);
+            let show_hidden_files = Arc::clone(&show_hidden_files);
 
             move |item| match item {
                 FileBrowserSelection::Directory(path) => {
@@ -212,7 +219,8 @@ impl<'a> FileBrowser<'a> {
                         return;
                     };
 
-                    let files = directory_to_songs_and_folders(path.as_path());
+                    let files =
+                        directory_to_songs_and_folders(path.as_path(), show_hidden_files.load(Ordering::Acquire));
 
                     if !files.iter().any(|f| matches!(f, FileBrowserSelection::Directory(_))) {
                         // UX:
@@ -235,7 +243,7 @@ impl<'a> FileBrowser<'a> {
                     let (selected_child, scroll_position) = history.get(&path).cloned().unwrap_or_default();
 
                     let children = if let Some(FileBrowserSelection::Directory(path)) = files.get(selected_child) {
-                        directory_to_songs_and_folders(path.as_path())
+                        directory_to_songs_and_folders(path.as_path(), show_hidden_files.load(Ordering::Acquire))
                     } else {
                         vec![]
                     };
@@ -317,6 +325,8 @@ impl<'a> FileBrowser<'a> {
             history,
             add_mode,
             help: FileBrowserHelp::new(actions, theme),
+
+            show_hidden_files,
         }
     }
 
@@ -369,7 +379,7 @@ impl<'a> FileBrowser<'a> {
         );
         let history_entry = history.get(parent).cloned();
 
-        let parents = directory_to_songs_and_folders(parent);
+        let parents = directory_to_songs_and_folders(parent, self.show_hidden_files.load(Ordering::Acquire));
 
         let (selected_parent_index, selected_parent_scroll) = history_entry.unwrap_or({
             let selected_parent_index = parents.iter().position(|item| {

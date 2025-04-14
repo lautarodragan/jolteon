@@ -1,7 +1,9 @@
+use std::sync::atomic::Ordering;
+
 use super::{AddMode, FileBrowser};
 use crate::{
     actions::{Action, FileBrowserAction, OnAction, OnActionMut},
-    components::FileBrowserSelection,
+    components::{directory_to_songs_and_folders, FileBrowserSelection},
     spawn_terminal::spawn_terminal,
 };
 
@@ -45,6 +47,24 @@ impl OnActionMut for FileBrowser<'_> {
                         AddMode::AddToPlaylist => AddMode::AddToLibrary,
                     });
                     self.help.set_add_mode(self.add_mode.get());
+                }
+                FileBrowserAction::ToggleShowHidden => {
+                    // TODO: this is mostly duplicated code.
+                    //   It'd probably make more sense to avoid IO altogether and just
+                    //   for item in list { item.set_is_visible(show_hidden_files || !item.to_string().starts_with('.')) }
+
+                    let show_hidden_files = !self.show_hidden_files.load(Ordering::Acquire);
+                    let path = self.current_directory.path();
+                    let files = directory_to_songs_and_folders(path.as_path(), show_hidden_files);
+
+                    let history = self.history.borrow_mut();
+
+                    // UX:
+                    //   Automatically select the child of `path` that was last selected when `path` was last displayed.
+                    let (selected_child, scroll_position) = history.get(&path).cloned().unwrap_or_default();
+
+                    self.parents_list.set_items_s(files, selected_child, scroll_position);
+                    self.show_hidden_files.store(show_hidden_files, Ordering::Release);
                 }
             }
         } else {

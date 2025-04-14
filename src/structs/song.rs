@@ -68,7 +68,7 @@ impl Song {
     pub fn from_dir(path: &Path) -> Vec<Self> {
         // TODO: improve this. stop using the FileBrowser stuff.
         //   check for songs, cue
-        let entries = directory_to_songs_and_folders(path);
+        let entries = directory_to_songs_and_folders(path, true);
 
         let jolt = entries.iter().find_map(|e| match e {
             FileBrowserSelection::Jolt(j) => Some(j),

@@ -122,6 +122,7 @@ pub enum FileBrowserAction {
     ToggleMode,
     OpenTerminal,
     NavigateUp,
+    ToggleShowHidden,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]

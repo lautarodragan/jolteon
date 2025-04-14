@@ -154,14 +154,14 @@ fn dir_entry_to_file_browser_selection(entry: &DirEntry) -> Option<FileBrowserSe
     }
 }
 
-pub fn directory_to_songs_and_folders(path: &Path) -> Vec<FileBrowserSelection> {
+pub fn directory_to_songs_and_folders(path: &Path, show_hidden: bool) -> Vec<FileBrowserSelection> {
     let Ok(entries) = path.read_dir() else {
         return vec![];
     };
 
     let mut items: Vec<FileBrowserSelection> = entries
         .filter_map(|e| e.ok())
-        // .filter(|e| path_is_not_hidden(&e.path()))
+        .filter(|e| show_hidden || path_is_not_hidden(&e.path()))
         .filter_map(|e| dir_entry_to_file_browser_selection(&e))
         .collect();
 
@@ -191,7 +191,6 @@ pub fn dir_entry_is_dir(dir_entry: &DirEntry) -> bool {
     }
 }
 
-#[allow(dead_code)]
 pub fn path_is_not_hidden(path: &Path) -> bool {
     path.file_name()
         .and_then(|e| e.to_str())
@@ -211,7 +210,10 @@ pub fn dir_entry_is_song(dir_entry: &DirEntry) -> bool {
 }
 
 pub fn dir_entry_has_cue_extension(dir_entry: &DirEntry) -> bool {
-    dir_entry.path().extension().is_some_and(|e| e.to_ascii_lowercase() == "cue")
+    dir_entry
+        .path()
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case("cue"))
 }
 
 pub fn dir_entry_is_jolt_file(dir_entry: &DirEntry) -> bool {
