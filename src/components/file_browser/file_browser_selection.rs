@@ -203,7 +203,7 @@ pub fn dir_entry_has_song_extension(dir_entry: &DirEntry) -> bool {
     dir_entry
         .path()
         .extension()
-        .is_some_and(|e| VALID_EXTENSIONS.contains(&e.to_str().unwrap().to_lowercase().as_str()))
+        .is_some_and(|e| VALID_EXTENSIONS.iter().any(|ve| *ve == e.to_ascii_lowercase()))
 }
 
 pub fn dir_entry_is_song(dir_entry: &DirEntry) -> bool {
@@ -211,7 +211,7 @@ pub fn dir_entry_is_song(dir_entry: &DirEntry) -> bool {
 }
 
 pub fn dir_entry_has_cue_extension(dir_entry: &DirEntry) -> bool {
-    dir_entry.path().extension().is_some_and(|e| e == "cue")
+    dir_entry.path().extension().is_some_and(|e| e.to_ascii_lowercase() == "cue")
 }
 
 pub fn dir_entry_is_jolt_file(dir_entry: &DirEntry) -> bool {
