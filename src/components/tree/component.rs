@@ -692,8 +692,10 @@ where
         }
     }
 
+    /// Walks the entire tree, depth-first, calling the passed callback with each element.
+    /// Skips _closed_ nodes (and all of their children).
     fn for_each_mut(&self, mut cb: impl FnMut(&mut TreeNode<T>, TreeNodePath)) {
-        // TODO: recursive iter_mut. this is hard-coded to go down 1 level deep.
+        // TODO: this is hard-coded to go down 1 level deep.
         let mut nodes = self.items.borrow_mut();
         for (index, node) in nodes.iter_mut().enumerate() {
             cb(node, TreeNodePath::from_vec(vec![index]));

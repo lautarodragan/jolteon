@@ -81,8 +81,6 @@ See [Developing](#developing) down below.
       and not regained afterwards. The UX for this case is generally weird in all applications, though. I'm not sure what UX
       I'd prefer myself, even. But, at the very least, it should be regained when the overtaking application is closed (such as a Google Chrome
       tab being opened to YouTube overtaking it, but it being regained when the tab is closed).
-    - 🚧 This feature isn't build into the binary conditionally, which I'm guessing is breaking Jolteon in the Mac builds.
-      This should be straight-forward to fix and will be addressed soon.
 - Help Screen
   - 🚧 This is pretty raw, right now. The goal is for Jolteon to require no guesswork, no external documentation, and to feel 100% friendly and risk-free.
     (no destructive actions, Ctrl+Z for everything, no confusing behavior, etc).
@@ -111,7 +109,7 @@ See [Developing](#developing) down below.
     between songs. Ideally, for gapless playback, we should always try to have a single, big audio file for the entire album, with its Cue sheet.
 - 🚧 Automatic updates
   - Not fully implemented yet. The app checks for new GitHub releases when launched, and detects new versions,
-    but doesn't yet download the published binary, and we aren't publishing releases automatically just yet.
+    but doesn't yet download the published binary.
 
 ### Upcoming
 

@@ -128,8 +128,6 @@ impl<T> TreeNode<T> {
     }
 
     pub fn iter(&self) -> TreeNodeIterator<T> {
-        // TODO: iter_mut???
-
         TreeNodeIterator {
             root: self,
             current_node: None,
@@ -145,7 +143,6 @@ pub struct TreeNodeIterator<'a, T> {
 }
 
 impl<'a, T> Iterator for TreeNodeIterator<'a, T> {
-    // type Item = (&'a TreeNode<T>, &'a TreeNodePath); // enumerate?
     type Item = (TreeNodePath, &'a TreeNode<T>);
 
     fn next(&mut self) -> Option<Self::Item> {
