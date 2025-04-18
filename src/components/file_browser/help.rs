@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use ratatui::{buffer::Buffer, layout::Rect, prelude::Stylize, style::Style, text::Span, widgets::WidgetRef};
+use ratatui::{buffer::Buffer, layout::Rect, style::Style, text::Span, widgets::WidgetRef};
 
 use crate::{
     actions::{Action, Actions, FileBrowserAction, KeyBinding},
@@ -36,7 +36,6 @@ impl Display for KeyBinding {
 }
 
 pub struct FileBrowserHelp<'a> {
-    theme: Theme,
     pills: Vec<KeyBindingPill<'a>>,
     actions: &'a Actions,
 }
@@ -77,7 +76,7 @@ impl<'a> FileBrowserHelp<'a> {
             ),
         ];
 
-        Self { theme, pills, actions }
+        Self { pills, actions }
     }
 
     pub fn set_add_mode(&mut self, add_mode: AddMode) {

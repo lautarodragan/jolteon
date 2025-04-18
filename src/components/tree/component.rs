@@ -159,6 +159,7 @@ where
     }
 
     /// Sets the list of items and resets selection and scroll
+    #[allow(unused)]
     pub fn set_items(&self, items: Vec<TreeNode<T>>) {
         self.set_items_s(items, TreeNodePath::zero(), 0);
     }
@@ -187,14 +188,6 @@ where
         *self.selected_item_path.borrow_mut() = i;
         self.offset.set(o);
         *self.items.borrow_mut() = new_items;
-    }
-
-    pub fn set_is_open_all(&self, v: bool) {
-        let mut items = self.items.borrow_mut();
-
-        for item in &mut *items {
-            item.is_open = v;
-        }
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
@@ -734,6 +727,8 @@ impl<'a, T: 'a> TreeIterator<'a, T> {
             pick_locks: false,
         }
     }
+
+    #[allow(unused)]
     pub fn new_thief(items: &'a [TreeNode<T>]) -> TreeIterator<'a, T> {
         let root_iter = items.iter();
 

@@ -385,7 +385,7 @@ mod tests {
 
         assert!(!root.iter().any(|(_path, node)| node.is_match));
 
-        TreeNode::for_each_mut(&mut root.children, |node, path| {
+        TreeNode::for_each_mut(&mut root.children, |node, _path| {
             if node.inner.starts_with("child 2 -") {
                 node.is_match = true;
             }
@@ -393,7 +393,7 @@ mod tests {
 
         assert_eq!(root.iter().filter(|(_path, node)| node.is_match).count(), 2);
 
-        TreeNode::for_each_mut(&mut root.children, |node, path| {
+        TreeNode::for_each_mut(&mut root.children, |node, _path| {
             if node.inner.starts_with("child 4 -") {
                 node.is_match = true;
             }
@@ -401,7 +401,7 @@ mod tests {
 
         assert_eq!(root.iter().filter(|(_path, node)| node.is_match).count(), 3);
 
-        TreeNode::for_each_mut(&mut root.children, |node, path| {
+        TreeNode::for_each_mut(&mut root.children, |node, _path| {
             if node.inner.starts_with("child 3 -") {
                 node.is_match = true;
             }
@@ -409,7 +409,7 @@ mod tests {
 
         assert_eq!(root.iter().filter(|(_path, node)| node.is_match).count(), 8);
 
-        TreeNode::for_each_mut(&mut root.children, |node, path| {
+        TreeNode::for_each_mut(&mut root.children, |node, _path| {
             node.is_match = node.inner.starts_with("child 3 -");
         });
 

@@ -21,7 +21,7 @@ pub fn song_to_string(song: &Song) -> String {
 }
 
 pub struct CurrentlyPlaying {
-    theme: crate::config::Theme,
+    theme: Theme,
     current_song: Option<Song>,
     current_song_position: Duration,
     queue_total_time: Duration,
@@ -32,8 +32,9 @@ pub struct CurrentlyPlaying {
 }
 
 impl CurrentlyPlaying {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        theme: crate::config::Theme,
+        theme: Theme,
         current_song: Option<Song>,
         current_song_position: Duration,
         queue_total_time: Duration,

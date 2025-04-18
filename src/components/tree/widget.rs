@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Modifier, Style, Styled},
+    style::{Modifier, Style},
     widgets::{Widget, WidgetRef},
 };
 
