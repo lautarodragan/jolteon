@@ -696,7 +696,7 @@ where
     /// Skips _closed_ nodes (and all of their children).
     fn for_each_mut(&self, mut cb: impl FnMut(&mut TreeNode<T>, TreeNodePath)) {
         let mut nodes = self.items.borrow_mut();
-        TreeNode::for_each_mut(&mut *nodes, &mut cb);
+        TreeNode::for_each_mut(&mut nodes, &mut cb);
     }
 }
 

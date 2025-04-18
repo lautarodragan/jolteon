@@ -138,7 +138,11 @@ impl<T> TreeNode<T> {
     /// Walks the entire tree, depth-first, calling the passed callback with each element.
     /// Skips _closed_ nodes (and all of their children).
     pub fn for_each_mut(nodes: &mut [TreeNode<T>], mut cb: impl FnMut(&mut TreeNode<T>, TreeNodePath)) {
-        fn recursive<T>(nodes: &mut [TreeNode<T>], path: TreeNodePath, cb: &mut impl FnMut(&mut TreeNode<T>, TreeNodePath)) {
+        fn recursive<T>(
+            nodes: &mut [TreeNode<T>],
+            path: TreeNodePath,
+            cb: &mut impl FnMut(&mut TreeNode<T>, TreeNodePath),
+        ) {
             for (index, node) in nodes.iter_mut().enumerate() {
                 let path = path.with_child(index);
                 cb(node, path.clone());
@@ -151,7 +155,6 @@ impl<T> TreeNode<T> {
 
         recursive(nodes, TreeNodePath::from_vec(vec![]), &mut cb);
     }
-
 }
 
 pub struct TreeNodeIterator<'a, T> {
@@ -361,5 +364,55 @@ mod tests {
         assert!(iter.next().is_none());
 
         Ok(())
+    }
+
+    #[test]
+    pub fn test_for_each_mut() {
+        let mut child_2 = TreeNode::new("child 2");
+        child_2.children = vec![TreeNode::new("child 2 - 1"), TreeNode::new("child 2 - 2")];
+
+        let mut child_3_2 = TreeNode::new("child 3 - 2");
+        child_3_2.children = vec![TreeNode::new("child 3 - 2 - 1"), TreeNode::new("child 3 - 2 - 2")];
+
+        let mut child_3 = TreeNode::new("child 3");
+        child_3.children = vec![TreeNode::new("child 3 - 1"), child_3_2, TreeNode::new("child 3 - 3")];
+
+        let mut child_4 = TreeNode::new("child 4");
+        child_4.children = vec![TreeNode::new("child 4 - 1")];
+
+        let mut root = TreeNode::new("root");
+        root.children = vec![TreeNode::new("child 1"), child_2, child_3, child_4];
+
+        assert!(!root.iter().any(|(_path, node)| node.is_match));
+
+        TreeNode::for_each_mut(&mut root.children, |node, path| {
+            if node.inner.starts_with("child 2 -") {
+                node.is_match = true;
+            }
+        });
+
+        assert_eq!(root.iter().filter(|(_path, node)| node.is_match).count(), 2);
+
+        TreeNode::for_each_mut(&mut root.children, |node, path| {
+            if node.inner.starts_with("child 4 -") {
+                node.is_match = true;
+            }
+        });
+
+        assert_eq!(root.iter().filter(|(_path, node)| node.is_match).count(), 3);
+
+        TreeNode::for_each_mut(&mut root.children, |node, path| {
+            if node.inner.starts_with("child 3 -") {
+                node.is_match = true;
+            }
+        });
+
+        assert_eq!(root.iter().filter(|(_path, node)| node.is_match).count(), 8);
+
+        TreeNode::for_each_mut(&mut root.children, |node, path| {
+            node.is_match = node.inner.starts_with("child 3 -");
+        });
+
+        assert_eq!(root.iter().filter(|(_path, node)| node.is_match).count(), 5);
     }
 }
