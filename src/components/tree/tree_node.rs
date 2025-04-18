@@ -134,6 +134,24 @@ impl<T> TreeNode<T> {
             current_path: TreeNodePath::empty(),
         }
     }
+
+    /// Walks the entire tree, depth-first, calling the passed callback with each element.
+    /// Skips _closed_ nodes (and all of their children).
+    pub fn for_each_mut(nodes: &mut [TreeNode<T>], mut cb: impl FnMut(&mut TreeNode<T>, TreeNodePath)) {
+        fn recursive<T>(nodes: &mut [TreeNode<T>], path: TreeNodePath, cb: &mut impl FnMut(&mut TreeNode<T>, TreeNodePath)) {
+            for (index, node) in nodes.iter_mut().enumerate() {
+                let path = path.with_child(index);
+                cb(node, path.clone());
+
+                if node.is_open {
+                    recursive(&mut node.children, path, cb);
+                }
+            }
+        }
+
+        recursive(nodes, TreeNodePath::from_vec(vec![]), &mut cb);
+    }
+
 }
 
 pub struct TreeNodeIterator<'a, T> {
