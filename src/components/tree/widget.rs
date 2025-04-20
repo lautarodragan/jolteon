@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Offset, Rect},
     style::{Modifier, Style},
     widgets::{Widget, WidgetRef},
 };
@@ -135,19 +135,12 @@ fn render_node<'a, T>(
         let is_selected = selected_item_path == &path;
         let is_renaming = is_selected && rename.is_some();
 
-        let indent = if !path.is_empty() {
-            let i = (path.len() - 1) * 2;
-            " ".repeat(i)
-        } else {
-            "".to_string()
-        };
+        let indent = if !path.is_empty() { (path.len() - 1) * 2 } else { 0 };
 
         let text = match *rename {
             Some(ref rename) if is_selected => rename.clone(),
             _ => node.inner.to_string(),
         };
-
-        let text = indent + text.as_str();
 
         let style_overrides = line_style.as_ref().and_then(|ls| ls(&node.inner));
 
@@ -161,7 +154,7 @@ fn render_node<'a, T>(
             overrides: style_overrides,
         };
 
-        line.render(parent_area, buf);
+        line.render(parent_area.offset(Offset { x: indent as i32, y: 0 }), buf);
         *y += 1;
     }
 
