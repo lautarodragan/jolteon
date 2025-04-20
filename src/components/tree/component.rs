@@ -519,7 +519,7 @@ where
                     return;
                 }
 
-                let Some(ref on_rename_fn) = &self.on_rename_fn else {
+                let Some(ref on_rename_fn) = self.on_rename_fn else {
                     return;
                 };
 

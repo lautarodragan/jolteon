@@ -205,6 +205,9 @@ impl<'a> Library<'a> {
                     // make the code more intuitive and sensible
                 }
             });
+            album_tree.on_rename(|new_name| {
+                log::debug!("album_tree: renamed to {new_name}");
+            });
         }
 
         let focus_group = FocusGroup::new(vec![
