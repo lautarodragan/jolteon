@@ -1,71 +1,12 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use ratatui::{
     buffer::Buffer,
     layout::{Offset, Rect},
-    style::{Modifier, Style},
+    style::Style,
     widgets::{Widget, WidgetRef},
 };
 
 use super::{Tree, TreeNode, TreeNodePath};
-use crate::{config::Theme, ui::Focusable};
-
-pub struct ListLine<'a> {
-    theme: &'a Theme,
-    text: String,
-    list_has_focus: bool,
-    is_selected: bool,
-    is_match: bool,
-    is_renaming: bool,
-    overrides: Option<Style>,
-}
-
-impl Widget for ListLine<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let mut style = if self.is_renaming {
-            Style::default().fg(self.theme.background).bg(self.theme.search)
-        } else if self.is_selected {
-            if self.list_has_focus {
-                if self.is_match {
-                    Style::default()
-                        .fg(self.theme.search_selected)
-                        .bg(self.theme.background_selected)
-                        .add_modifier(Modifier::BOLD)
-                } else {
-                    Style::default()
-                        .fg(self.theme.foreground_selected)
-                        .bg(self.theme.background_selected)
-                }
-            } else {
-                Style::default()
-                    .fg(self.theme.foreground_selected)
-                    .bg(self.theme.background_selected_blur)
-            }
-        } else {
-            let fg = if self.is_match {
-                self.theme.search
-            } else {
-                self.theme.foreground_secondary
-            };
-            Style::default().fg(fg).bg(self.theme.background)
-        };
-
-        if let Some(overrides) = self.overrides {
-            style = style.patch(overrides);
-        }
-
-        let line = if self.is_renaming {
-            let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
-            let caret = if now % 500 < 250 { '⎸' } else { ' ' };
-            format!("{}{}", self.text, caret)
-        } else {
-            self.text
-        };
-
-        let line = ratatui::text::Line::from(line).style(style);
-        line.render_ref(area, buf);
-    }
-}
+use crate::{components::ListLine, config::Theme, ui::Focusable};
 
 impl<T> WidgetRef for Tree<'_, T>
 where
@@ -138,8 +79,8 @@ fn render_node<'a, T>(
         let indent = if !path.is_empty() { (path.len() - 1) * 2 } else { 0 };
 
         let text = match *rename {
-            Some(ref rename) if is_selected => rename.clone(),
-            _ => node.inner.to_string(),
+            Some(ref rename) if is_selected => rename.into(),
+            _ => node.inner.to_string().into(),
         };
 
         let style_overrides = line_style.as_ref().and_then(|ls| ls(&node.inner));
@@ -152,6 +93,7 @@ fn render_node<'a, T>(
             is_match: node.is_match,
             is_renaming,
             overrides: style_overrides,
+            renaming_caret_position: 0,
         };
 
         line.render(parent_area.offset(Offset { x: indent as i32, y: 0 }), buf);

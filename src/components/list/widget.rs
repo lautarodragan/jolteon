@@ -1,77 +1,11 @@
-use std::borrow::Cow;
-
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Modifier, Style},
-    text::{Line, Span},
     widgets::{Widget, WidgetRef},
 };
 
 use super::component::List;
-
-pub struct ListLine<'a> {
-    theme: &'a crate::config::Theme,
-    text: Cow<'a, str>,
-    list_has_focus: bool,
-    is_selected: bool,
-    is_match: bool,
-    is_renaming: bool,
-    renaming_caret_position: usize,
-    overrides: Option<Style>,
-}
-
-impl Widget for ListLine<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let mut style = if self.is_renaming {
-            Style::default()
-                .fg(self.theme.background)
-                .bg(self.theme.search)
-                .add_modifier(Modifier::SLOW_BLINK)
-        } else if self.is_selected {
-            if self.list_has_focus {
-                Style::default()
-                    .fg(self.theme.foreground_selected)
-                    .bg(self.theme.background_selected)
-            } else {
-                Style::default()
-                    .fg(self.theme.foreground_selected)
-                    .bg(self.theme.background_selected_blur)
-            }
-        } else {
-            let fg = if self.is_match {
-                self.theme.search
-            } else {
-                self.theme.foreground_secondary
-            };
-            Style::default().fg(fg).bg(self.theme.background)
-        };
-
-        if let Some(overrides) = self.overrides {
-            style = style.patch(overrides);
-        }
-
-        let line = if self.is_renaming {
-            let spans = if self.renaming_caret_position >= self.text.len() {
-                let l = Span::from(self.text);
-                let r = Span::from(" ").style(style.bg(self.theme.foreground_selected).fg(self.theme.search));
-                vec![l, r]
-            } else {
-                let (l, r) = self.text.split_at(self.renaming_caret_position);
-                let (c, r) = r.split_at(1);
-
-                let l = Span::from(l);
-                let c = Span::from(c).style(style.bg(self.theme.foreground_selected).fg(self.theme.search));
-                let r = Span::from(r);
-                vec![l, c, r]
-            };
-            Line::from(spans)
-        } else {
-            Line::from(self.text)
-        };
-        line.style(style).render_ref(area, buf);
-    }
-}
+use crate::components::ListLine;
 
 impl<T> WidgetRef for List<'_, T>
 where
