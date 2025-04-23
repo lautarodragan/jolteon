@@ -1,15 +1,27 @@
 # TODO
 
-## Custom Source Iterator
+## Configurable Skip on Paused Behavior
 
-- CUE support out of the box, so we no longer need the initial seek and the calculation of the end time
-  - Should still be able to not need the initial seek if the next song in the queue/playlist would be the next song in the same CUE, meaning we could just keep playing the same source.
-- Whatever we need in it so we don't need the periodic_access
-- The "stack of layers" (of iterators of `Source`s) approach may make sense for Rodio, since it's a general library supporting a ton of different use cases, but Jolteon can greatly simplify it by coupling, having a single Source/Iterator that does everything it needs.  
+- Mode 1: do nothing (normal) (Jolteon stays _paused_. Adding songs to the queue or skipping songs will not start playback automatically)
+- Mode 2: un-pause when stopping/skipping current song.
+- Mode 3: un-pause when stopping current song, only if there are no more songs in the queue. 
 
-Note: Symphonia seems to be the only decoder that supports seeking in Rodio (that we really care about), but it can fail.
-Rodio's `Source for TrackPosition` does have its own `try_seek`, though, as well as `Source for SamplesBuffer`.
-Are we using those (indirectly), or just Symphonia?
+## Toggle Repeat
+
+We can currently enable REPEAT ONE with Alt+R and disable it with Alt+T. 
+Support for toggling instead.
+
+## Jolteon Idle Animation
+
+- Store a "start_frame". Start after 2 seconds of being idle.
+- Support variable frame rate.
+
+## User Message Log Screen
+
+- Temporarily display user messages over the _currently playing_ area.
+- After a time-out, just permanently hide that message from that area, going back to showing the usual _currently playing_ stuff.
+- Store these messages permanently in a new, "log" screen.
+- This log screen is unrelated to debugging logs (`log::debug`, etc). It's only for user-facing messages.
 
 ## AtomicDuration
 
