@@ -763,7 +763,7 @@ impl<'a, T> Iterator for TreeIterator<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::components::{tree::component::TreeIterator, TreeNode, TreeNodePath};
+    use crate::components::{TreeNode, TreeNodePath, tree::component::TreeIterator};
 
     #[test]
     pub fn test_1() -> Result<(), ()> {

@@ -4,10 +4,10 @@ use std::{
     path::PathBuf,
     rc::Rc,
     sync::{
-        atomic::{AtomicBool, Ordering},
-        mpsc::{channel, RecvTimeoutError},
         Arc,
         Mutex,
+        atomic::{AtomicBool, Ordering},
+        mpsc::{RecvTimeoutError, channel},
     },
     thread,
     time::Duration,
@@ -15,14 +15,14 @@ use std::{
 
 use super::{
     current_directory::CurrentDirectory,
-    file_browser_selection::{directory_to_songs_and_folders, FileBrowserSelection},
+    file_browser_selection::{FileBrowserSelection, directory_to_songs_and_folders},
 };
 use crate::{
     actions::Actions,
     components::{
-        file_browser::{file_meta::FileMeta, help::FileBrowserHelp},
         FocusGroup,
         List,
+        file_browser::{file_meta::FileMeta, help::FileBrowserHelp},
     },
     config::Theme,
     structs::Song,

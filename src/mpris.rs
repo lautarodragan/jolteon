@@ -2,7 +2,6 @@ use std::{error::Error, thread};
 
 use async_std::sync::{Arc, Mutex};
 use mpris_server::{
-    zbus,
     LoopStatus,
     Metadata,
     PlaybackRate,
@@ -14,6 +13,7 @@ use mpris_server::{
     Time,
     TrackId,
     Volume,
+    zbus,
 };
 
 use crate::structs::Song;

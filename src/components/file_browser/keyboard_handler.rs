@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use super::{AddMode, FileBrowser};
 use crate::{
     actions::{Action, FileBrowserAction, OnAction, OnActionMut},
-    components::{directory_to_songs_and_folders, FileBrowserSelection},
+    components::{FileBrowserSelection, directory_to_songs_and_folders},
     spawn_terminal::spawn_terminal,
 };
 

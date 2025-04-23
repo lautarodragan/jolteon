@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     structs::Playlist,
-    toml::{read_toml_file_or_default, write_toml_file, TomlFileError},
+    toml::{TomlFileError, read_toml_file_or_default, write_toml_file},
 };
 
 #[derive(Serialize, Deserialize, Debug, Default)]

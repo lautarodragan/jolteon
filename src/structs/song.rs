@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    components::{dir_entry_is_song, directory_to_songs_and_folders, FileBrowserSelection},
+    components::{FileBrowserSelection, dir_entry_is_song, directory_to_songs_and_folders},
     cue::{CueFile, CueSheet},
     structs::Jolt,
 };

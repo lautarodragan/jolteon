@@ -4,7 +4,7 @@ use async_std::task;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::toml::{read_toml_file, write_toml_file, TomlFileError};
+use crate::toml::{TomlFileError, read_toml_file, write_toml_file};
 
 static RELEASE_VERSION: Option<&'static str> = option_env!("JOLTEON_RELEASE_VERSION");
 static RELEASES_URL: &str = "https://api.github.com/repos/lautarodragan/jolteon/releases?per_page=3";

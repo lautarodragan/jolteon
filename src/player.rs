@@ -1,9 +1,9 @@
 use std::{
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
-        mpsc::{channel, RecvTimeoutError, Sender},
         Arc,
         Mutex,
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        mpsc::{RecvTimeoutError, Sender, channel},
     },
     thread,
     thread::JoinHandle,
@@ -390,11 +390,7 @@ impl SingleTrackPlayer {
     }
 
     pub fn set_is_paused(&self, v: bool) {
-        self.send_command(if v {
-            Command::Pause
-        } else {
-            Command::Play
-        });
+        self.send_command(if v { Command::Pause } else { Command::Play });
     }
 
     pub fn toggle_is_paused(&self) {

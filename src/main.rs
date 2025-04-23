@@ -34,8 +34,8 @@ mod ui;
 use std::{error::Error, io::stdout, thread};
 
 use colored::{Color, Colorize};
-use flexi_logger::{style, DeferredNow, FileSpec, Logger, WriteMode};
-use log::{debug, info, Record};
+use flexi_logger::{DeferredNow, FileSpec, Logger, WriteMode, style};
+use log::{Record, debug, info};
 
 use crate::{auto_update::auto_update, bye::bye, term::reset_terminal};
 

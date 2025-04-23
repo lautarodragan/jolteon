@@ -1,10 +1,10 @@
 use std::{
     collections::VecDeque,
     sync::{
-        atomic::{AtomicBool, Ordering},
-        mpsc::{channel, Sender},
         Arc,
         Mutex,
+        atomic::{AtomicBool, Ordering},
+        mpsc::{Sender, channel},
     },
     thread,
     thread::JoinHandle,

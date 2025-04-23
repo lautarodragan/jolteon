@@ -9,7 +9,7 @@ mod rendering_error;
 mod root;
 mod tree;
 
-pub use file_browser::{dir_entry_is_song, directory_to_songs_and_folders, FileBrowser, FileBrowserSelection};
+pub use file_browser::{FileBrowser, FileBrowserSelection, dir_entry_is_song, directory_to_songs_and_folders};
 pub use focus_group::*;
 pub use help::Help;
 pub use library::*;

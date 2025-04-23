@@ -7,6 +7,8 @@ use std::{
 };
 
 use rodio::{
+    Decoder,
+    Source as RodioSource,
     source::{
         Amplify,
         Pausable,
@@ -18,8 +20,6 @@ use rodio::{
         Stoppable,
         TrackPosition,
     },
-    Decoder,
-    Source as RodioSource,
 };
 
 type FullRodioSource = Stoppable<Skippable<Amplify<Pausable<TrackPosition<Speed<Decoder<BufReader<File>>>>>>>>;

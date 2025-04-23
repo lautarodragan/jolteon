@@ -240,13 +240,10 @@ impl Actions {
     }
 
     pub fn key_by_action(&self, action: Action) -> Option<KeyBinding> {
-        self.actions.iter().chain(DEFAULT_ACTIONS.iter()).find_map(|(k, v)| {
-            if v.iter().any(|a| *a == action) {
-                Some(*k)
-            } else {
-                None
-            }
-        })
+        self.actions
+            .iter()
+            .chain(DEFAULT_ACTIONS.iter())
+            .find_map(|(k, v)| if v.iter().any(|a| *a == action) { Some(*k) } else { None })
     }
 
     pub fn contains(&self, action: Action) -> bool {
