@@ -61,7 +61,7 @@ impl MainPlayer {
             mpris.on_play_pause({
                 let player = player.clone();
                 move || {
-                    player.toggle();
+                    player.toggle_is_paused();
                 }
             });
             mpris.on_stop({
@@ -114,6 +114,8 @@ impl MainPlayer {
                                 on_queue_changed.lock().unwrap().as_ref().inspect(|f| f());
                             } else {
                                 log::debug!("song_player queue was empty. will wait for changes.");
+                                // UX: Configurable Skip on Paused Behavior (TODO: configurable. See TODO.md)
+                                player.set_is_paused(false);
                             }
                         }
 

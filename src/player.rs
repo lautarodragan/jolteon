@@ -170,6 +170,14 @@ impl SingleTrackPlayer {
                                 }
                                 Ok(Command::Quit) => return,
                                 Err(_) => return,
+                                Ok(Command::Pause) => {
+                                    pause.store(true, Ordering::Release);
+                                    continue;
+                                }
+                                Ok(Command::Play) => {
+                                    pause.store(false, Ordering::Release);
+                                    continue;
+                                }
                                 _ => continue,
                             }
                         };
@@ -363,11 +371,11 @@ impl SingleTrackPlayer {
     pub fn quit(self) {
         self.send_command(Command::Quit);
         match self.thread.join() {
-            Ok(_) => {
+            Ok(()) => {
                 log::trace!("Player.drop: main_thread joined successfully");
             }
             Err(err) => {
-                log::error!("Player.drop: {:?}", err);
+                log::error!("Player.quit: {:?}", err);
             }
         }
     }
@@ -377,16 +385,20 @@ impl SingleTrackPlayer {
         self.send_command(Command::SetSong(song));
     }
 
-    pub fn toggle(&self) {
-        if self.is_paused.load(Ordering::SeqCst) {
-            self.send_command(Command::Play);
-        } else {
-            self.send_command(Command::Pause);
-        }
+    pub fn is_paused(&self) -> bool {
+        self.is_paused.load(Ordering::Acquire)
     }
 
-    pub fn is_paused(&self) -> bool {
-        self.is_paused.load(Ordering::SeqCst)
+    pub fn set_is_paused(&self, v: bool) {
+        self.send_command(if v {
+            Command::Pause
+        } else {
+            Command::Play
+        });
+    }
+
+    pub fn toggle_is_paused(&self) {
+        self.set_is_paused(!self.is_paused());
     }
 
     pub fn stop(&self) {
@@ -422,7 +434,7 @@ impl OnAction<PlayerAction> for SingleTrackPlayer {
     fn on_action(&self, action: Vec<PlayerAction>) {
         match action[0] {
             PlayerAction::PlayPause => {
-                self.toggle();
+                self.toggle_is_paused();
             }
             PlayerAction::Stop => {
                 self.stop();
