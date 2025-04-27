@@ -788,32 +788,38 @@ mod tests {
         config::Theme,
     };
 
+    fn create_test_tree_nodes() -> Vec<TreeNode<String>> {
+        let mut root_1 = TreeNode::new("root 1".to_string());
+        root_1.children = vec![TreeNode::new("root 1 - child 1".to_string())];
+
+        let mut root_2 = TreeNode::new("root 2".to_string());
+        root_2.children = vec![
+            TreeNode::new("root 2 - child 1".to_string()),
+            TreeNode::new("root 2 - child 2".to_string()),
+        ];
+
+        let mut root_3_child_2 = TreeNode::new("root 3 - child 2".to_string());
+        root_3_child_2.children = vec![
+            TreeNode::new("root 3 - child 2 - grandchild 1".to_string()),
+            TreeNode::new("root 3 - child 2 - grandchild 2".to_string()),
+        ];
+
+        let mut root_3 = TreeNode::new("root 3".to_string());
+        root_3.children = vec![
+            TreeNode::new("root 3 - child 1".to_string()),
+            root_3_child_2,
+            TreeNode::new("root 3 - child 3".to_string()),
+        ];
+
+        let mut root_4 = TreeNode::new("root 4".to_string());
+        root_4.children = vec![TreeNode::new("root 4 - child 1".to_string())];
+
+        vec![root_1, root_2, root_3, root_4]
+    }
+
     #[test]
     pub fn test_1() -> Result<(), ()> {
-        let mut root_1 = TreeNode::new("root 1");
-        root_1.children = vec![TreeNode::new("root 1 - child 1")];
-
-        let mut root_2 = TreeNode::new("root 2");
-        root_2.children = vec![TreeNode::new("root 2 - child 1"), TreeNode::new("root 2 - child 2")];
-
-        let mut root_3_child_2 = TreeNode::new("root 3 - child 2");
-        root_3_child_2.children = vec![
-            TreeNode::new("root 3 - child 2 - grandchild 1"),
-            TreeNode::new("root 3 - child 2 - grandchild 2"),
-        ];
-
-        let mut root_3 = TreeNode::new("root 3");
-        root_3.children = vec![
-            TreeNode::new("root 3 - child 1"),
-            root_3_child_2,
-            TreeNode::new("root 3 - child 3"),
-        ];
-
-        let mut root_4 = TreeNode::new("root 4");
-        root_4.children = vec![TreeNode::new("root 4 - child 1")];
-
-        let root_nodes = vec![root_1, root_2, root_3, root_4];
-
+        let root_nodes = create_test_tree_nodes();
         let mut iter = TreeIterator::new_thief(&root_nodes);
 
         let mut assert_iter_eq = |expected_inner: &str, expected_path: &[usize]| {
@@ -855,31 +861,8 @@ mod tests {
 
     #[test]
     pub fn test_2() -> Result<(), ()> {
-        let mut root_1 = TreeNode::new("root 1");
-        root_1.children = vec![TreeNode::new("root 1 - child 1")];
-
-        let mut root_2 = TreeNode::new("root 2");
-        root_2.children = vec![TreeNode::new("root 2 - child 1"), TreeNode::new("root 2 - child 2")];
-        root_2.is_open = false;
-
-        let mut root_3_child_2 = TreeNode::new("root 3 - child 2");
-        root_3_child_2.children = vec![
-            TreeNode::new("root 3 - child 2 - grandchild 1"),
-            TreeNode::new("root 3 - child 2 - grandchild 2"),
-        ];
-
-        let mut root_3 = TreeNode::new("root 3");
-        root_3.children = vec![
-            TreeNode::new("root 3 - child 1"),
-            root_3_child_2,
-            TreeNode::new("root 3 - child 3"),
-        ];
-
-        let mut root_4 = TreeNode::new("root 4");
-        root_4.children = vec![TreeNode::new("root 4 - child 1")];
-
-        let root_nodes = vec![root_1, root_2, root_3, root_4];
-
+        let mut root_nodes = create_test_tree_nodes();
+        root_nodes[1].is_open = false;
         let mut iter = TreeIterator::new(&root_nodes);
 
         let mut assert_iter_eq = |expected_inner: &str, expected_path: &[usize]| {
@@ -921,31 +904,7 @@ mod tests {
 
     #[test]
     pub fn action_toggle_open_close() -> Result<(), ()> {
-        let mut root_1 = TreeNode::new("root 1");
-        root_1.children = vec![TreeNode::new("root 1 - child 1")];
-
-        let mut root_2 = TreeNode::new("root 2");
-        root_2.children = vec![TreeNode::new("root 2 - child 1"), TreeNode::new("root 2 - child 2")];
-        root_2.is_open = false;
-
-        let mut root_3_child_2 = TreeNode::new("root 3 - child 2");
-        root_3_child_2.children = vec![
-            TreeNode::new("root 3 - child 2 - grandchild 1"),
-            TreeNode::new("root 3 - child 2 - grandchild 2"),
-        ];
-
-        let mut root_3 = TreeNode::new("root 3");
-        root_3.children = vec![
-            TreeNode::new("root 3 - child 1"),
-            root_3_child_2,
-            TreeNode::new("root 3 - child 3"),
-        ];
-
-        let mut root_4 = TreeNode::new("root 4");
-        root_4.children = vec![TreeNode::new("root 4 - child 1")];
-
-        let root_nodes = vec![root_1, root_2, root_3, root_4];
-
+        let root_nodes = create_test_tree_nodes();
         let mut tree = Tree::new(Theme::default(), root_nodes);
 
         macro_rules! assert_is_open {
