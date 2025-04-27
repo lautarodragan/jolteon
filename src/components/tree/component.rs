@@ -261,44 +261,58 @@ where
         }
     }
 
-    pub fn exec_action(&mut self, action: Action) {
+    pub fn exec_action(&mut self, actions: Vec<Action>) {
         if self.rename.borrow().is_some() {
-            self.exec_rename_action(action);
+            for action in actions {
+                if self.exec_rename_action(action) {
+                    break;
+                }
+            }
         } else {
-            match action {
-                Action::Navigation(action) => self.exec_navigation_action(action),
-                Action::Confirm | Action::ConfirmAlt => {
-                    self.filter_mut(|filter| {
-                        filter.clear();
-                    });
+            for action in actions {
+                let handled: bool = match action {
+                    Action::Navigation(action) => {
+                        self.exec_navigation_action(action);
+                        true
+                    }
+                    Action::Confirm | Action::ConfirmAlt => {
+                        self.filter_mut(|filter| {
+                            filter.clear();
+                        });
 
-                    let items = self.items.borrow();
-                    let node = TreeNode::get_node_at_path(&self.selected_item_path.borrow(), &items).unwrap();
+                        let items = self.items.borrow();
+                        let node = TreeNode::get_node_at_path(&self.selected_item_path.borrow(), &items).unwrap();
 
-                    if action == Action::Confirm {
-                        if let Some(on_enter_fn) = &self.on_enter_fn {
-                            on_enter_fn(&node.inner);
-                        }
-                        if self.auto_select_next.get() {
-                            self.exec_navigation_action(NavigationAction::Down);
-                        }
-                    } else if action == Action::ConfirmAlt {
-                        if let Some(on_enter_alt_fn) = &self.on_enter_alt_fn {
-                            on_enter_alt_fn(&node.inner);
+                        if action == Action::Confirm {
+                            if let Some(on_enter_fn) = &self.on_enter_fn {
+                                on_enter_fn(&node.inner);
+                            }
                             if self.auto_select_next.get() {
                                 self.exec_navigation_action(NavigationAction::Down);
                             }
+                        } else if action == Action::ConfirmAlt {
+                            if let Some(on_enter_alt_fn) = &self.on_enter_alt_fn {
+                                on_enter_alt_fn(&node.inner);
+                                if self.auto_select_next.get() {
+                                    self.exec_navigation_action(NavigationAction::Down);
+                                }
+                            }
                         }
+                        true
                     }
+                    Action::Cancel => {
+                        self.filter_mut(|filter| {
+                            filter.clear();
+                        });
+                        true
+                    }
+                    Action::ListAction(action) if self.filter.borrow().is_empty() => self.exec_list_action(action),
+                    Action::Text(action) => self.exec_text_action(action),
+                    _ => false,
+                };
+                if handled {
+                    break;
                 }
-                Action::Cancel => {
-                    self.filter_mut(|filter| {
-                        filter.clear();
-                    });
-                }
-                Action::ListAction(action) => self.exec_list_action(action),
-                Action::Text(action) => self.exec_text_action(action),
-                _ => {}
             }
         };
     }
@@ -504,10 +518,10 @@ where
         }
     }
 
-    fn exec_rename_action(&mut self, action: Action) {
+    fn exec_rename_action(&mut self, action: Action) -> bool {
         let mut rename_option = self.rename.borrow_mut();
         let Some(ref mut rename) = *rename_option else {
-            return;
+            return false;
         };
         match action {
             Action::Confirm => {
@@ -515,12 +529,8 @@ where
                     on_request_focus_trap(false);
                 }
 
-                if rename.is_empty() {
-                    return;
-                }
-
                 let Some(ref on_rename_fn) = self.on_rename_fn else {
-                    return;
+                    return false;
                 };
 
                 on_rename_fn(rename_option.take().unwrap());
@@ -543,33 +553,36 @@ where
             Action::ListAction(ListAction::RenameClear) => {
                 rename.clear();
             }
-            _ => {}
+            _ => {
+                return false;
+            }
         }
+        true
     }
 
-    fn exec_list_action(&self, action: ListAction) {
+    fn exec_list_action(&self, action: ListAction) -> bool {
         match action {
             ListAction::Insert => {
                 let Some(f) = &self.on_insert_fn else {
-                    return;
+                    return false;
                 };
                 f();
             }
             ListAction::Delete => {
                 let Some(on_delete) = &self.on_delete_fn else {
-                    return;
+                    return false;
                 };
 
                 let mut items = self.items.borrow_mut();
 
                 if items.is_empty() {
-                    return;
+                    return true;
                 }
 
                 let selected_item_path = self.selected_item_path.borrow_mut();
                 if selected_item_path.is_empty() {
                     log::warn!("selected_item_path.is_empty()");
-                    return;
+                    return true;
                 }
 
                 let removed_item = if selected_item_path.len() == 1 {
@@ -586,7 +599,7 @@ where
             }
             ListAction::SwapUp | ListAction::SwapDown => {
                 let Some(on_reorder) = &self.on_reorder_fn else {
-                    return;
+                    return false;
                 };
 
                 let mut nodes = self.items.borrow_mut();
@@ -601,7 +614,7 @@ where
                 };
 
                 if siblings.len() < 2 {
-                    return;
+                    return true;
                 }
 
                 let next_i;
@@ -610,7 +623,7 @@ where
                 } else if action == ListAction::SwapDown && selected_node_index < siblings.len().saturating_sub(1) {
                     next_i = selected_node_index + 1;
                 } else {
-                    return;
+                    return true;
                 };
 
                 siblings.swap(selected_node_index, next_i);
@@ -663,11 +676,14 @@ where
                 // TODO: if the selected node was closed, `selected_path = selected_path.parent()`
                 // and update the scroll position if necessary
             }
-            _ => {}
+            _ => {
+                return false;
+            }
         }
+        true
     }
 
-    fn exec_text_action(&self, action: TextAction) {
+    fn exec_text_action(&self, action: TextAction) -> bool {
         match action {
             TextAction::Char(char) => {
                 self.filter_mut(|filter| {
@@ -681,8 +697,11 @@ where
                     }
                 });
             }
-            _ => {}
+            _ => {
+                return false;
+            }
         }
+        true
     }
 
     /// Walks the entire tree, depth-first, calling the passed callback with each element.
@@ -763,7 +782,11 @@ impl<'a, T> Iterator for TreeIterator<'a, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::components::{TreeNode, TreeNodePath, tree::component::TreeIterator};
+    use crate::{
+        actions::{Action, ListAction, TextAction},
+        components::{Tree, TreeNode, TreeNodePath, tree::component::TreeIterator},
+        config::Theme,
+    };
 
     #[test]
     pub fn test_1() -> Result<(), ()> {
@@ -892,6 +915,101 @@ mod tests {
         assert_iter_eq("root 4 - child 1", &[3, 0]);
 
         assert_eq!(iter.next(), None);
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn action_toggle_open_close() -> Result<(), ()> {
+        let mut root_1 = TreeNode::new("root 1");
+        root_1.children = vec![TreeNode::new("root 1 - child 1")];
+
+        let mut root_2 = TreeNode::new("root 2");
+        root_2.children = vec![TreeNode::new("root 2 - child 1"), TreeNode::new("root 2 - child 2")];
+        root_2.is_open = false;
+
+        let mut root_3_child_2 = TreeNode::new("root 3 - child 2");
+        root_3_child_2.children = vec![
+            TreeNode::new("root 3 - child 2 - grandchild 1"),
+            TreeNode::new("root 3 - child 2 - grandchild 2"),
+        ];
+
+        let mut root_3 = TreeNode::new("root 3");
+        root_3.children = vec![
+            TreeNode::new("root 3 - child 1"),
+            root_3_child_2,
+            TreeNode::new("root 3 - child 3"),
+        ];
+
+        let mut root_4 = TreeNode::new("root 4");
+        root_4.children = vec![TreeNode::new("root 4 - child 1")];
+
+        let root_nodes = vec![root_1, root_2, root_3, root_4];
+
+        let mut tree = Tree::new(Theme::default(), root_nodes);
+
+        macro_rules! assert_is_open {
+            ($expected:expr) => {
+                tree.with_selected_node(|node| {
+                    assert_eq!(node.inner, "root 1");
+                    assert_eq!(node.is_open, $expected);
+                });
+            };
+        }
+
+        // Nodes are open by default
+        assert_is_open!(true);
+
+        tree.exec_action(vec![Action::ListAction(ListAction::OpenClose)]);
+        assert_is_open!(false);
+
+        tree.exec_action(vec![Action::ListAction(ListAction::OpenClose)]);
+        assert_is_open!(true);
+
+        // OpenClose is currently a valid action and first in the array, so it's given priority.
+        // The rest of the actions are ignored.
+        tree.exec_action(vec![
+            Action::ListAction(ListAction::OpenClose),
+            Action::Text(TextAction::Char('a')),
+        ]);
+        assert_is_open!(false);
+        assert!(tree.filter.borrow().is_empty());
+
+        // Start filtering. We pass 'r' to match "root", which will keep the selection at "root 1".
+        tree.exec_action(vec![Action::Text(TextAction::Char('r'))]);
+        assert_is_open!(false);
+        assert_eq!(*tree.filter.borrow(), "r");
+
+        // When both OpenClose and a TextAction are processed, if the Tree is in "filter mode", the OpenClose action is ignored
+        tree.exec_action(vec![Action::ListAction(ListAction::OpenClose)]);
+        assert_is_open!(false);
+        assert_eq!(*tree.filter.borrow(), "r");
+
+        // If more than one action is passed, OpenClose is ignored but the rest are still processed...
+        tree.exec_action(vec![
+            Action::ListAction(ListAction::OpenClose),
+            Action::Text(TextAction::Char('o')),
+        ]);
+        assert_is_open!(false);
+        assert_eq!(*tree.filter.borrow(), "ro");
+
+        // regardless of the order
+        tree.exec_action(vec![
+            Action::Text(TextAction::Char('o')),
+            Action::ListAction(ListAction::OpenClose),
+        ]);
+        assert_is_open!(false);
+        assert_eq!(*tree.filter.borrow(), "roo");
+
+        // Let's exit filter mode.
+        tree.exec_action(vec![Action::Cancel]);
+        assert_is_open!(false);
+        assert!(tree.filter.borrow().is_empty());
+
+        // Now we can toggle again.
+        tree.exec_action(vec![Action::ListAction(ListAction::OpenClose)]);
+        assert_is_open!(true);
+        assert!(tree.filter.borrow().is_empty());
 
         Ok(())
     }

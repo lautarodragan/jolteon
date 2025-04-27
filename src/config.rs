@@ -14,3 +14,10 @@ pub struct Theme {
     pub search: Color,
     pub search_selected: Color,
 }
+
+impl Default for Theme {
+    fn default() -> Self {
+        let theme = include_str!("../assets/theme.toml");
+        toml::from_str(theme).unwrap()
+    }
+}

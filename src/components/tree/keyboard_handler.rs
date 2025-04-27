@@ -7,7 +7,7 @@ impl<'a, T> OnActionMut for Tree<'a, T>
 where
     T: 'a + Clone + std::fmt::Display + Debug,
 {
-    fn on_action(&mut self, action: Vec<Action>) {
-        self.exec_action(action[0]);
+    fn on_action(&mut self, actions: Vec<Action>) {
+        self.exec_action(actions);
     }
 }
