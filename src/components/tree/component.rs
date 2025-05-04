@@ -818,7 +818,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_1() -> Result<(), ()> {
+    pub fn test_iter_thief() -> Result<(), ()> {
         let root_nodes = create_test_tree_nodes();
         let mut iter = TreeIterator::new_thief(&root_nodes);
 
@@ -847,6 +847,7 @@ mod tests {
         assert_iter_eq("root 3 - child 1", &[2, 0]);
         assert_iter_eq("root 3 - child 2", &[2, 1]);
         assert_iter_eq("root 3 - child 2 - grandchild 1", &[2, 1, 0]);
+        
         let node = TreeNode::get_node_at_path(&TreeNodePath::from_vec(vec![2, 1, 0]), &root_nodes);
         assert_eq!(node.unwrap().inner, "root 3 - child 2 - grandchild 1");
         assert_iter_eq("root 3 - child 2 - grandchild 2", &[2, 1, 1]);
@@ -860,7 +861,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_2() -> Result<(), ()> {
+    pub fn test_iter() -> Result<(), ()> {
         let mut root_nodes = create_test_tree_nodes();
         root_nodes[1].is_open = false;
         let mut iter = TreeIterator::new(&root_nodes);
