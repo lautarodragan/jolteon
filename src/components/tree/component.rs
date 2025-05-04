@@ -2,13 +2,11 @@ use std::{
     cell::{Cell, RefCell},
     cmp::Ordering,
     fmt::{Debug, Display},
-    slice::Iter,
 };
 
-use super::{TreeNode, TreeNodePath};
+use super::{TreeNode, TreeNodeListIterator, TreeNodePath};
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},
-    components::tree::tree_node::TreeNodeIterator,
     config::Theme,
     ui::Focusable,
 };
@@ -389,7 +387,7 @@ where
                     None
                 }
             }
-            NavigationAction::Down if !is_filtering => TreeIterator::new(&root_nodes)
+            NavigationAction::Down if !is_filtering => TreeNodeListIterator::new(&root_nodes)
                 .map(|i| i.0)
                 .find(|path| *path > current_path),
             NavigationAction::Up if is_filtering => {
@@ -415,14 +413,14 @@ where
 
                 None
             }
-            NavigationAction::Down if is_filtering => TreeIterator::new(&root_nodes)
+            NavigationAction::Down if is_filtering => TreeNodeListIterator::new(&root_nodes)
                 .find(|(path, node)| *path > current_path && node.is_match)
                 .map(|(path, _)| path),
             NavigationAction::PageUp if !is_filtering => {
                 // TODO: impl DoubleEndedIterator for TreeIterator
                 None
             }
-            NavigationAction::PageDown if !is_filtering => TreeIterator::new(&root_nodes)
+            NavigationAction::PageDown if !is_filtering => TreeNodeListIterator::new(&root_nodes)
                 .map(|i| i.0)
                 .filter(|path| *path > current_path)
                 .nth(self.page_size as usize - 1),
@@ -441,9 +439,8 @@ where
                     node = &node.children[i];
                 }
             }
-            NavigationAction::Home if is_filtering => {
-                TreeIterator::new(&root_nodes).find_map(|(path, node)| if node.is_match { Some(path) } else { None })
-            }
+            NavigationAction::Home if is_filtering => TreeNodeListIterator::new(&root_nodes)
+                .find_map(|(path, node)| if node.is_match { Some(path) } else { None }),
             NavigationAction::End if is_filtering => {
                 for (root_node_index, root_node) in root_nodes.iter().enumerate().rev() {
                     let path = TreeNodePath::from_vec(vec![root_node_index]);
@@ -728,63 +725,11 @@ impl<T> Focusable for Tree<'_, T> {
     }
 }
 
-pub struct TreeIterator<'a, T: 'a> {
-    root_iter: Iter<'a, TreeNode<T>>,
-    root_index: isize,
-    child_iter: Option<TreeNodeIterator<'a, T>>,
-    pick_locks: bool,
-}
-
-impl<'a, T: 'a> TreeIterator<'a, T> {
-    pub fn new(items: &'a [TreeNode<T>]) -> TreeIterator<'a, T> {
-        let root_iter = items.iter();
-
-        TreeIterator {
-            root_iter,
-            root_index: -1,
-            child_iter: None,
-            pick_locks: false,
-        }
-    }
-
-    #[allow(unused)]
-    pub fn new_thief(items: &'a [TreeNode<T>]) -> TreeIterator<'a, T> {
-        let root_iter = items.iter();
-
-        TreeIterator {
-            root_iter,
-            root_index: -1,
-            child_iter: None,
-            pick_locks: true,
-        }
-    }
-}
-
-impl<'a, T> Iterator for TreeIterator<'a, T> {
-    type Item = (TreeNodePath, &'a TreeNode<T>);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some((path, node)) = self.child_iter.as_mut().and_then(|ci| ci.next()) {
-            Some((path.with_parent(self.root_index as usize), node))
-        } else if let Some(root_node) = self.root_iter.next() {
-            self.child_iter = if self.pick_locks || root_node.is_open {
-                Some(root_node.iter())
-            } else {
-                None
-            };
-            self.root_index += 1;
-            Some((TreeNodePath::from_vec(vec![self.root_index as usize]), root_node))
-        } else {
-            None
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
         actions::{Action, ListAction, TextAction},
-        components::{Tree, TreeNode, TreeNodePath, tree::component::TreeIterator},
+        components::{Tree, TreeNode},
         config::Theme,
     };
 
@@ -815,92 +760,6 @@ mod tests {
         root_4.children = vec![TreeNode::new("root 4 - child 1".to_string())];
 
         vec![root_1, root_2, root_3, root_4]
-    }
-
-    #[test]
-    pub fn test_iter_thief() -> Result<(), ()> {
-        let root_nodes = create_test_tree_nodes();
-        let mut iter = TreeIterator::new_thief(&root_nodes);
-
-        let mut assert_iter_eq = |expected_inner: &str, expected_path: &[usize]| {
-            let Some((path, node)) = iter.next() else {
-                panic!("Expected Some(...), got None");
-            };
-            assert_eq!(node.inner, expected_inner, "Unexpected node.inner at path '{path}'");
-            assert_eq!(
-                path,
-                TreeNodePath::from_vec(expected_path.to_vec()),
-                "Unexpected path for '{}'. Expected {expected_path:?}",
-                node.inner
-            );
-        };
-
-        assert_iter_eq("root 1", &[0]);
-        assert_iter_eq("root 1 - child 1", &[0, 0]);
-        assert_iter_eq("root 2", &[1]);
-        assert_iter_eq("root 2 - child 1", &[1, 0]);
-        let node = TreeNode::get_node_at_path(&TreeNodePath::from_vec(vec![1, 0]), &root_nodes);
-        assert_eq!(node.unwrap().inner, "root 2 - child 1");
-
-        assert_iter_eq("root 2 - child 2", &[1, 1]);
-        assert_iter_eq("root 3", &[2]);
-        assert_iter_eq("root 3 - child 1", &[2, 0]);
-        assert_iter_eq("root 3 - child 2", &[2, 1]);
-        assert_iter_eq("root 3 - child 2 - grandchild 1", &[2, 1, 0]);
-        
-        let node = TreeNode::get_node_at_path(&TreeNodePath::from_vec(vec![2, 1, 0]), &root_nodes);
-        assert_eq!(node.unwrap().inner, "root 3 - child 2 - grandchild 1");
-        assert_iter_eq("root 3 - child 2 - grandchild 2", &[2, 1, 1]);
-        assert_iter_eq("root 3 - child 3", &[2, 2]);
-        assert_iter_eq("root 4", &[3]);
-        assert_iter_eq("root 4 - child 1", &[3, 0]);
-
-        assert_eq!(iter.next(), None);
-
-        Ok(())
-    }
-
-    #[test]
-    pub fn test_iter() -> Result<(), ()> {
-        let mut root_nodes = create_test_tree_nodes();
-        root_nodes[1].is_open = false;
-        let mut iter = TreeIterator::new(&root_nodes);
-
-        let mut assert_iter_eq = |expected_inner: &str, expected_path: &[usize]| {
-            let Some((path, node)) = iter.next() else {
-                panic!("Expected Some(...), got None");
-            };
-            assert_eq!(node.inner, expected_inner, "Unexpected node.inner at path '{path}'");
-            assert_eq!(
-                path,
-                TreeNodePath::from_vec(expected_path.to_vec()),
-                "Unexpected path for '{}'. Expected {expected_path:?}",
-                node.inner
-            );
-        };
-
-        assert_iter_eq("root 1", &[0]);
-        assert_iter_eq("root 1 - child 1", &[0, 0]);
-        assert_iter_eq("root 2", &[1]);
-        // assert_iter_eq("root 2 - child 1", &[1, 0]);
-        // let node = TreeNode::get_node_at_path(&TreeNodePath::from_vec(vec![1, 0]), &root_nodes);
-        // assert_eq!(node.unwrap().inner, "root 2 - child 1");
-
-        // assert_iter_eq("root 2 - child 2", &[1, 1]);
-        assert_iter_eq("root 3", &[2]);
-        assert_iter_eq("root 3 - child 1", &[2, 0]);
-        assert_iter_eq("root 3 - child 2", &[2, 1]);
-        assert_iter_eq("root 3 - child 2 - grandchild 1", &[2, 1, 0]);
-        let node = TreeNode::get_node_at_path(&TreeNodePath::from_vec(vec![2, 1, 0]), &root_nodes);
-        assert_eq!(node.unwrap().inner, "root 3 - child 2 - grandchild 1");
-        assert_iter_eq("root 3 - child 2 - grandchild 2", &[2, 1, 1]);
-        assert_iter_eq("root 3 - child 3", &[2, 2]);
-        assert_iter_eq("root 4", &[3]);
-        assert_iter_eq("root 4 - child 1", &[3, 0]);
-
-        assert_eq!(iter.next(), None);
-
-        Ok(())
     }
 
     #[test]
