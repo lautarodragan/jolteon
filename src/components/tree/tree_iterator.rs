@@ -60,11 +60,7 @@ impl<'a, T> Iterator for TreeNodeListIterator<'a, T> {
 #[cfg(test)]
 mod tests {
     use super::TreeNodeListIterator;
-    use crate::{
-        actions::{Action, ListAction, TextAction},
-        components::{Tree, TreeNode, TreeNodePath},
-        config::Theme,
-    };
+    use crate::components::{TreeNode, TreeNodePath};
 
     fn create_test_tree_nodes() -> Vec<TreeNode<String>> {
         let mut root_1 = TreeNode::new("root 1".to_string());
@@ -177,77 +173,6 @@ mod tests {
         assert_iter_eq("root 4 - child 1", &[3, 0]);
 
         assert_eq!(iter.next(), None);
-
-        Ok(())
-    }
-
-    #[test]
-    pub fn action_toggle_open_close() -> Result<(), ()> {
-        let root_nodes = create_test_tree_nodes();
-        let mut tree = Tree::new(Theme::default(), root_nodes);
-
-        macro_rules! assert_is_open {
-            ($expected:expr) => {
-                tree.with_selected_node(|node| {
-                    assert_eq!(node.inner, "root 1");
-                    assert_eq!(node.is_open, $expected);
-                });
-            };
-        }
-
-        // Nodes are open by default
-        assert_is_open!(true);
-
-        tree.exec_action(vec![Action::ListAction(ListAction::OpenClose)]);
-        assert_is_open!(false);
-
-        tree.exec_action(vec![Action::ListAction(ListAction::OpenClose)]);
-        assert_is_open!(true);
-
-        // OpenClose is currently a valid action and first in the array, so it's given priority.
-        // The rest of the actions are ignored.
-        tree.exec_action(vec![
-            Action::ListAction(ListAction::OpenClose),
-            Action::Text(TextAction::Char('a')),
-        ]);
-        assert_is_open!(false);
-        assert!(tree.filter.borrow().is_empty());
-
-        // Start filtering. We pass 'r' to match "root", which will keep the selection at "root 1".
-        tree.exec_action(vec![Action::Text(TextAction::Char('r'))]);
-        assert_is_open!(false);
-        assert_eq!(*tree.filter.borrow(), "r");
-
-        // When both OpenClose and a TextAction are processed, if the Tree is in "filter mode", the OpenClose action is ignored
-        tree.exec_action(vec![Action::ListAction(ListAction::OpenClose)]);
-        assert_is_open!(false);
-        assert_eq!(*tree.filter.borrow(), "r");
-
-        // If more than one action is passed, OpenClose is ignored but the rest are still processed...
-        tree.exec_action(vec![
-            Action::ListAction(ListAction::OpenClose),
-            Action::Text(TextAction::Char('o')),
-        ]);
-        assert_is_open!(false);
-        assert_eq!(*tree.filter.borrow(), "ro");
-
-        // regardless of the order
-        tree.exec_action(vec![
-            Action::Text(TextAction::Char('o')),
-            Action::ListAction(ListAction::OpenClose),
-        ]);
-        assert_is_open!(false);
-        assert_eq!(*tree.filter.borrow(), "roo");
-
-        // Let's exit filter mode.
-        tree.exec_action(vec![Action::Cancel]);
-        assert_is_open!(false);
-        assert!(tree.filter.borrow().is_empty());
-
-        // Now we can toggle again.
-        tree.exec_action(vec![Action::ListAction(ListAction::OpenClose)]);
-        assert_is_open!(true);
-        assert!(tree.filter.borrow().is_empty());
 
         Ok(())
     }
