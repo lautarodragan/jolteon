@@ -37,7 +37,7 @@ pub struct Tree<'a, T: 'a> {
     pub(super) rename: RefCell<Option<String>>,
 
     pub(super) padding: u8,
-    pub(super) page_size: u8,
+    pub(super) page_size: usize,
 }
 
 impl<'a, T> Tree<'a, T>
@@ -416,14 +416,16 @@ where
             NavigationAction::Down if is_filtering => TreeNodeListIterator::new(&root_nodes)
                 .find(|(path, node)| *path > current_path && node.is_match)
                 .map(|(path, _)| path),
-            NavigationAction::PageUp if !is_filtering => {
-                // TODO: impl DoubleEndedIterator for TreeIterator
-                None
-            }
+            NavigationAction::PageUp if !is_filtering => TreeNodeListIterator::new(&root_nodes)
+                .rev()
+                .map(|i| i.0)
+                .skip_while(|path| *path > current_path)
+                .nth(self.page_size)
+                .or_else(|| Some(TreeNodePath::zero())),
             NavigationAction::PageDown if !is_filtering => TreeNodeListIterator::new(&root_nodes)
                 .map(|i| i.0)
-                .skip_while(|path| *path <= current_path)
-                .nth(self.page_size as usize - 1),
+                .skip_while(|path| *path < current_path)
+                .nth(self.page_size),
             NavigationAction::Home if !is_filtering => Some(TreeNodePath::zero()),
             NavigationAction::End if !is_filtering => {
                 let mut new_path = vec![root_nodes.len() - 1];

@@ -8,6 +8,7 @@ use crate::components::tree::tree_node::TreeNodeIterator;
 pub struct TreeNodeListIterator<'a, T: 'a> {
     root_iter: Iter<'a, TreeNode<T>>,
     root_index: isize,
+    root_node: Option<&'a TreeNode<T>>,
     child_iter: Option<TreeNodeIterator<'a, T>>,
     pick_locks: bool,
 }
@@ -19,6 +20,7 @@ impl<'a, T: 'a> TreeNodeListIterator<'a, T> {
         TreeNodeListIterator {
             root_iter,
             root_index: -1,
+            root_node: None,
             child_iter: None,
             pick_locks: false,
         }
@@ -31,6 +33,7 @@ impl<'a, T: 'a> TreeNodeListIterator<'a, T> {
         TreeNodeListIterator {
             root_iter,
             root_index: -1,
+            root_node: None,
             child_iter: None,
             pick_locks: true,
         }
@@ -51,6 +54,33 @@ impl<'a, T> Iterator for TreeNodeListIterator<'a, T> {
             };
             self.root_index += 1;
             Some((TreeNodePath::from_vec(vec![self.root_index as usize]), root_node))
+        } else {
+            None
+        }
+    }
+}
+
+impl<T> DoubleEndedIterator for TreeNodeListIterator<'_, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.child_iter.is_none() {
+            if let Some(root_node) = self.root_iter.next_back() {
+                self.root_index += 1;
+                self.root_node = Some(root_node);
+                self.child_iter = if self.pick_locks || root_node.is_open {
+                    Some(root_node.iter())
+                } else {
+                    None
+                };
+            } else {
+                return None;
+            }
+        }
+
+        if let Some((path, node)) = self.child_iter.as_mut().and_then(|ci| ci.next_back()) {
+            Some((path.with_parent(self.root_iter.len()), node))
+        } else if let Some(root_node) = self.root_node.take() {
+            self.child_iter = None;
+            Some((TreeNodePath::from_vec(vec![self.root_iter.len()]), root_node))
         } else {
             None
         }
@@ -171,6 +201,48 @@ mod tests {
         assert_iter_eq("root 3 - child 3", &[2, 2]);
         assert_iter_eq("root 4", &[3]);
         assert_iter_eq("root 4 - child 1", &[3, 0]);
+
+        assert_eq!(iter.next(), None);
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_double_ended_iter() -> Result<(), ()> {
+        let mut root_nodes = create_test_tree_nodes();
+        root_nodes[1].is_open = false;
+        let mut iter = TreeNodeListIterator::new(&root_nodes).rev();
+
+        macro_rules! assert_iter_eq {
+            ($expected_inner:expr, $expected_path:expr) => {
+                let Some((path, node)) = iter.next() else {
+                    panic!("Expected Some(...), got None");
+                };
+                assert_eq!(
+                    $expected_inner, node.inner,
+                    "Unexpected node.inner at path '{path}'"
+                );
+                assert_eq!(
+                    TreeNodePath::from_vec($expected_path.to_vec()),
+                    path,
+                    "Unexpected path for '{}'. Expected {:?}",
+                    node.inner,
+                    $expected_path
+                );
+            };
+        }
+
+        assert_iter_eq!("root 4 - child 1", &[3, 0]);
+        assert_iter_eq!("root 4", &[3]);
+        assert_iter_eq!("root 3 - child 3", &[2, 2]);
+        assert_iter_eq!("root 3 - child 2 - grandchild 2", &[2, 1, 1]);
+        assert_iter_eq!("root 3 - child 2 - grandchild 1", &[2, 1, 0]);
+        assert_iter_eq!("root 3 - child 2", &[2, 1]);
+        assert_iter_eq!("root 3 - child 1", &[2, 0]);
+        assert_iter_eq!("root 3", &[2]);
+        assert_iter_eq!("root 2", &[1]);
+        assert_iter_eq!("root 1 - child 1", &[0, 0]);
+        assert_iter_eq!("root 1", &[0]);
 
         assert_eq!(iter.next(), None);
 
