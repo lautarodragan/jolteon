@@ -422,7 +422,7 @@ where
             }
             NavigationAction::PageDown if !is_filtering => TreeNodeListIterator::new(&root_nodes)
                 .map(|i| i.0)
-                .filter(|path| *path > current_path)
+                .skip_while(|path| *path <= current_path)
                 .nth(self.page_size as usize - 1),
             NavigationAction::Home if !is_filtering => Some(TreeNodePath::zero()),
             NavigationAction::End if !is_filtering => {
