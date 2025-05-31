@@ -6,7 +6,7 @@ use strum::EnumString;
 
 use crate::toml::TomlFileError;
 
-static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.kv");
+static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.ini");
 static DEFAULT_ACTIONS: LazyLock<HashMap<KeyBinding, Vec<Action>>> =
     LazyLock::new(|| Actions::from_str(DEFAULT_ACTIONS_STR).actions);
 
@@ -204,7 +204,7 @@ impl Actions {
             .as_path()
             .join(".config")
             .join("jolteon")
-            .join("actions.kv")
+            .join("actions.ini")
     }
 
     pub fn from_file() -> Result<Self, TomlFileError> {

@@ -93,7 +93,7 @@ impl WidgetRef for Help<'_> {
         //   The latter would require some visual feedback — probably borders... which are ugly :(
 
         ratatui::widgets::Paragraph::new(
-            HELP_TEXT_STR.replace("{{actions.kv.path}}", &Actions::path().to_string_lossy()),
+            HELP_TEXT_STR.replace("{{actions.ini.path}}", &Actions::path().to_string_lossy()),
         )
         .style(Style::new().fg(self.theme.foreground_secondary))
         .wrap(Wrap { trim: true })
