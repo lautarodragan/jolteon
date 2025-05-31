@@ -91,7 +91,6 @@ See [Developing](#developing) down below.
     handled accordingly.
   - 🚧 In the future, if any non-bug causes an issue, rather than just being ignored, proper UX will be implemented and feedback given.
 - A clock on the top bar :)
-  - 🚧 In the future, we'll be able to enable/disable this feature, as well as configuring the time format.
 - Configurable key bindings
   - The Help screen has a bit of info on this, but the UX will improve in the future, like support to change the key bindings inside the application.
 - 🚧 Themes

@@ -79,8 +79,10 @@ impl Widget for TopBar<'_> {
             );
         tabs.render(area, buf);
 
-        let clock = Line::from(time_format()).alignment(Alignment::Center);
-        clock.render(area, buf);
+        if self.settings.clock_display {
+            let clock = Line::from(time_format()).alignment(Alignment::Center);
+            clock.render(area, buf);
+        }
 
         if self.settings.debug_frame_counter {
             Line::from(format!("FRAME {}", self.frame_count))
