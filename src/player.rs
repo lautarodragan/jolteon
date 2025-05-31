@@ -153,6 +153,16 @@ impl SingleTrackPlayer {
                             if let Some(seek) = must_seek.lock().unwrap().take() {
                                 if let Err(err) = controls.seek(seek) {
                                     log::error!("periodic_access.try_seek() error. {:?}", err)
+                                    /*
+                                    TODO(bug): 
+                                    `source` drops here, some times. if that happens,
+                                    the song moves to "ended" but the UI isn't updated properly.
+                                     
+                                    Example log:
+                                    ERROR cpal_alsa_out jolteon::player periodic_access.try_seek() error. SymphoniaDecoder(Refining(IoError(Custom { kind: UnexpectedEof, error: "end of stream" })))
+                                    TRACE cpal_alsa_out jolteon::player source.on_playback_ended
+                                    TRACE cpal_alsa_out jolteon::source Source.drop()
+                                    */
                                 }
                             }
                         }

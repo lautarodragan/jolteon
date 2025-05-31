@@ -23,6 +23,22 @@ Support for toggling instead.
 - Store these messages permanently in a new, "log" screen.
 - This log screen is unrelated to debugging logs (`log::debug`, etc). It's only for user-facing messages.
 
+## Radio Mode / Playlist Generator / Suggestions
+
+Some sort of engine that suggests music.
+- Purely random
+- "Learn" based on listening patterns (some sort of "song proximity" based on which songs we tend to listen "together", or some definition of "together")
+- Radio mode: just keep playing suggested tracks after the queue ends
+- Playlist generator: create a playlist of N songs
+- Queue mode: like playlist mode, but adds to queue instead of creating a playlist?
+
+## Lists Scroll Improvements
+
+- Visual feedback when trying to move past the end/start (like the Nintendo Switch home)
+- Visual indicator of there being off-screen elements in the list (we have no scroll bars)
+  - First/last visible element being `${elementName} + ${remainingCount} more...`, dim'd, if `remainingCount > 0`
+  - An actual scroll bar? 
+
 ## AtomicDuration
 
 An `AtomicDuration` struct may be more ergonomic than a `Mutex<Duration>`, and might be marginally faster.

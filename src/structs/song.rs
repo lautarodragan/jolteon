@@ -46,7 +46,7 @@ impl Song {
                 primary_tag.title().map(String::from),
                 primary_tag.track(),
                 primary_tag.year(),
-                primary_tag.disk(),
+                primary_tag.disk(), // TODO: disc number is sometimes stored as a Text, including disk sides ("A1"). `.disk` returns `None` in these cases.
             ),
             _ => (None, None, None, None, None, None),
         };

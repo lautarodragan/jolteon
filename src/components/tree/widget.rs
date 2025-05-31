@@ -80,7 +80,7 @@ fn render_node<'a, T>(
 
         let text = match *rename {
             Some(ref rename) if is_selected => rename.into(),
-            _ => node.inner.to_string().into(),
+            _ => node.inner.to_string().into(), // TODO: cache this
         };
 
         let style_overrides = line_style.as_ref().and_then(|ls| ls(&node.inner));
