@@ -14,7 +14,7 @@ mod app;
 mod auto_update;
 mod bye;
 mod components;
-mod config;
+mod theme;
 mod constants;
 mod cue;
 mod duration;

@@ -14,7 +14,7 @@ use rodio::OutputStream;
 use crate::{
     actions::{Action, Actions, OnAction, OnActionMut},
     components::*,
-    config::Theme,
+    theme::Theme,
     main_player::MainPlayer,
     mpris::Mpris,
     settings::Settings,

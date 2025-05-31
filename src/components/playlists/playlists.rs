@@ -4,7 +4,7 @@ use chrono::Local;
 
 use crate::{
     components::{FocusGroup, List},
-    config::Theme,
+    theme::Theme,
     structs::{Playlist, Song},
     ui::{Component, Focusable},
 };

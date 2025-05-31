@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};
 use crate::{
     components::{FocusGroup, List, Tree, TreeNode},
-    config::Theme,
+    theme::Theme,
     structs::{Direction, Song},
     ui::{Component, Focusable},
 };

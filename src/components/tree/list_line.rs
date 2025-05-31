@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Widget, WidgetRef},
 };
 
-use crate::config::Theme;
+use crate::theme::Theme;
 
 pub struct ListLine<'a> {
     pub theme: &'a Theme,

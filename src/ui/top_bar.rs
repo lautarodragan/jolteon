@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, Tabs},
 };
 
-use crate::{config::Theme, settings::Settings};
+use crate::{theme::Theme, settings::Settings};
 
 // static TIME_FORMAT: &str = "%A %-l:%M%P, %B %-e | %F";
 // static TIME_FORMAT: &str = "%A %-l:%M%P, %B %-e";
@@ -36,7 +36,7 @@ pub struct TopBar<'a> {
 impl<'a> TopBar<'a> {
     pub fn new(
         settings: Settings,
-        theme: crate::config::Theme,
+        theme: Theme,
         tab_titles: &'a [&'a str],
         active_tab: usize,
         frame_count: u64,

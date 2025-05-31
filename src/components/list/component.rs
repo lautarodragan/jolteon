@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},
-    config::Theme,
+    theme::Theme,
     structs::Direction,
     ui::Focusable,
 };

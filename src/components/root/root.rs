@@ -9,7 +9,7 @@ use std::{
 use crate::{
     actions::{Action, Actions, OnActionMut, ScreenAction},
     components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
-    config::Theme,
+    theme::Theme,
     main_player::MainPlayer,
     settings::Settings,
     state::State,

@@ -6,7 +6,7 @@ use ratatui::{
 };
 
 use super::{Tree, TreeNode, TreeNodePath};
-use crate::{components::ListLine, config::Theme, ui::Focusable};
+use crate::{components::ListLine, theme::Theme, ui::Focusable};
 
 impl<T> WidgetRef for Tree<'_, T>
 where

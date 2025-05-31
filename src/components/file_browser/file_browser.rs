@@ -24,7 +24,7 @@ use crate::{
         List,
         file_browser::{file_meta::FileMeta, help::FileBrowserHelp},
     },
-    config::Theme,
+    theme::Theme,
     structs::Song,
     ui::{Component, Focusable},
 };

@@ -7,7 +7,7 @@ use std::{
 use super::{TreeNode, TreeNodeListIterator, TreeNodePath};
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},
-    config::Theme,
+    theme::Theme,
     ui::Focusable,
 };
 
@@ -732,7 +732,7 @@ mod tests {
     use crate::{
         actions::{Action, ListAction, TextAction},
         components::{Tree, TreeNode},
-        config::Theme,
+        theme::Theme,
     };
 
     fn create_test_tree_nodes() -> Vec<TreeNode<String>> {

@@ -5,7 +5,7 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Style, text::Span, widgets::W
 use crate::{
     actions::{Action, Actions, FileBrowserAction, KeyBinding},
     components::file_browser::AddMode,
-    config::Theme,
+    theme::Theme,
 };
 
 impl Display for Action {

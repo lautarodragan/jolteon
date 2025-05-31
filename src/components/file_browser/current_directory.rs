@@ -10,7 +10,7 @@ use ratatui::{
     widgets::WidgetRef,
 };
 
-use crate::config::Theme;
+use crate::theme::Theme;
 
 fn split_path(path: &Path) -> (String, String) {
     let folder_name = path
