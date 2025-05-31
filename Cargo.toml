@@ -12,6 +12,7 @@ repository = "https://github.com/lautarodragan/jolteon"
 
 [profile.dev]
 panic = 'abort'
+incremental = true
 
 [profile.release]
 panic = 'abort'
@@ -41,5 +42,6 @@ uuid = { version = "1.15.1", features = [ "v4", "serde" ] }
 serde_default = "0.2.0"
 serde-inline-default = "0.2.3"
 
+# TODO https://github.com/RustAudio/cpal/pull/909 (approved but not merged)
 [patch.crates-io]
 cpal = { git = 'https://github.com/lautarodragan/cpal' }
