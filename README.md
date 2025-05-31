@@ -178,7 +178,7 @@ even if hard or very unlikely.
 
 ### History & Rant
 
-See [HISTORY.md](./HISTORY.md).
+See [HISTORY.md](docs/HISTORY.md).
 
 ## Developing
 
@@ -213,4 +213,4 @@ Keep in mind I'm using my own fork of `cpal` right now. I have an open [PR for c
 
 ## Bugs
 
-See [BUGS.md](./BUGS.md).
+See [BUGS.md](docs/BUGS.md).
