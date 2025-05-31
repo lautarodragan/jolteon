@@ -36,7 +36,7 @@ use colored::{Color, Colorize};
 use flexi_logger::{DeferredNow, FileSpec, Logger, WriteMode, style};
 use log::{Record, debug, info};
 
-use crate::{auto_update::auto_update, bye::bye, term::reset_terminal};
+use crate::{auto_update::auto_update, bye::bye, settings::Settings, term::reset_terminal};
 
 pub fn log_format(w: &mut dyn std::io::Write, now: &mut DeferredNow, record: &Record) -> Result<(), std::io::Error> {
     write!(w, "{}   ", now.format("%-l:%M:%S%P"))?;
@@ -74,6 +74,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .start()?;
 
     info!("Starting");
+
+    debug!("env::args: {:?}", std::env::args().collect::<Vec<_>>());
+
+    if std::env::args().any(|arg| arg == "--help" || arg == "-h") {
+        println!("Supported cli args:");
+        println!("--print-default-config     Print default configuration");
+        println!("--help                     Print this help message and exit");
+        return Ok(());
+    }
+
+    if std::env::args().any(|arg| arg == "--print-default-config") {
+        println!("# default Jolteon configuration:");
+        println!("{}", Settings::default());
+        return Ok(());
+    }
 
     let _auto_update = auto_update().await;
 

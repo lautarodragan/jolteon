@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use serde::{Deserialize, Serialize};
 use serde_default::DefaultFromSerde;
 
@@ -19,5 +21,12 @@ pub struct Settings {
 impl Settings {
     pub fn from_file() -> Self {
         read_toml_file_or_default("settings")
+    }
+}
+
+impl Display for Settings {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let s = toml::to_string_pretty(self);
+        write!(f, "{}", s.unwrap())
     }
 }
