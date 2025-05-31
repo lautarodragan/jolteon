@@ -10,6 +10,9 @@ pub struct Settings {
 
     #[serde_inline_default(true)]
     pub clock_display: bool,
+
+    #[serde_inline_default(true)]
+    pub paused_animation: bool,
 }
 
 impl Settings {

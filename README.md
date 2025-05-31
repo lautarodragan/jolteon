@@ -32,8 +32,7 @@ See [Developing](#developing) down below.
 - The number keys `1` through `5` select the different screens. The top bar shows the available screens and highlights the active one.
 - `Tab` cycles through focusable elements in the screen.
 - `Ctrl+Space` toggles play/pause. 
-- When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen.
-  - 🚧 In the future, we'll be able to configure both whether we want the animation or not and where we want it on the screen. 
+- When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen. The animation can be disabled via configuration. 
 - Media library
   - Search/Filter in the artist/album tree. Just press any letter or number key to start filtering. 
     Matches will be displayed in red, and, while filtering, the navigation keys will jump between matches.
@@ -90,7 +89,7 @@ See [Developing](#developing) down below.
   - Minimal use of `unwrap`. Only true bugs in the application should crash Jolteon. Any external source of indeterminism should be
     handled accordingly.
   - 🚧 In the future, if any non-bug causes an issue, rather than just being ignored, proper UX will be implemented and feedback given.
-- A clock on the top bar :)
+- A clock on the top bar. Can be turned off via configuration.
 - Configurable key bindings
   - The Help screen has a bit of info on this, but the UX will improve in the future, like support to change the key bindings inside the application.
 - 🚧 Themes

@@ -48,11 +48,11 @@ impl Widget for &mut Root<'_> {
             return;
         };
 
-        let is_paused = player.is_paused() && {
+        let is_paused = player.is_paused() && (!self.settings.paused_animation || {
             const ANIM_LEN: u64 = 6 * 16;
             let step = self.frame % ANIM_LEN;
             step % 12 < 6 || step >= ANIM_LEN / 2 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
-        };
+        });
 
         let is_repeating = player.is_repeating();
 
