@@ -1,2 +1,3 @@
 [toolchain]
 channel = "nightly"
+edition = "2024"
