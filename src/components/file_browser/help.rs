@@ -82,7 +82,7 @@ impl<'a> FileBrowserHelp<'a> {
     pub fn set_add_mode(&mut self, add_mode: AddMode) {
         let kb_secondary = self.actions.list_secondary();
         let Some(pill) = self.pills.iter_mut().find(|p| p.key_binding == kb_secondary) else {
-            log::error!("Missing pill for {:?}?", kb_secondary);
+            log::error!("Missing pill for {kb_secondary:?}?");
             return;
         };
 

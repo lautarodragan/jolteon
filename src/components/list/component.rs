@@ -5,8 +5,8 @@ use std::{
 
 use crate::{
     actions::{Action, ListAction, NavigationAction, TextAction},
-    theme::Theme,
     structs::Direction,
+    theme::Theme,
     ui::Focusable,
 };
 

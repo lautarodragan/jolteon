@@ -10,8 +10,8 @@ use ratatui::{
 use crate::{
     actions::{Action, Actions, KeyBinding, OnAction, OnActionMut},
     components::List,
-    theme::Theme,
     settings::Settings,
+    theme::Theme,
     ui::Focusable,
 };
 

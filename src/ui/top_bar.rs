@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, Tabs},
 };
 
-use crate::{theme::Theme, settings::Settings};
+use crate::{settings::Settings, theme::Theme};
 
 // static TIME_FORMAT: &str = "%A %-l:%M%P, %B %-e | %F";
 // static TIME_FORMAT: &str = "%A %-l:%M%P, %B %-e";

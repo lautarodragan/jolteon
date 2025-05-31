@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, Gauge},
 };
 
-use crate::{theme::Theme, duration::duration_to_string, structs::Song};
+use crate::{duration::duration_to_string, structs::Song, theme::Theme};
 
 pub fn song_to_string(song: &Song) -> String {
     let title = song.title.clone();

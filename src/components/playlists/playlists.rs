@@ -4,8 +4,8 @@ use chrono::Local;
 
 use crate::{
     components::{FocusGroup, List},
-    theme::Theme,
     structs::{Playlist, Song},
+    theme::Theme,
     ui::{Component, Focusable},
 };
 

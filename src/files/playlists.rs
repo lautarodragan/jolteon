@@ -22,7 +22,7 @@ impl Playlists {
 
     pub fn save(&self) {
         if let Err(err) = self.to_file() {
-            log::error!("Could not save playlists! {:#?}", err);
+            log::error!("Could not save playlists! {err:#?}");
         }
     }
 }

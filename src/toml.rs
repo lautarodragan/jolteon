@@ -73,10 +73,7 @@ where
     T: DeserializeOwned + Default,
 {
     read_toml_file(file_name).unwrap_or_else(|err| {
-        error!(
-            "Error in '{file_name}' file. Will use default values. Error was: \n{:#?}",
-            err
-        );
+        error!("Error in '{file_name}' file. Will use default values. Error was: \n{err:#?}");
         T::default()
     })
 }

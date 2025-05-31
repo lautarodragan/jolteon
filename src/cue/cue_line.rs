@@ -37,7 +37,7 @@ impl CueLine {
             let indentation = line.len() - key_value.len();
 
             let Some((key, value)) = key_value.split_once(char::is_whitespace) else {
-                log::warn!("lines should be key value {:?}", line);
+                log::warn!("lines should be key value {line:?}");
                 continue;
             };
 

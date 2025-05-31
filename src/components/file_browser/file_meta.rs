@@ -5,10 +5,10 @@ use ratatui::{buffer::Buffer, layout::Rect, widgets::WidgetRef};
 use crate::{
     actions::{Action, OnAction},
     components::{FileBrowserSelection, List},
-    theme::Theme,
     cue::CueSheet,
     duration::duration_to_string,
     structs::{Jolt, Song},
+    theme::Theme,
     ui::Focusable,
 };
 

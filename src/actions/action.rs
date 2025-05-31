@@ -243,7 +243,7 @@ impl Actions {
         self.actions
             .iter()
             .chain(DEFAULT_ACTIONS.iter())
-            .find_map(|(k, v)| if v.iter().any(|a| *a == action) { Some(*k) } else { None })
+            .find_map(|(k, v)| if v.contains(&action) { Some(*k) } else { None })
     }
 
     pub fn contains(&self, action: Action) -> bool {

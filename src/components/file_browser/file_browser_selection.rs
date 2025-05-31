@@ -145,7 +145,7 @@ fn dir_entry_to_file_browser_selection(entry: &DirEntry) -> Option<FileBrowserSe
         match Jolt::from_path(entry.path()) {
             Ok(jolt) => Some(FileBrowserSelection::Jolt(jolt)),
             Err(err) => {
-                log::error!("Could not read .jolt file {:#?}", err);
+                log::error!("Could not read .jolt file {err:#?}");
                 None
             }
         }

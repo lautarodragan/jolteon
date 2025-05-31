@@ -14,12 +14,12 @@ use rodio::OutputStream;
 use crate::{
     actions::{Action, Actions, OnAction, OnActionMut},
     components::*,
-    theme::Theme,
     main_player::MainPlayer,
     mpris::Mpris,
     settings::Settings,
     state::State,
     term::set_terminal,
+    theme::Theme,
 };
 
 pub async fn run() -> Result<(), Box<dyn Error>> {

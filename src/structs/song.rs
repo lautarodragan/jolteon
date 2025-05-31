@@ -75,7 +75,7 @@ impl Song {
             _ => None,
         });
 
-        log::trace!(target: "::Song::from_dir", "{:#?}", jolt);
+        log::trace!(target: "::Song::from_dir", "{jolt:#?}");
 
         entries
             .iter()
@@ -137,9 +137,9 @@ impl Song {
             Ok(s) => s,
             Err(err) => {
                 log::warn!(target: "::song.from_cue_sheet", "Could not load songs from cue sheet.");
-                log::warn!(target: "::song.from_cue_sheet", "Cue sheet path: {:?}", cue_path);
-                log::warn!(target: "::song.from_cue_sheet", "Error: {:#?}", err);
-                log::warn!(target: "::song.from_cue_sheet", "Full cue sheet: {:#?}", cue_sheet);
+                log::warn!(target: "::song.from_cue_sheet", "Cue sheet path: {cue_path:?}");
+                log::warn!(target: "::song.from_cue_sheet", "Error: {err:#?}");
+                log::warn!(target: "::song.from_cue_sheet", "Full cue sheet: {cue_sheet:#?}");
                 return Vec::new();
             }
         };

@@ -45,7 +45,7 @@ impl CueLineNode {
                 //   (allow any indentation for the first cue_line,
                 //   check whether it makes sense for a node of type X to be a child of
                 //   a node of type Y and guess the correct indentation otherwise, etc)
-                log::warn!("Ignoring Cue Sheet invalid data: {:?}", node);
+                log::warn!("Ignoring Cue Sheet invalid data: {node:?}");
                 continue;
             }
 

@@ -103,7 +103,7 @@ pub async fn auto_update() {
                 log::info!(target: target, "Wrote release information to file.");
             }
             Err(err) => {
-                log::error!(target: target, "Could not retrieve or write release info. Error was: {:#?}", err);
+                log::error!(target: target, "Could not retrieve or write release info. Error was: {err:#?}");
             }
         }
     });
@@ -116,7 +116,7 @@ pub async fn auto_update() {
                 log::info!(target: target, "Did something :P");
             }
             Err(err) => {
-                log::error!(target: target, "Could not auto update. Error was: {:#?}", err);
+                log::error!(target: target, "Could not auto update. Error was: {err:#?}");
             }
         }
     });

@@ -10,8 +10,8 @@ use uuid::Uuid;
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};
 use crate::{
     components::{FocusGroup, List, Tree, TreeNode},
-    theme::Theme,
     structs::{Direction, Song},
+    theme::Theme,
     ui::{Component, Focusable},
 };
 
@@ -176,7 +176,7 @@ impl<'a> Library<'a> {
                 let on_select_songs_fn = on_select_songs_fn.clone();
 
                 move |item| {
-                    log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {:?}", item);
+                    log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {item:?}");
 
                     let songs = match item {
                         AlbumTreeItem::Folder(_category) => {
@@ -196,7 +196,7 @@ impl<'a> Library<'a> {
             });
             album_tree.on_delete({
                 |ati, index| {
-                    log::debug!("deleted {index} {:?}", ati);
+                    log::debug!("deleted {index} {ati:?}");
                     // nothing to do here, because the list itself is the source of truth.
                     // but, right now, the tree doesn't allow deletions if there's no on_delete callback,
                     // so we need to pass this callback.

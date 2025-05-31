@@ -102,7 +102,7 @@ impl SingleTrackPlayer {
                                 *s = song;
                             }
                             Err(err) => {
-                                log::error!("currently_playing.lock() returned an error! {:?}", err);
+                                log::error!("currently_playing.lock() returned an error! {err:?}");
                             }
                         };
                     }
@@ -115,7 +115,7 @@ impl SingleTrackPlayer {
                         must_stop.store(true, Ordering::SeqCst);
 
                         if let Err(err) = song_ended_rx.recv() {
-                            log::error!("ender_recv.recv {:?}", err);
+                            log::error!("ender_recv.recv {err:?}");
                             return;
                         }
 
@@ -152,12 +152,12 @@ impl SingleTrackPlayer {
 
                             if let Some(seek) = must_seek.lock().unwrap().take() {
                                 if let Err(err) = controls.seek(seek) {
-                                    log::error!("periodic_access.try_seek() error. {:?}", err)
+                                    log::error!("periodic_access.try_seek() error. {err:?}")
                                     /*
-                                    TODO(bug): 
+                                    TODO(bug):
                                     `source` drops here, some times. if that happens,
                                     the song moves to "ended" but the UI isn't updated properly.
-                                     
+
                                     Example log:
                                     ERROR cpal_alsa_out jolteon::player periodic_access.try_seek() error. SymphoniaDecoder(Refining(IoError(Custom { kind: UnexpectedEof, error: "end of stream" })))
                                     TRACE cpal_alsa_out jolteon::player source.on_playback_ended
@@ -218,9 +218,9 @@ impl SingleTrackPlayer {
                         set_currently_playing(Some(song.clone()));
 
                         if start_time > Duration::ZERO {
-                            log::debug!("start_time > Duration::ZERO, {:?}", start_time);
+                            log::debug!("start_time > Duration::ZERO, {start_time:?}");
                             if let Err(err) = source.seek(start_time) {
-                                log::error!("start_time > 0 try_seek() error. {:?}", err)
+                                log::error!("start_time > 0 try_seek() error. {err:?}")
                             }
                         }
 
@@ -229,7 +229,7 @@ impl SingleTrackPlayer {
                         log::debug!("output_stream.play_raw()");
                         if let Err(err) = output_stream.play_raw(source) {
                             // play_raw does `mixer.add(source)`. Mixer is tied to the CPAL thread, which starts consuming the source automatically.
-                            log::error!("os.play_raw error! {:?}", err);
+                            log::error!("os.play_raw error! {err:?}");
                             continue;
                         }
 
@@ -243,7 +243,7 @@ impl SingleTrackPlayer {
                             } else {
                                 let abs_pos = position.lock().unwrap().saturating_sub(start_time);
                                 if abs_pos >= length {
-                                    log::debug!("inner loop: pos >= length, {:?} > {:?}", abs_pos, length);
+                                    log::debug!("inner loop: pos >= length, {abs_pos:?} > {length:?}");
                                     break;
                                 }
                                 length - abs_pos
@@ -253,7 +253,7 @@ impl SingleTrackPlayer {
 
                             match command_receiver.recv_timeout(sleepy_time) {
                                 Ok(command) => {
-                                    log::debug!("Player.Command({:?})", command);
+                                    log::debug!("Player.Command({command:?})");
                                     match command {
                                         Command::SetSong(song) => {
                                             log::error!("oops! received SetSong while playing! {song:?}");
@@ -305,7 +305,7 @@ impl SingleTrackPlayer {
                                                 break;
                                             }
 
-                                            log::debug!("Seek({:?})", target);
+                                            log::debug!("Seek({target:?})");
                                             *must_seek.lock().unwrap() = Some(target);
                                             *pos = target; // optimistic update, otherwise sleepy_time will be off
                                         }
@@ -374,7 +374,7 @@ impl SingleTrackPlayer {
 
     fn send_command(&self, command: Command) {
         if let Err(err) = self.command_sender.send(command) {
-            log::warn!("Player.send_command() failure: {:?}", err);
+            log::warn!("Player.send_command() failure: {err:?}");
         }
     }
 
@@ -385,7 +385,7 @@ impl SingleTrackPlayer {
                 log::trace!("Player.drop: main_thread joined successfully");
             }
             Err(err) => {
-                log::error!("Player.quit: {:?}", err);
+                log::error!("Player.quit: {err:?}");
             }
         }
     }

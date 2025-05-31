@@ -1,6 +1,6 @@
 use std::{cell::Cell, time::Duration};
 
-use crate::{components::List, theme::Theme, structs::Song, ui::Focusable};
+use crate::{components::List, structs::Song, theme::Theme, ui::Focusable};
 
 pub struct Queue<'a> {
     pub(super) song_list: List<'a, Song>,

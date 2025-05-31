@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
-use crate::toml::read_toml_file_or_default;
 use serde_default::DefaultFromSerde;
+
+use crate::toml::read_toml_file_or_default;
 
 #[serde_inline_default::serde_inline_default]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, DefaultFromSerde)]

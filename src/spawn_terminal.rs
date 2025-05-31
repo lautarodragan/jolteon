@@ -23,12 +23,12 @@ pub fn spawn_terminal(cwd: PathBuf) {
                 let stdout_reader = std::io::BufReader::new(stdout);
 
                 for line in stdout_reader.lines() {
-                    log::debug!("stdout: {:?}", line);
+                    log::debug!("stdout: {line:?}");
                 }
 
                 log::debug!("child process exited");
             } else if let Err(err) = proc {
-                log::error!("error spawning thread {:?}", err);
+                log::error!("error spawning thread {err:?}");
             }
         })
         .unwrap();

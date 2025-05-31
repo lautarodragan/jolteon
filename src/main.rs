@@ -13,7 +13,6 @@ mod app;
 mod auto_update;
 mod bye;
 mod components;
-mod theme;
 mod constants;
 mod cue;
 mod duration;
@@ -27,6 +26,7 @@ mod spawn_terminal;
 mod state;
 mod structs;
 mod term;
+mod theme;
 mod toml;
 mod ui;
 
@@ -80,7 +80,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     debug!("Starting mpris and player");
 
     if let Err(err) = app::run().await {
-        log::error!("app::run error :( \n{:#?}", err);
+        log::error!("app::run error :( \n{err:#?}");
     }
 
     debug!("Quitting Jolteon");
