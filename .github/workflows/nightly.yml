@@ -34,6 +34,8 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install libasound2-dev
         if: ${{ matrix.platform.os == 'ubuntu-latest' }}
 
+      - run: echo JOLTEON_RELEASE_VERSION=nightly-`date -I` >> $GITHUB_ENV
+      - run: echo "Version $JOLTEON_RELEASE_VERSION"
       - run: cargo build --locked --release --target ${{ matrix.platform.target }}
 
       - run: |
