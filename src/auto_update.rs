@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::toml::{TomlFileError, read_toml_file, write_toml_file};
 
-static RELEASE_VERSION: Option<&'static str> = option_env!("JOLTEON_RELEASE_VERSION");
-static RELEASES_URL: &str = "https://api.github.com/repos/lautarodragan/jolteon/releases?per_page=3";
+pub static RELEASE_VERSION: Option<&'static str> = option_env!("JOLTEON_RELEASE_VERSION");
+pub static RELEASES_URL: &str = "https://api.github.com/repos/lautarodragan/jolteon/releases?per_page=3";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Release {
