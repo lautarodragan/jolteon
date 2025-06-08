@@ -12,6 +12,7 @@ mod actions;
 mod app;
 mod auto_update;
 mod bye;
+mod cli;
 mod components;
 mod constants;
 mod cue;
@@ -36,12 +37,7 @@ use colored::{Color, Colorize};
 use flexi_logger::{DeferredNow, FileSpec, Logger, WriteMode, style};
 use log::{Record, debug, info};
 
-use crate::{
-    auto_update::{RELEASE_VERSION, auto_update},
-    bye::bye,
-    settings::Settings,
-    term::reset_terminal,
-};
+use crate::{auto_update::auto_update, bye::bye, cli::cli, term::reset_terminal};
 
 pub fn log_format(w: &mut dyn std::io::Write, now: &mut DeferredNow, record: &Record) -> Result<(), std::io::Error> {
     write!(w, "{}   ", now.format("%-l:%M:%S%P"))?;
@@ -80,29 +76,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Starting");
 
-    debug!("env::args: {:?}", std::env::args().collect::<Vec<_>>());
-
-    if std::env::args().any(|arg| arg == "--help" || arg == "-h") {
-        println!("Supported cli args:");
-        println!("--print-default-config     Print default configuration");
-        println!("--help                     Print this help message and exit");
-        return Ok(());
-    }
-
-    if std::env::args().any(|arg| arg == "--print-default-config") {
-        println!("# default Jolteon configuration:");
-        println!("{}", Settings::default());
-        return Ok(());
-    }
-
-    if std::env::args().any(|arg| arg == "--version" || arg == "-v") {
-        if let Some(version) = RELEASE_VERSION {
-            println!("Jolteon {version}");
-        } else {
-            println!("Version unknown. Make sure JOLTEON_RELEASE_VERSION is set at compile time");
-        }
-        return Ok(());
-    }
+    cli();
 
     let _auto_update = auto_update().await;
 
