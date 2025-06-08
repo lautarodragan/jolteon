@@ -1,9 +1,21 @@
-use clap::{Parser, Subcommand};
+use std::{io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
-use crate::{auto_update::RELEASE_VERSION, settings::Settings};
+use clap::{Parser, Subcommand};
+use crossterm::{
+    execute,
+    terminal::{Clear, ClearType},
+};
+use rodio::OutputStream;
+
+use crate::{
+    auto_update::RELEASE_VERSION,
+    duration::duration_to_string,
+    main_player::MainPlayer,
+    settings::Settings,
+    structs::Song,
+};
 
 #[derive(Parser, Debug)]
-#[command(about, long_about = None)]
 struct Args {
     #[command(subcommand)]
     command: Option<Command>,
@@ -13,6 +25,13 @@ struct Args {
 enum Command {
     PrintDefaultConfig,
     Version,
+    Play {
+        #[arg(value_name = "FILE")]
+        path: PathBuf,
+
+        #[arg(short, long, default_value_t = 0.5)]
+        volume: f32,
+    },
 }
 
 /// Parses cli arguments.
@@ -43,7 +62,76 @@ pub fn cli() {
                     );
                 }
             }
+            Command::Play { path, volume } => {
+                let volume = volume.clamp(0.0, 1.0);
+                println!("Playing {path:?}");
+                println!("Volume set to {volume}");
+                println!();
+                let song = match Song::from_file(&path) {
+                    Ok(song) => song,
+                    Err(err) => {
+                        eprintln!("{err}");
+                        std::process::exit(1);
+                    }
+                };
+
+                #[cfg(debug_assertions)]
+                {
+                    println!("song {song:#?}");
+                    println!();
+                }
+
+                println!("Playing {title}", title = song.title);
+                println!(
+                    "by artist {artist}",
+                    artist = song.artist.as_deref().unwrap_or("(missing artist name metadata)")
+                );
+
+                let (_output_stream, output_stream_handle) = OutputStream::try_default().unwrap();
+                let song_length = song.length;
+                let player = Arc::new(MainPlayer::spawn(output_stream_handle, None, vec![song]));
+
+                player.on_error({
+                    move |error| {
+                        log::error!("Error reported by multi_track_player: {error}");
+                        eprintln!("Error reported by multi_track_player: {error}");
+                    }
+                });
+
+                player.on_queue_changed({
+                    || {
+                        // println!("queue changed");
+                    }
+                });
+
+                player.single_track_player().set_volume(volume);
+
+                println!();
+                println!("Ctrl+C to exit");
+                println!();
+
+                loop {
+                    let playing_position = player.playing_position();
+
+                    execute!(std::io::stdout(), Clear(ClearType::CurrentLine)).unwrap();
+                    print!(
+                        "{time_played} / {current_song_length}\r",
+                        time_played = duration_to_string(playing_position),
+                        current_song_length = duration_to_string(song_length),
+                    );
+                    std::io::stdout().flush().unwrap();
+
+                    if !playing_position.is_zero() && player.playing_song().is_none() {
+                        println!();
+                        break;
+                    }
+
+                    thread::sleep(Duration::from_secs(1));
+                }
+            }
         }
+        println!();
+        println!("Bye :)");
         std::process::exit(0);
     }
 }

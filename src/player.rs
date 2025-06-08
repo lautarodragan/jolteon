@@ -434,6 +434,11 @@ impl SingleTrackPlayer {
         let mut volume = self.volume.lock().unwrap();
         *volume = (*volume + amount).clamp(0., 1.);
     }
+
+    pub fn set_volume(&self, amount: f32) {
+        let mut volume = self.volume.lock().unwrap();
+        *volume = amount.clamp(0., 1.);
+    }
 }
 
 impl OnAction<PlayerAction> for SingleTrackPlayer {
