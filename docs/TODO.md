@@ -1,5 +1,28 @@
 # TODO
 
+## Tree Filter/Search Improvement: Search Through Closed Nodes
+
+- If I type `tarkus`, I want it to be selected, even if `Emerson, Lake & Palmer` is closed
+- If the node is closed/collapsed, expand it when navigating to it while in search/filter mode, but collapse it again when moving the selection to another node (if that node isn't another child of `Emerson, Lake & Palmer`)
+
+## File Browser: Focus Folder List on Navigate-Up (Backspace)
+
+Navigating upwards in the file system when either of the other two panes is focused (file list or metadata list)
+is always followed by manually focusing the directory list.
+
+## Virtual directories in media library
+
+I tried doing 3 levels in the library by manually editing the library json file and I didn't like the UX.
+I'm now thinking the tree view component should always be at most two levels deep for UX to be decent, if possible;
+so I need a more ergonomic way to navigate these modes.
+
+Jumping from "normal library mode" to "soundtrack mode" is as different as doing so to "playlists", so it'd make sense to have
+tabs for these, instead.
+
+```
+Library (Bands) | Library (Composers) | Library (Soundtracks) | Playlists | Queue | File Browser | Help
+```
+
 ## Configurable Skip on Paused Behavior
 
 - Mode 1: do nothing (normal) (Jolteon stays _paused_. Adding songs to the queue or skipping songs will not start playback automatically)
