@@ -1,13 +1,18 @@
-use std::{io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
+use std::{borrow::Cow, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
 use clap::{Parser, Subcommand, ValueEnum};
 use crossterm::{
     execute,
     queue,
-    style::{Attribute, Color, SetAttribute, SetForegroundColor, Print},
+    style::{Attribute, Color, Print, SetAttribute, SetForegroundColor},
     terminal::{Clear, ClearType},
 };
-use lofty::{file::TaggedFileExt, prelude::ItemKey, probe::Probe, tag::ItemValue};
+use lofty::{
+    file::TaggedFileExt,
+    prelude::ItemKey,
+    probe::Probe,
+    tag::{ItemValue, Tag},
+};
 use rodio::OutputStream;
 
 use crate::{
@@ -183,49 +188,33 @@ pub fn cli() {
                     }
                 }
 
-                for tag in tags {
-                    let tag_type = format!("{:?}", tag.tag_type());
-                    println!("{tag_type} tags:");
-                    println!();
+                let print_tag = |longest_key: usize| {
+                    move |(key, value): (Cow<str>, &ItemValue)| {
+                        let key = format!("  {key: <padding$}", padding = longest_key + 2);
+                        styled!(key, SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
+                        let value = tag_value_to_string(value);
+                        println!("    {value:?}");
+                    }
+                };
 
-                    let known_tags = tag
-                        .items()
-                        .filter_map(|item| match item.key() {
-                            ItemKey::Unknown(_) => None,
-                            known => Some((format!("{known:?}"), item.value())),
-                        })
-                        .collect::<Vec<_>>();
+                let print_tag_items = |tag: &Tag, known: bool| {
+                    let tags = tag.items().filter_map(|item| match item.key() {
+                        ItemKey::Unknown(_) if known => None,
+                        key if known => Some((Cow::from(format!("{key:?}")), item.value())),
+                        ItemKey::Unknown(key) if !known => Some((Cow::from(key), item.value())),
+                        _ => None,
+                    });
 
-                    if !known_tags.is_empty() {
-                        let longest_key = known_tags.iter().map(|(k, _)| k.len()).max().unwrap();
-
-                        println!("Standard {tag_type} tags:");
-                        for (key, value) in known_tags {
-                            let key = format!("  {key: <padding$}", padding = longest_key + 2);
-                            styled!(key, SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
-                            let value = tag_value_to_string(value);
-                            println!("    {value:?}");
-                        }
+                    if let Some(longest_key) = tags.clone().map(|(k, _)| k.len()).max() {
+                        println!("Standard {tag_type:?} tags:", tag_type = tag.tag_type());
+                        tags.for_each(print_tag(longest_key));
                         println!();
                     }
+                };
 
-                    let unknown_tags = tag
-                        .items()
-                        .filter_map(|item| match item.key() {
-                            ItemKey::Unknown(s) => Some((s, item.value())),
-                            _ => None,
-                        })
-                        .collect::<Vec<_>>();
-
-                    if !unknown_tags.is_empty() {
-                        let longest_key = unknown_tags.iter().map(|(k, _)| k.len()).max().unwrap();
-                        println!("Unknown {tag_type} tags:");
-                        for (key, value) in unknown_tags {
-                            let value = tag_value_to_string(value);
-                            // println!("\t{key:?}\t{value:?}");
-                            println!("\t{key: >longest_key$}\t{value:?}");
-                        }
-                    }
+                for tag in tags {
+                    print_tag_items(tag, true);
+                    print_tag_items(tag, false);
                 }
             }
         }
