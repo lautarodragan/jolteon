@@ -221,7 +221,8 @@ pub fn cli() {
                 });
 
                 if let Some(longest_key) = tags.clone().map(|(k, _)| k.len()).max() {
-                    println!("Standard {tag_type:?} tags:", tag_type = tag.tag_type());
+                    let word = if known { "Standard" } else { "Unknown" };
+                    println!("{word} {tag_type:?} tags:", tag_type = tag.tag_type());
                     tags.for_each(print_tag(longest_key));
                     println!();
                 }
