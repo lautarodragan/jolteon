@@ -163,6 +163,8 @@ pub fn cli() {
 
                 thread::sleep(Duration::from_secs(1));
             }
+
+            println!("Bye :)");
         }
         Command::Tags { path, color, output } => {
             let color = output == OutputFormat::Text
@@ -237,7 +239,6 @@ pub fn cli() {
 
     execute!(std::io::stdout(), SetAttribute(Attribute::Reset),).unwrap();
     println!();
-    println!("Bye :)");
 
     std::process::exit(0);
 }
