@@ -6,6 +6,7 @@ use crossterm::{
     queue,
     style::{Attribute, Color, Print, SetAttribute, SetForegroundColor},
     terminal::{Clear, ClearType},
+    tty::IsTty,
 };
 use lofty::{
     file::TaggedFileExt,
@@ -152,7 +153,8 @@ pub fn cli() {
                 }
             }
             Command::Tags { path, color } => {
-                let color = color == ColorOption::Always || color == ColorOption::Auto; // TODO: Color == Auto && Settings.CliColor = Always
+                let color = color == ColorOption::Always || (color == ColorOption::Auto && std::io::stdout().is_tty());
+
                 macro_rules! styled {
                     ($text:expr $(, $command:expr)* $(,)?) => {{
                         if color {
