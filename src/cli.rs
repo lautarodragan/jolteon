@@ -70,92 +70,95 @@ enum ColorOption {
 pub fn cli() {
     let args = Args::parse();
 
-    if let Some(command) = args.command {
-        match command {
-            Command::PrintDefaultConfig => {
-                println!("# default Jolteon configuration:");
-                println!("{}", Settings::default());
-            }
-            Command::Version => {
-                if let Some(version) = RELEASE_VERSION {
-                    println!("Jolteon {version}");
-                } else {
-                    println!(
-                        "Version unknown. This is an error. Make sure JOLTEON_RELEASE_VERSION is set at compile time."
-                    );
-                }
-            }
-            Command::Play { path, volume } => {
-                let volume = volume.clamp(0.0, 1.0);
-                println!("Playing {path:?}");
-                println!("Volume set to {volume}");
-                println!();
-                let song = match Song::from_file(&path) {
-                    Ok(song) => song,
-                    Err(err) => {
-                        eprintln!("{err}");
-                        std::process::exit(1);
-                    }
-                };
+    let Some(command) = args.command else {
+        return;
+    };
 
-                #[cfg(debug_assertions)]
-                {
-                    println!("song {song:#?}");
-                    println!();
-                }
-
-                println!("Playing {title}", title = song.title);
+    match command {
+        Command::PrintDefaultConfig => {
+            println!("# default Jolteon configuration:");
+            println!("{}", Settings::default());
+        }
+        Command::Version => {
+            if let Some(version) = RELEASE_VERSION {
+                println!("Jolteon {version}");
+            } else {
                 println!(
-                    "by artist {artist}",
-                    artist = song.artist.as_deref().unwrap_or("(missing artist name metadata)")
+                    "Version unknown. This is an error. Make sure JOLTEON_RELEASE_VERSION is set at compile time."
                 );
-
-                let (_output_stream, output_stream_handle) = OutputStream::try_default().unwrap();
-                let song_length = song.length;
-                let player = Arc::new(MainPlayer::spawn(output_stream_handle, None, vec![song]));
-
-                player.on_error({
-                    move |error| {
-                        log::error!("Error reported by multi_track_player: {error}");
-                        eprintln!("Error reported by multi_track_player: {error}");
-                    }
-                });
-
-                player.on_queue_changed({
-                    || {
-                        // println!("queue changed");
-                    }
-                });
-
-                player.single_track_player().set_volume(volume);
-
-                println!();
-                println!("Ctrl+C to exit");
-                println!();
-
-                loop {
-                    let playing_position = player.playing_position();
-
-                    execute!(std::io::stdout(), Clear(ClearType::CurrentLine)).unwrap();
-                    print!(
-                        "{time_played} / {current_song_length}\r",
-                        time_played = duration_to_string(playing_position),
-                        current_song_length = duration_to_string(song_length),
-                    );
-                    std::io::stdout().flush().unwrap();
-
-                    if !playing_position.is_zero() && player.playing_song().is_none() {
-                        println!();
-                        break;
-                    }
-
-                    thread::sleep(Duration::from_secs(1));
-                }
             }
-            Command::Tags { path, color } => {
-                let color = color == ColorOption::Always || (color == ColorOption::Auto && std::io::stdout().is_tty());
+        }
+        Command::Play { path, volume } => {
+            let volume = volume.clamp(0.0, 1.0);
+            println!("Playing {path:?}");
+            println!("Volume set to {volume}");
+            println!();
+            let song = match Song::from_file(&path) {
+                Ok(song) => song,
+                Err(err) => {
+                    eprintln!("{err}");
+                    std::process::exit(1);
+                }
+            };
 
-                macro_rules! styled {
+            #[cfg(debug_assertions)]
+            {
+                println!("song {song:#?}");
+                println!();
+            }
+
+            println!("Playing {title}", title = song.title);
+            println!(
+                "by artist {artist}",
+                artist = song.artist.as_deref().unwrap_or("(missing artist name metadata)")
+            );
+
+            let (_output_stream, output_stream_handle) = OutputStream::try_default().unwrap();
+            let song_length = song.length;
+            let player = Arc::new(MainPlayer::spawn(output_stream_handle, None, vec![song]));
+
+            player.on_error({
+                move |error| {
+                    log::error!("Error reported by multi_track_player: {error}");
+                    eprintln!("Error reported by multi_track_player: {error}");
+                }
+            });
+
+            player.on_queue_changed({
+                || {
+                    // println!("queue changed");
+                }
+            });
+
+            player.single_track_player().set_volume(volume);
+
+            println!();
+            println!("Ctrl+C to exit");
+            println!();
+
+            loop {
+                let playing_position = player.playing_position();
+
+                execute!(std::io::stdout(), Clear(ClearType::CurrentLine)).unwrap();
+                print!(
+                    "{time_played} / {current_song_length}\r",
+                    time_played = duration_to_string(playing_position),
+                    current_song_length = duration_to_string(song_length),
+                );
+                std::io::stdout().flush().unwrap();
+
+                if !playing_position.is_zero() && player.playing_song().is_none() {
+                    println!();
+                    break;
+                }
+
+                thread::sleep(Duration::from_secs(1));
+            }
+        }
+        Command::Tags { path, color } => {
+            let color = color == ColorOption::Always || (color == ColorOption::Auto && std::io::stdout().is_tty());
+
+            macro_rules! styled {
                     ($text:expr $(, $command:expr)* $(,)?) => {{
                         if color {
                             queue!(std::io::stdout() $(, $command)*).unwrap();
@@ -169,60 +172,61 @@ pub fn cli() {
                     }}
                 }
 
-                styled!("Tags", SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
-                println!(" in {path:?}:");
-                println!();
+            styled!("Tags", SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
+            println!(" in {path:?}:");
+            println!();
 
-                let tagged_file = Probe::open(path).unwrap().read().unwrap();
-                let tags = tagged_file.tags();
+            let tagged_file = Probe::open(path).unwrap().read().unwrap();
+            let tags = tagged_file.tags();
 
-                fn tag_value_to_string(value: &ItemValue) -> String {
-                    match value {
-                        ItemValue::Text(s) => s.to_string(),
-                        ItemValue::Locator(l) => format!("locator: {l}"),
-                        ItemValue::Binary(b) => {
-                            if b.len() > 8 {
-                                format!("binary: {:?}... (total length: {})", b.iter().take(8), b.len())
-                            } else {
-                                format!("binary: {b:?}")
-                            }
+            fn tag_value_to_string(value: &ItemValue) -> String {
+                match value {
+                    ItemValue::Text(s) => s.to_string(),
+                    ItemValue::Locator(l) => format!("locator: {l}"),
+                    ItemValue::Binary(b) => {
+                        if b.len() > 8 {
+                            format!("binary: {:?}... (total length: {})", b.iter().take(8), b.len())
+                        } else {
+                            format!("binary: {b:?}")
                         }
                     }
                 }
+            }
 
-                let print_tag = |longest_key: usize| {
-                    move |(key, value): (Cow<str>, &ItemValue)| {
-                        let key = format!("  {key: <padding$}", padding = longest_key + 2);
-                        styled!(key, SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
-                        let value = tag_value_to_string(value);
-                        println!("    {value:?}");
-                    }
-                };
-
-                let print_tag_items = |tag: &Tag, known: bool| {
-                    let tags = tag.items().filter_map(|item| match item.key() {
-                        ItemKey::Unknown(_) if known => None,
-                        key if known => Some((Cow::from(format!("{key:?}")), item.value())),
-                        ItemKey::Unknown(key) if !known => Some((Cow::from(key), item.value())),
-                        _ => None,
-                    });
-
-                    if let Some(longest_key) = tags.clone().map(|(k, _)| k.len()).max() {
-                        println!("Standard {tag_type:?} tags:", tag_type = tag.tag_type());
-                        tags.for_each(print_tag(longest_key));
-                        println!();
-                    }
-                };
-
-                for tag in tags {
-                    print_tag_items(tag, true);
-                    print_tag_items(tag, false);
+            let print_tag = |longest_key: usize| {
+                move |(key, value): (Cow<str>, &ItemValue)| {
+                    let key = format!("  {key: <padding$}", padding = longest_key + 2);
+                    styled!(key, SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
+                    let value = tag_value_to_string(value);
+                    println!("    {value:?}");
                 }
+            };
+
+            let print_tag_items = |tag: &Tag, known: bool| {
+                let tags = tag.items().filter_map(|item| match item.key() {
+                    ItemKey::Unknown(_) if known => None,
+                    key if known => Some((Cow::from(format!("{key:?}")), item.value())),
+                    ItemKey::Unknown(key) if !known => Some((Cow::from(key), item.value())),
+                    _ => None,
+                });
+
+                if let Some(longest_key) = tags.clone().map(|(k, _)| k.len()).max() {
+                    println!("Standard {tag_type:?} tags:", tag_type = tag.tag_type());
+                    tags.for_each(print_tag(longest_key));
+                    println!();
+                }
+            };
+
+            for tag in tags {
+                print_tag_items(tag, true);
+                print_tag_items(tag, false);
             }
         }
-        execute!(std::io::stdout(), SetAttribute(Attribute::Reset),).unwrap();
-        println!();
-        println!("Bye :)");
-        std::process::exit(0);
     }
+
+    execute!(std::io::stdout(), SetAttribute(Attribute::Reset),).unwrap();
+    println!();
+    println!("Bye :)");
+
+    std::process::exit(0);
 }
