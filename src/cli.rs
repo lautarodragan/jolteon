@@ -1,10 +1,13 @@
 use std::{io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use crossterm::{
     execute,
+    queue,
+    style::{Attribute, Color, SetAttribute, SetForegroundColor, Print},
     terminal::{Clear, ClearType},
 };
+use lofty::{file::TaggedFileExt, prelude::ItemKey, probe::Probe, tag::ItemValue};
 use rodio::OutputStream;
 
 use crate::{
@@ -32,9 +35,23 @@ enum Command {
         #[arg(short, long, default_value_t = 0.5)]
         volume: f32,
     },
+    Tags {
+        #[arg(value_name = "FILE")]
+        path: PathBuf,
+
+        #[arg(value_enum, short, long, default_value_t = ColorOption::Auto)]
+        color: ColorOption,
+    },
 }
 
-/// Parses cli arguments.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum ColorOption {
+    Auto,
+    Always,
+    Never,
+}
+
+/// Parses cli arguments. If a command is passed, this function will run it and exit the process.
 ///
 /// This function returns no value, but it will directly exit the process if
 /// either the arguments are invalid (which is done by Clap itself),
@@ -129,7 +146,90 @@ pub fn cli() {
                     thread::sleep(Duration::from_secs(1));
                 }
             }
+            Command::Tags { path, color } => {
+                let color = color == ColorOption::Always || color == ColorOption::Auto; // TODO: Color == Auto && Settings.CliColor = Always
+                macro_rules! styled {
+                    ($text:expr $(, $command:expr)* $(,)?) => {{
+                        if color {
+                            queue!(std::io::stdout() $(, $command)*).unwrap();
+                        }
+
+                        queue!(std::io::stdout(), Print($text)).unwrap();
+
+                        if color {
+                            queue!(std::io::stdout(), SetAttribute(Attribute::Reset)).unwrap();
+                        }
+                    }}
+                }
+
+                styled!("Tags", SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
+                println!(" in {path:?}:");
+                println!();
+
+                let tagged_file = Probe::open(path).unwrap().read().unwrap();
+                let tags = tagged_file.tags();
+
+                fn tag_value_to_string(value: &ItemValue) -> String {
+                    match value {
+                        ItemValue::Text(s) => s.to_string(),
+                        ItemValue::Locator(l) => format!("locator: {l}"),
+                        ItemValue::Binary(b) => {
+                            if b.len() > 8 {
+                                format!("binary: {:?}... (total length: {})", b.iter().take(8), b.len())
+                            } else {
+                                format!("binary: {b:?}")
+                            }
+                        }
+                    }
+                }
+
+                for tag in tags {
+                    let tag_type = format!("{:?}", tag.tag_type());
+                    println!("{tag_type} tags:");
+                    println!();
+
+                    let known_tags = tag
+                        .items()
+                        .filter_map(|item| match item.key() {
+                            ItemKey::Unknown(_) => None,
+                            known => Some((format!("{known:?}"), item.value())),
+                        })
+                        .collect::<Vec<_>>();
+
+                    if !known_tags.is_empty() {
+                        let longest_key = known_tags.iter().map(|(k, _)| k.len()).max().unwrap();
+
+                        println!("Standard {tag_type} tags:");
+                        for (key, value) in known_tags {
+                            let key = format!("  {key: <padding$}", padding = longest_key + 2);
+                            styled!(key, SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
+                            let value = tag_value_to_string(value);
+                            println!("    {value:?}");
+                        }
+                        println!();
+                    }
+
+                    let unknown_tags = tag
+                        .items()
+                        .filter_map(|item| match item.key() {
+                            ItemKey::Unknown(s) => Some((s, item.value())),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>();
+
+                    if !unknown_tags.is_empty() {
+                        let longest_key = unknown_tags.iter().map(|(k, _)| k.len()).max().unwrap();
+                        println!("Unknown {tag_type} tags:");
+                        for (key, value) in unknown_tags {
+                            let value = tag_value_to_string(value);
+                            // println!("\t{key:?}\t{value:?}");
+                            println!("\t{key: >longest_key$}\t{value:?}");
+                        }
+                    }
+                }
+            }
         }
+        execute!(std::io::stdout(), SetAttribute(Attribute::Reset),).unwrap();
         println!();
         println!("Bye :)");
         std::process::exit(0);
