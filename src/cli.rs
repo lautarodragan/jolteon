@@ -30,6 +30,12 @@ struct Args {
     command: Option<Command>,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum OutputFormat {
+    Text,
+    Json,
+}
+
 #[derive(Subcommand, Debug)]
 enum Command {
     PrintDefaultConfig,
@@ -47,6 +53,9 @@ enum Command {
 
         #[arg(value_enum, short, long, default_value_t = ColorOption::Auto)]
         color: ColorOption,
+
+        #[arg(value_enum, short, long, default_value_t = OutputFormat::Text)]
+        output: OutputFormat,
     },
 }
 
@@ -155,8 +164,9 @@ pub fn cli() {
                 thread::sleep(Duration::from_secs(1));
             }
         }
-        Command::Tags { path, color } => {
-            let color = color == ColorOption::Always || (color == ColorOption::Auto && std::io::stdout().is_tty());
+        Command::Tags { path, color, output } => {
+            let color = output == OutputFormat::Text
+                && (color == ColorOption::Always || (color == ColorOption::Auto && std::io::stdout().is_tty()));
 
             macro_rules! styled {
                     ($text:expr $(, $command:expr)* $(,)?) => {{
