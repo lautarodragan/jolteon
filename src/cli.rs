@@ -1,11 +1,13 @@
-use std::{borrow::Cow, io::Write, path::PathBuf, sync::Arc, thread, time::Duration};
+use std::{borrow::Cow, io::stdout, path::PathBuf, sync::Arc, time::Duration};
 
 use clap::{Parser, Subcommand, ValueEnum};
 use crossterm::{
+    event,
+    event::Event,
     execute,
     queue,
     style::{Attribute, Color, Print, SetAttribute, SetForegroundColor},
-    terminal::{Clear, ClearType},
+    terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode},
     tty::IsTty,
 };
 use lofty::{
@@ -17,6 +19,7 @@ use lofty::{
 use rodio::OutputStream;
 
 use crate::{
+    actions::{Action, Actions},
     auto_update::RELEASE_VERSION,
     duration::duration_to_string,
     main_player::MainPlayer,
@@ -94,19 +97,6 @@ pub fn cli() {
     };
 
     match command {
-        Command::PrintDefaultConfig => {
-            println!("# default Jolteon configuration:");
-            println!("{}", Settings::default());
-        }
-        Command::Version => {
-            if let Some(version) = RELEASE_VERSION {
-                println!("Jolteon {version}");
-            } else {
-                println!(
-                    "Version unknown. This is an error. Make sure JOLTEON_RELEASE_VERSION is set at compile time."
-                );
-            }
-        }
         Command::Play { path, volume } => {
             let volume = volume.clamp(0.0, 1.0);
             println!("Playing {path:?}");
@@ -155,41 +145,89 @@ pub fn cli() {
             println!("Ctrl+C to exit");
             println!();
 
+            let actions = Actions::from_file_or_default();
+            let tick_rate = Duration::from_millis(100);
+            let mut last_tick = std::time::Instant::now();
+
+            enable_raw_mode().unwrap();
+
+            execute!(stdout(), crossterm::cursor::Hide).unwrap();
+
             loop {
                 let playing_position = player.playing_position();
-
-                execute!(std::io::stdout(), Clear(ClearType::CurrentLine)).unwrap();
-                print!(
-                    "{time_played} / {current_song_length}\r",
+                let time = format!(
+                    "{time_played} / {current_song_length}",
                     time_played = duration_to_string(playing_position),
                     current_song_length = duration_to_string(song_length),
                 );
-                std::io::stdout().flush().unwrap();
+
+                execute!(
+                    stdout(),
+                    crossterm::cursor::MoveToColumn(0),
+                    Clear(ClearType::CurrentLine),
+                    Print(time),
+                )
+                .unwrap();
 
                 if !playing_position.is_zero() && player.playing_song().is_none() {
-                    println!();
                     break;
                 }
 
-                thread::sleep(Duration::from_secs(1));
+                let timeout = tick_rate.saturating_sub(last_tick.elapsed());
+
+                if event::poll(timeout).unwrap()
+                    && let Event::Key(key) = event::read().unwrap()
+                    && let actions = actions.action_by_key(key)
+                    && !actions.is_empty()
+                    && actions.contains(&Action::Quit)
+                {
+                    break;
+                }
+
+                if last_tick.elapsed() >= tick_rate {
+                    last_tick = std::time::Instant::now();
+                }
             }
 
-            println!("Bye :)");
+            execute!(
+                stdout(),
+                crossterm::cursor::MoveToNextLine(5),
+                Print("\n"),
+                Print("Bye")
+            )
+            .unwrap();
+
+            disable_raw_mode().unwrap_or_else(|e| {
+                log::error!("tried to disable_raw_mode but couldn't :( {e}");
+            });
+        }
+        Command::PrintDefaultConfig => {
+            println!("# default Jolteon configuration:");
+            println!("{}", Settings::default());
+        }
+        Command::Version => {
+            if let Some(version) = RELEASE_VERSION {
+                println!("Jolteon {version}");
+            } else {
+                println!(
+                    "Version unknown. This is an error. Make sure JOLTEON_RELEASE_VERSION is set at compile time."
+                );
+            }
         }
         Command::Tags { path, color, output } => {
             let color = output == OutputFormat::Text
-                && (color == ColorOption::Always || (color == ColorOption::Auto && std::io::stdout().is_tty()));
+                && (color == ColorOption::Always || (color == ColorOption::Auto && stdout().is_tty()));
 
             macro_rules! styled {
                     ($text:expr $(, $command:expr)* $(,)?) => {{
                         if color {
-                            queue!(std::io::stdout() $(, $command)*).unwrap();
+                            queue!(stdout() $(, $command)*).unwrap();
                         }
 
-                        queue!(std::io::stdout(), Print($text)).unwrap();
+                        queue!(stdout(), Print($text)).unwrap();
 
                         if color {
-                            queue!(std::io::stdout(), SetAttribute(Attribute::Reset)).unwrap();
+                            queue!(stdout(), SetAttribute(Attribute::Reset)).unwrap();
                         }
                     }}
                 }
@@ -247,7 +285,7 @@ pub fn cli() {
         }
     }
 
-    execute!(std::io::stdout(), SetAttribute(Attribute::Reset),).unwrap();
+    execute!(stdout(), SetAttribute(Attribute::Reset), crossterm::cursor::Show,).unwrap();
     println!();
 
     std::process::exit(0);
