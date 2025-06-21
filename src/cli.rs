@@ -28,6 +28,9 @@ use crate::{
 struct Args {
     #[command(subcommand)]
     command: Option<Command>,
+
+    #[arg(value_name = "FILE")]
+    path: Option<PathBuf>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -79,8 +82,15 @@ enum ColorOption {
 pub fn cli() {
     let args = Args::parse();
 
-    let Some(command) = args.command else {
-        return;
+    let command = match args.command {
+        Some(command) => command,
+        None => {
+            if let Some(path) = args.path {
+                Command::Play { path, volume: 0.5 }
+            } else {
+                return;
+            }
+        }
     };
 
     match command {
