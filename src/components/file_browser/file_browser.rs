@@ -397,6 +397,8 @@ impl<'a> FileBrowser<'a> {
             .set_items_s(parents, selected_parent_index, selected_parent_scroll);
 
         self.current_directory.set_path(parent.to_path_buf());
+
+        self.focus_group.focus_nth(0);
     }
 
     pub fn current_directory(&self) -> PathBuf {

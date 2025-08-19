@@ -61,6 +61,17 @@ impl<'a> FocusGroup<'a> {
             }
         }
     }
+
+    pub fn focus_nth(&self, n: usize) {
+        let mut current_focus = self.focused.borrow_mut();
+
+        for i in 0..self.children.len() {
+            self.children[i].set_is_focused(i == n);
+            if i == n {
+                *current_focus = self.children[i].clone()
+            }
+        }
+    }
 }
 
 impl OnAction for FocusGroup<'_> {
