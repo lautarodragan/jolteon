@@ -43,6 +43,6 @@ serde_default = "0.2.0"
 serde-inline-default = "0.2.3"
 clap = { version = "4.5.39", features = ["derive"] }
 
-# TODO https://github.com/RustAudio/cpal/pull/909 (approved but not merged)
+# TODO https://github.com/RustAudio/cpal/pull/909 (merged but not released)
 [patch.crates-io]
 cpal = { git = 'https://github.com/lautarodragan/cpal' }
