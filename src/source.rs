@@ -9,21 +9,11 @@ use std::{
 use rodio::{
     Decoder,
     Source as RodioSource,
-    source::{
-        Amplify,
-        Pausable,
-        PeriodicAccess,
-        SamplesConverter,
-        SeekError,
-        Skippable,
-        Speed,
-        Stoppable,
-        TrackPosition,
-    },
+    source::{Amplify, Pausable, PeriodicAccess, SeekError, Skippable, Speed, Stoppable, TrackPosition},
 };
 
 type FullRodioSource = Stoppable<Skippable<Amplify<Pausable<TrackPosition<Speed<Decoder<BufReader<File>>>>>>>>;
-type PeriodicRodioSource<F> = SamplesConverter<PeriodicAccess<FullRodioSource, F>, f32>;
+type PeriodicRodioSource<F> = PeriodicAccess<FullRodioSource, F>;
 
 pub struct Controls<'a> {
     src: &'a mut FullRodioSource,
@@ -105,8 +95,7 @@ impl Source<()> {
             .amplify(1.0)
             .skippable()
             .stoppable()
-            .periodic_access(Duration::from_millis(5), periodic_access_inner)
-            .convert_samples();
+            .periodic_access(Duration::from_millis(5), periodic_access_inner);
 
         Ok(Source {
             input,
@@ -127,11 +116,6 @@ where
     pub fn seek(&mut self, pos: Duration) -> Result<(), SeekError> {
         let i = self.input.inner_mut().inner_mut().inner_mut();
         i.try_seek(pos)
-    }
-
-    pub fn _skip(&mut self) {
-        let i = self.input.inner_mut().inner_mut().inner_mut();
-        i.skip()
     }
 }
 
@@ -165,8 +149,8 @@ where
     F: FnMut(&mut FullRodioSource),
 {
     #[inline]
-    fn current_frame_len(&self) -> Option<usize> {
-        self.input.current_frame_len()
+    fn current_span_len(&self) -> Option<usize> {
+        self.input.current_span_len()
     }
 
     #[inline]

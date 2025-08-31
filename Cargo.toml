@@ -22,26 +22,26 @@ codegen-units = 1
 
 [dependencies]
 crossterm = {  version = "0.29.0", features = ["event-stream", "serde"] }
-rodio = { version = "0.20.1", features = ["symphonia-aac", "symphonia-flac", "symphonia-isomp4", "symphonia-mp3", "symphonia-wav", "vorbis"]}
-lofty = "0.22.3"
-toml = "0.8.19"
-serde = {version = "1.0.214", features = ["derive"]}
-home = "0.5.9"
+rodio = { version = "0.21.1", features = ["symphonia-aac", "symphonia-flac", "symphonia-isomp4", "symphonia-mp3", "symphonia-wav", "vorbis"]}
+lofty = "0.22.4"
+toml = "0.9.5"
+serde = {version = "1.0.219", features = ["derive"]}
+home = "0.5.11"
 ratatui = { version = "0.29.0", features = ["serde", "unstable-widget-ref"] }
-mpris-server = "0.8.1"
-async-std = {version = "1.13.0", features = ["attributes", "unstable"]}
+mpris-server = "0.9.0"
+async-std = {version = "1.13.2", features = ["attributes", "unstable"]}
 futures = "0.3.31"
-flexi_logger = { version = "0.30.1" }
-log = "0.4.22"
-chrono = "0.4.38"
+flexi_logger = { version = "0.31.2" }
+log = "0.4.27"
+chrono = "0.4.41"
 colored = "3.0.0"
-reqwest = { version = "0.12.9", features = ["json", "blocking"] }
-strum = { version = "0.27.1", features = ["derive"] }
-serde_json = "1.0.138"
-uuid = { version = "1.15.1", features = [ "v4", "serde" ] }
+reqwest = { version = "0.12.23", features = ["json", "blocking"] }
+strum = { version = "0.27.2", features = ["derive"] }
+serde_json = "1.0.143"
+uuid = { version = "1.18.0", features = [ "v4", "serde" ] }
 serde_default = "0.2.0"
 serde-inline-default = "0.2.3"
-clap = { version = "4.5.39", features = ["derive"] }
+clap = { version = "4.5.46", features = ["derive"] }
 
 # TODO https://github.com/RustAudio/cpal/pull/909 (merged but not released)
 [patch.crates-io]

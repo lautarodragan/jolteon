@@ -11,7 +11,7 @@ use std::{
     time::Duration,
 };
 
-use rodio::OutputStreamHandle;
+use rodio::OutputStream;
 
 use crate::{
     actions::{OnAction, PlayerAction},
@@ -49,7 +49,7 @@ pub struct MainPlayer {
 }
 
 impl MainPlayer {
-    pub fn spawn(output_stream_handle: OutputStreamHandle, mpris: Option<Mpris>, queue_songs: Vec<Song>) -> Self {
+    pub fn spawn(output_stream_handle: OutputStream, mpris: Option<Mpris>, queue_songs: Vec<Song>) -> Self {
         let (tx, rx) = channel::<MainPlayerMessage>();
 
         let mpris = mpris.map(Arc::new);

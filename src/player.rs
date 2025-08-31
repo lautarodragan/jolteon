@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use rodio::OutputStreamHandle;
+use rodio::OutputStream;
 
 use crate::{
     actions::{OnAction, PlayerAction},
@@ -46,7 +46,7 @@ enum Command {
 }
 
 impl SingleTrackPlayer {
-    pub fn spawn(output_stream: OutputStreamHandle, mpris: Option<Arc<Mpris>>) -> Self {
+    pub fn spawn(output_stream: OutputStream, mpris: Option<Arc<Mpris>>) -> Self {
         let (command_sender, command_receiver) = channel();
 
         let playing_song = Arc::new(Mutex::new(None));
@@ -226,12 +226,9 @@ impl SingleTrackPlayer {
 
                         *position.lock().unwrap() = start_time;
 
-                        log::debug!("output_stream.play_raw()");
-                        if let Err(err) = output_stream.play_raw(source) {
-                            // play_raw does `mixer.add(source)`. Mixer is tied to the CPAL thread, which starts consuming the source automatically.
-                            log::error!("os.play_raw error! {err:?}");
-                            continue;
-                        }
+                        log::debug!("output_stream.mixer().add()");
+                        // Mixer is tied to the CPAL thread, which starts consuming the source automatically.
+                        output_stream.mixer().add(source);
 
                         // Start looping until the current song ends OR something wakes us up.
                         // When woken up, we check whether we need to immediately exit.
