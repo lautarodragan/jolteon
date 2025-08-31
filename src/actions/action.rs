@@ -164,7 +164,7 @@ impl TryFrom<&str> for Action {
         } else if parent == "FileBrowser" {
             FileBrowserAction::try_from(child).map(Action::FileBrowser)
         } else {
-            return Err(strum::ParseError::VariantNotFound);
+            Err(strum::ParseError::VariantNotFound)
         }
     }
 }
