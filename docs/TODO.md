@@ -1,14 +1,19 @@
 # TODO
 
+## Friendlier Releases
+
+- `cargo install jolteon`
+- https://webinstall.dev/
+
 ## Tree Filter/Search Improvement: Search Through Closed Nodes
 
 - If I type `tarkus`, I want it to be selected, even if `Emerson, Lake & Palmer` is closed
 - If the node is closed/collapsed, expand it when navigating to it while in search/filter mode, but collapse it again when moving the selection to another node (if that node isn't another child of `Emerson, Lake & Palmer`)
 
-## File Browser: Focus Folder List on Navigate-Up (Backspace)
+## File Browser
 
-Navigating upwards in the file system when either of the other two panes is focused (file list or metadata list)
-is always followed by manually focusing the directory list.
+- Fix: update the contents of the panels when the selected folder changes
+- Fix: update the contents of the playlist panel when adding files to the playlist
 
 ## Virtual directories in media library
 
@@ -22,6 +27,9 @@ tabs for these, instead.
 ```
 Library (Bands) | Library (Composers) | Library (Soundtracks) | Playlists | Queue | File Browser | Help
 ```
+
+UX for adding to library TBD. Current UX for toggling between "add to library/playlist" is already pretty... not perfect,
+but it'll be _terrible_ if we can add to 4 different targets.
 
 ## Configurable Skip on Paused Behavior
 
@@ -41,7 +49,7 @@ Support for toggling instead.
 
 ## User Message Log Screen
 
-- Temporarily display user messages over the _currently playing_ area.
+- Temporarily display user messages over the _currently playing_ area ("song added to playlist", "error opening file", etc).
 - After a time-out, just permanently hide that message from that area, going back to showing the usual _currently playing_ stuff.
 - Store these messages permanently in a new, "log" screen.
 - This log screen is unrelated to debugging logs (`log::debug`, etc). It's only for user-facing messages.
@@ -50,7 +58,7 @@ Support for toggling instead.
 
 Some sort of engine that suggests music.
 - Purely random
-- "Learn" based on listening patterns (some sort of "song proximity" based on which songs we tend to listen "together", or some definition of "together")
+- "Learn" based on listening patterns (some sort of "song proximity" based on which songs we tend to listen "together", for some definition of "together")
 - Radio mode: just keep playing suggested tracks after the queue ends
 - Playlist generator: create a playlist of N songs
 - Queue mode: like playlist mode, but adds to queue instead of creating a playlist?
@@ -60,9 +68,9 @@ Some sort of engine that suggests music.
 - Visual feedback when trying to move past the end/start (like the Nintendo Switch home)
 - Visual indicator of there being off-screen elements in the list (we have no scroll bars)
   - First/last visible element being `${elementName} + ${remainingCount} more...`, dim'd, if `remainingCount > 0`
-  - An actual scroll bar? 
+  - An actual scroll bar?
 
-## AtomicDuration
+## Refactor: AtomicDuration
 
 An `AtomicDuration` struct may be more ergonomic than a `Mutex<Duration>`, and might be marginally faster.
 
@@ -116,18 +124,3 @@ we could just store the millis as an AtomicU64, and do `Duration::from_millis()`
 There are 86_400_000 millis in a day. The u64 max is 18446744073709551615... that is 213_503_982_334 days? Should be fine lol 
 Even a U32 should give us more than 40 days, in which case we'd be using a single AtomicU32, which is what a Mutex is already using inside,
 so, at worst, we'd have the same performance of the Mutex.
-
-## Thread-Safe Output Stream
-
-OutputStream is !Send + !Sync, meaning we can't pass it around. We can't drop it either. We just have to hold on to it.
-It's really pretty much a wrapper around a cpal Stream.
-
-OutputStreamHandle, on the other hand, is thread-safe, because it doesn't contain the cpal Stream in it.
-
-It'd be nice if we could have a thread-safe cpal Stream. It seems that it only is !Sync and !Send only for Android... and this is future-proofing.
-
-> Streams cannot be `Send` or `Sync` if we plan to support Android's AAudio API. This is
-> because the stream API is not thread-safe, and the API prohibits calling certain
-> functions within the callback.
-
-See https://github.com/RustAudio/cpal/blob/bbb58ab76787d090d32ed56964bfcf194b8f6a3d/src/platform/mod.rs#L67
