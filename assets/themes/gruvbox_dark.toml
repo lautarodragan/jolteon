@@ -6,7 +6,7 @@ top_bar_foreground_selected = "#e5c07b"
 
 foreground = "#d19a66"
 foreground_selected = "#312418"
-foreground_secondary = "#efe7e0"
+foreground_secondary    = "#efe7e0"
 
 background = "#030303"
 background_selected = "#d19a66"

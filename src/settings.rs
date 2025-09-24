@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Serialize};
 use serde_default::DefaultFromSerde;
 
-use crate::toml::read_toml_file_or_default;
+use crate::{theme::BuiltInThemeNames, toml::read_toml_file_or_default};
 
 #[serde_inline_default::serde_inline_default]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, DefaultFromSerde)]
@@ -16,6 +16,9 @@ pub struct Settings {
 
     #[serde_inline_default(true)]
     pub paused_animation: bool,
+
+    #[serde_inline_default(BuiltInThemeNames::GruvboxDark)]
+    pub theme: BuiltInThemeNames,
 }
 
 impl Settings {

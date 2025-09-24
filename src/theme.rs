@@ -17,7 +17,22 @@ pub struct Theme {
 
 impl Default for Theme {
     fn default() -> Self {
-        let theme = include_str!("../assets/theme.toml");
+        Self::from_built_in(BuiltInThemeNames::GruvboxDark)
+    }
+}
+
+impl Theme {
+    pub fn from_built_in(name: BuiltInThemeNames) -> Theme {
+        let theme = match name {
+            BuiltInThemeNames::GruvboxDark => include_str!("../assets/themes/gruvbox_dark.toml"),
+            BuiltInThemeNames::GruvboxDarkTransparent => include_str!("../assets/themes/gruvbox_dark_transparent.toml"),
+        };
         toml::from_str(theme).unwrap()
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub enum BuiltInThemeNames {
+    GruvboxDark,
+    GruvboxDarkTransparent,
 }

@@ -55,9 +55,7 @@ fn run_sync(mpris: Option<Mpris>) -> Result<(), Box<dyn Error>> {
     let mut terminal = set_terminal()?;
 
     let settings = Settings::from_file();
-
-    let theme = include_str!("../assets/theme.toml");
-    let theme: Theme = toml::from_str(theme).unwrap();
+    let theme = Theme::from_built_in(settings.theme);
 
     let state = State::from_file();
 
