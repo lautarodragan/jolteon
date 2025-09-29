@@ -11,8 +11,6 @@ use std::{
     time::Duration,
 };
 
-use rodio::OutputStream;
-
 use crate::{
     actions::{OnAction, PlayerAction},
     mpris::Mpris,
@@ -49,11 +47,11 @@ pub struct MainPlayer {
 }
 
 impl MainPlayer {
-    pub fn spawn(output_stream_handle: OutputStream, mpris: Option<Mpris>, queue_songs: Vec<Song>) -> Self {
+    pub fn spawn(mpris: Option<Mpris>, queue_songs: Vec<Song>) -> Self {
         let (tx, rx) = channel::<MainPlayerMessage>();
 
         let mpris = mpris.map(Arc::new);
-        let player = Arc::new(SingleTrackPlayer::spawn(output_stream_handle, mpris.clone()));
+        let player = Arc::new(SingleTrackPlayer::spawn(mpris.clone()));
         let queue = Arc::new(Queue::new(queue_songs));
         let on_error = Arc::new(Mutex::new(None::<Box<dyn Fn(String) + Send + 'static>>));
 

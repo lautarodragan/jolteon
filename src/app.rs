@@ -9,7 +9,6 @@ use std::{
 
 use async_std::task;
 use crossterm::{event, event::Event};
-use rodio::OutputStreamBuilder;
 
 use crate::{
     actions::{Action, Actions, OnAction, OnActionMut},
@@ -61,9 +60,7 @@ fn run_sync(mpris: Option<Mpris>) -> Result<(), Box<dyn Error>> {
 
     // if _output_stream is dropped playback will end & attached `OutputStreamHandle`s will no longer work.
     // Creating the output_stream indirectly spawns the cpal_alsa_out thread, and creates the mixer tied to it.
-    let output_stream_handle = OutputStreamBuilder::open_default_stream()?;
-
-    let player = Arc::new(MainPlayer::spawn(output_stream_handle, mpris, state.queue_items));
+    let player = Arc::new(MainPlayer::spawn(mpris, state.queue_items));
     let queue_changed = Arc::new(AtomicBool::default());
 
     player.on_queue_changed({

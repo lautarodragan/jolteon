@@ -16,7 +16,6 @@ use lofty::{
     probe::Probe,
     tag::{ItemValue, Tag},
 };
-use rodio::OutputStreamBuilder;
 
 use crate::{
     actions::{Action, Actions},
@@ -122,9 +121,8 @@ pub fn cli() {
                 artist = song.artist.as_deref().unwrap_or("(missing artist name metadata)")
             );
 
-            let output_stream_handle = OutputStreamBuilder::open_default_stream().unwrap();
             let song_length = song.length;
-            let player = Arc::new(MainPlayer::spawn(output_stream_handle, None, vec![song]));
+            let player = Arc::new(MainPlayer::spawn(None, vec![song]));
 
             player.on_error({
                 move |error| {

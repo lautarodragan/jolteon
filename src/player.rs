@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use rodio::OutputStream;
+use rodio::OutputStreamBuilder;
 
 use crate::{
     actions::{OnAction, PlayerAction},
@@ -46,7 +46,7 @@ enum Command {
 }
 
 impl SingleTrackPlayer {
-    pub fn spawn(output_stream: OutputStream, mpris: Option<Arc<Mpris>>) -> Self {
+    pub fn spawn(mpris: Option<Arc<Mpris>>) -> Self {
         let (command_sender, command_receiver) = channel();
 
         let playing_song = Arc::new(Mutex::new(None));
@@ -109,6 +109,8 @@ impl SingleTrackPlayer {
                 };
 
                 move || {
+                    let output_stream = OutputStreamBuilder::open_default_stream().unwrap(); // TODO: do not unwrap()
+
                     let wait_until_song_ends = || {
                         let target = "::wait_until_song_ends";
                         log::debug!(target: target, "start");
