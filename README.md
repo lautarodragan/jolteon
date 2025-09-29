@@ -16,16 +16,19 @@ The best music player.
 
 ### Binaries
 
-Binaries are automatically built and published here, in the GitHub repo, built for Linux and Mac, for every new commit to `main`.
+Jolteon is available for Linux and MacOS (both Apple Silicon and Intel).
 
-See [releases](https://github.com/lautarodragan/jolteon/releases).
+- See [releases](https://github.com/lautarodragan/jolteon/releases) for manually published releases and nightly builds.
+- See the [release workflow](https://github.com/lautarodragan/jolteon/actions/workflows/cd.yml) run history for binaries built automatically for every commit to `main`.
 
-Every commit to `main` also has the binaries build and uploaded. 
-See [Release](https://github.com/lautarodragan/jolteon/actions/workflows/cd.yml) workflow.
+### From Source
 
-### Build From Source
+```
+git clone --depth=1 https://github.com/lautarodragan/jolteon.git
+cd jolteon
 
-See [Developing](#developing) down below.
+cargo install --path .
+```
 
 ## Features
 
