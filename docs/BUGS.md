@@ -53,4 +53,9 @@ On a fresh Arch Linux install, without pipewire, Jolteon consumes a crazy amount
 Many things do not work well without a proper audio setup, and using the system without pipewire (or something equivalent) is not a normal thing,
 but, still, `mpv` doesn't do this — it's CPU usage is normal, even in this situation.
 
-Profiling with 
+Profiling with `perf top -p (pidof jolteon)` seemed to point to some syscalls in cpal taking most
+of the CPU time, which wasn't happening in the pipewire version.
+
+This was measured in an older version of Jolteon, which used an older version of Rodio, CPAL, etc.
+
+On a correctly functioning jolteon, most CPU goes to Rodio's SampleRateConverter. 
