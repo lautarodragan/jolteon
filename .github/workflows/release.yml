@@ -1,0 +1,65 @@
+name: Release
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    name: "${{ matrix.platform.os }} ${{ matrix.platform.target }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu  }
+          - { os: macos-latest , target: x86_64-apple-darwin       }
+          - { os: macos-latest , target: aarch64-apple-darwin      }
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: which brew
+        if: ${{ matrix.platform.os == 'macos-latest' }}
+
+      - run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
+          chmod a+x rustup.sh
+          ./rustup.sh -y
+
+      - run: rustc --print target-list
+      - run: rustup target add ${{ matrix.platform.target }}
+      - run: rustc --target=${{ matrix.platform.target }} --print target-cpus
+
+      - run: sudo apt-get update && sudo apt-get install libasound2-dev
+        if: ${{ matrix.platform.os == 'ubuntu-latest' }}
+
+      - id: jolteon_release_version
+        run: |
+          JOLTEON_RELEASE_VERSION=`cat Cargo.toml | grep version | head -n 1 | cut -d= -f2 | tr -d '"' | tr -d ' '`
+          echo "version=$JOLTEON_RELEASE_VERSION" >> $GITHUB_OUTPUT
+      - run: echo "Version ${{ steps.jolteon_release_version.outputs.version }}"
+
+      - run: cargo build --locked --release --target ${{ matrix.platform.target }}
+        env:
+          JOLTEON_RELEASE_VERSION: ${{ steps.jolteon_release_version.outputs.version }}
+
+      - run: "./target/${{ matrix.platform.target }}/release/jolteon version"
+
+      - run: |
+          cp "target/${{ matrix.platform.target }}/release/jolteon" "jolteon-${{ matrix.platform.target }}"
+          tar -czvf "jolteon-${{ matrix.platform.target }}-${{ steps.jolteon_release_version.outputs.version }}.tar.gz" "jolteon-${{ matrix.platform.target }}"
+
+      - name: Update the tag
+        run: |
+          TAG=v${{ steps.jolteon_release_version.outputs.version }}
+          git tag --force $TAG && git push --force origin tag $TAG
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Release ${{ steps.jolteon_release_version.outputs.version }}"
+          tag_name: v${{ steps.jolteon_release_version.outputs.version }}
+          files: "jolteon-${{ matrix.platform.target }}-${{ steps.jolteon_release_version.outputs.version }}.tar.gz"
+          prerelease: false
+          target_commitish: ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
