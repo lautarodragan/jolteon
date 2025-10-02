@@ -28,11 +28,10 @@ and large directories (which is what music lovers usually have).
 
 Even worse, in rare cases, some files cause the media tag reading code to take a long time.
 
-All of this freezes the UI completely while processing.
+~~All of this freezes the UI completely while processing.~~ this now runs in a separate thread, with debouncing, so it's no longer such a big issue.
 
 The best UX may be:
 - Simply show the list of directory entries — just the file names
-- Parse them in a separate thread
 - Replace list elements, one by one, with their parsed counterparts, as they come in from the thread
 - Store the file metadata somewhere (a second media library, basically!), as a cache, including file.date_modified 
 - Next time, if dir_entry.date_modified != cache_entry.date_modified { read from disc } otherwise just cache'd data
@@ -47,3 +46,11 @@ It is correctly scrolled when navigating the search matches with the arrow keys.
 This happens in the Artist/Album Tree in the Library, too, but this component hasn't been replaced by the generic List component yet,
 and it lacks some features it has, so there's no sense in fixing it there. It just needs to be replaced by the generic list component,
 but the list component needs to be enhanced before that can happen, to support a "tree" view.
+
+## High CPU Usage (in rare case)
+
+On a fresh Arch Linux install, without pipewire, Jolteon consumes a crazy amount of CPU.
+Many things do not work well without a proper audio setup, and using the system without pipewire (or something equivalent) is not a normal thing,
+but, still, `mpv` doesn't do this — it's CPU usage is normal, even in this situation.
+
+Profiling with 

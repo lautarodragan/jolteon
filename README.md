@@ -18,8 +18,16 @@ The best music player.
 
 Jolteon is available for Linux and MacOS (both Apple Silicon and Intel).
 
+You should be able to just download the binary, `chmod +x jolteon`, and run it.
+
 - See [releases](https://github.com/lautarodragan/jolteon/releases) for manually published releases and nightly builds.
 - See the [release workflow](https://github.com/lautarodragan/jolteon/actions/workflows/cd.yml) run history for binaries built automatically for every commit to `main`.
+
+### Cargo
+
+```
+cargo +nightly install jolteon
+```
 
 ### From Source
 
@@ -168,6 +176,9 @@ Specially considering RustRover and Chrome consume orders of magnitude more, per
 I haven't experienced any issues with the audio performance itself, but this is handled by symphonia and cpal, so there isn't a lot Jolteon can do to break it.
 Same goes for the UI, which is managed by Ratatui.
 
+I keep it open for days at a time — sometimes, even over a week, and haven't
+seen it crash or increase memory usage.
+
 If you do experience any sort of performance issues — be it choppy UI, keyboard input response, choppy audio, or significantly higher CPU/RAM usage than `mpv` or any other well-known media player
 for the same file, please open an issue reporting it. Being able to reproduce this with an audio file available in the public domain, or with a license that permits sharing it, would be ideal,
 even if hard or very unlikely.
@@ -183,34 +194,7 @@ See [HISTORY.md](docs/HISTORY.md).
 
 ## Developing
 
-Rust is very friendly language —even to newcomers—, and has a very friendly community. 
-
-If you're new to Rust, I encourage you to give it a try. [The Rust Book](https://doc.rust-lang.org/book/) is pretty awesome, [rust-lang.org/learn](https://www.rust-lang.org/learn) is generally a great starting point, and, for slightly more advanced topics, 
-Mara Bos's [Rust Atomics and Locks](https://marabos.nl/atomics/) and Jon Gjengset's [Crust of Rust](https://www.youtube.com/playlist?list=PLqbS7AVVErFiWDOAVrPt7aYmnuuOLYvOa) series are great resources.
-
-To install Rust and Cargo, see [rust-lang.org/tools/install](https://www.rust-lang.org/tools/install) or [rust-lang.org/cargo/getting-started](https://doc.rust-lang.org/cargo/getting-started/installation.html).
-
-To get started with Jolteon, just clone the repo and then run the project:
-
-```
-git clone --depth=1 https://github.com/lautarodragan/jolteon.git
-cd jolteon
-
-cargo run
-```
-
-You may need to install `libasound2-dev`:
-
-```
-sudo apt-get update && sudo apt-get install libasound2-dev
-```
-
-Check out the GitHub workflows for CI/CD for more details on what to do to get Jolteon to run and build.
-
-Regarding the code: I try to keep the source code as clean and intuitive as I can, so modifying it should be (hopefully) relatively easy.
-I'll add an ARCHITECTURE.md soon-ish, which should make the source code friendlier to navigate.
-
-Keep in mind I'm using my own fork of `cpal` right now. I have an open [PR for cpal](https://github.com/RustAudio/cpal/pull/909), with a small bugfix, that hasn't been merged yet.
+See [DEVELOPING.md](docs/DEVELOPING.md)
 
 ## Bugs
 
