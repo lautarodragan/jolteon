@@ -43,9 +43,9 @@ It'd be nice to reuse most of the existing library code for the cache. It's prac
 When using search, the view isn't scrolled to show the selected element after modifying the filter (meaning: pressing letter or number keys).
 It is correctly scrolled when navigating the search matches with the arrow keys.
 
-This happens in the Artist/Album Tree in the Library, too, but this component hasn't been replaced by the generic List component yet,
-and it lacks some features it has, so there's no sense in fixing it there. It just needs to be replaced by the generic list component,
-but the list component needs to be enhanced before that can happen, to support a "tree" view.
+This is fixed in the Artist/Album Tree in the Library.
+
+I will probably replace the List with a Tree of nodes without children (depth=1).
 
 ## High CPU Usage (in rare case)
 
