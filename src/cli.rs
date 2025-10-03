@@ -19,7 +19,7 @@ use lofty::{
 
 use crate::{
     actions::{Action, Actions},
-    auto_update::RELEASE_VERSION,
+    auto_update::{CARGO_PKG_VERSION, RELEASE_VERSION_OVERRIDE},
     duration::duration_to_string,
     main_player::MainPlayer,
     settings::Settings,
@@ -204,13 +204,7 @@ pub fn cli() {
             println!("{}", Settings::default());
         }
         Command::Version => {
-            if let Some(version) = RELEASE_VERSION {
-                println!("Jolteon {version}");
-            } else {
-                println!(
-                    "Version unknown. This is an error. Make sure JOLTEON_RELEASE_VERSION is set at compile time."
-                );
-            }
+            println!("Jolteon {}", RELEASE_VERSION_OVERRIDE.unwrap_or(CARGO_PKG_VERSION));
         }
         Command::Tags { path, color, output } => {
             let color = output == OutputFormat::Text

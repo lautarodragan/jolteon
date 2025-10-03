@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::toml::{TomlFileError, read_toml_file, write_toml_file};
 
-pub static RELEASE_VERSION: Option<&'static str> = option_env!("JOLTEON_RELEASE_VERSION");
+pub static CARGO_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub static RELEASE_VERSION_OVERRIDE: Option<&'static str> = option_env!("JOLTEON_RELEASE_VERSION");
 pub static RELEASES_URL: &str = "https://api.github.com/repos/lautarodragan/jolteon/releases?per_page=3";
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -83,7 +84,7 @@ pub fn get_releases() -> Result<(), ReleasesError> {
 pub fn can_i_has_rls() -> Result<(), ReleasesError> {
     let target = "::can_i_has_rls";
 
-    log::trace!(target: target, "RELEASE_VERSION: {RELEASE_VERSION:?}");
+    log::trace!(target: target, "RELEASE_VERSION: {RELEASE_VERSION_OVERRIDE:?}");
 
     let releases: Releases = read_toml_file("releases")?;
 
