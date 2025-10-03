@@ -6,7 +6,7 @@ use strum::EnumString;
 
 use crate::toml::TomlFileError;
 
-static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.ini");
+pub static DEFAULT_ACTIONS_STR: &str = include_str!("../../assets/actions.ini");
 static DEFAULT_ACTIONS: LazyLock<HashMap<KeyBinding, Vec<Action>>> =
     LazyLock::new(|| Actions::from_str(DEFAULT_ACTIONS_STR).actions);
 
