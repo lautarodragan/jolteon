@@ -14,6 +14,12 @@ The best music player.
 
 ## Installation
 
+### Script
+
+```
+curl -s -o- https://raw.githubusercontent.com/lautarodragan/jolteon/refs/heads/main/get.sh | bash
+```
+
 ### Binaries
 
 Jolteon is available for Linux and MacOS (both Apple Silicon and Intel).
