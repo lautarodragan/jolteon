@@ -27,7 +27,7 @@ fi
 
 echo "Downloading $DOWNLOAD_URL..."
 
-curl -L -O "$DOWNLOAD_URL"
+curl -s -L -O "$DOWNLOAD_URL"
 
 echo "Extracting..."
 
