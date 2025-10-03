@@ -93,13 +93,7 @@ cargo install --path .
   - Play/Pause
   - Seek 5 seconds forward/backward
   - Media keys Play/Pause support via MPRIS in Linux
-    - 🚧 There's a bug in this feature at the moment: ownership of the media keys is lost when some other application overtakes it,
-      and not regained afterwards. The UX for this case is generally weird in all applications, though. I'm not sure what UX
-      I'd prefer myself, even. But, at the very least, it should be regained when the overtaking application is closed (such as a Google Chrome
-      tab being opened to YouTube overtaking it, but it being regained when the tab is closed).
 - Help Screen
-  - 🚧 This is pretty raw, right now. The goal is for Jolteon to require no guesswork, no external documentation, and to feel 100% friendly and risk-free.
-    (no destructive actions, Ctrl+Z for everything, no confusing behavior, etc).
 - Focus on stability
   - Application crashes are handled safely, restoring the terminal to its normal state before exiting the process.
   - Thread hygiene: all threads joined on exit - no thread is brute-force-killed by the OS on process exit.
@@ -108,9 +102,12 @@ cargo install --path .
   - 🚧 In the future, if any non-bug causes an issue, rather than just being ignored, proper UX will be implemented and feedback given.
 - A clock on the top bar. Can be turned off via configuration.
 - Configurable key bindings
-  - The Help screen has a bit of info on this, but the UX will improve in the future, like support to change the key bindings inside the application.
+  - See [actions.ini](assets/actions.ini) — the default key bindings.
+  - Or run `jolteon print-default-key-bindings`.
+  - Can also `jolteon print-default-key-bindings > ~/.config/jolteon/actions.ini` to get started.
+  - The Help screen has a bit of info on this, too, but the UX will improve in the future, like support to change the key bindings inside the application.
 - 🚧 Themes
-  - Currently, there's only one theme. You can find it in `assets/theme.toml`. 90% of the code allowing customization and multiple
+  - Currently, there's only one theme. You can find it in `assets/gruvbox_dark.toml`. 90% of the code allowing customization and multiple
     out-of-the-box themes is already done, so this feature is likely to come soon.
   - There will be some way to switch themes programmatically from outside the application, for themes to be switchable by external scripts.
   - Integration with OS light/dark mode will be added. Which theme is associated with each mode will be configurable, but have a sensible default.
