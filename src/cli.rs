@@ -45,6 +45,7 @@ enum OutputFormat {
 enum Command {
     PrintDefaultConfig,
     Version,
+    About,
     Play {
         #[arg(value_name = "FILE")]
         path: PathBuf,
@@ -200,11 +201,16 @@ pub fn cli() {
             });
         }
         Command::PrintDefaultConfig => {
-            println!("# default Jolteon configuration:");
+            println!("# default {} configuration:", env!("CARGO_PKG_NAME"));
             println!("{}", Settings::default());
         }
         Command::Version => {
             println!("Jolteon {}", RELEASE_VERSION_OVERRIDE.unwrap_or(CARGO_PKG_VERSION));
+        }
+        Command::About => {
+            println!("{}", env!("CARGO_PKG_NAME"));
+            println!("{}", env!("CARGO_PKG_DESCRIPTION"));
+            println!("{}", env!("CARGO_PKG_REPOSITORY"));
         }
         Command::Tags { path, color, output } => {
             let color = output == OutputFormat::Text

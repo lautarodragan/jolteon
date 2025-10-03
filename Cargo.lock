@@ -3,6 +3,33 @@
 version = 4
 
 [[package]]
+name = "Jolteon"
+version = "1.2.2"
+dependencies = [
+ "async-std",
+ "chrono",
+ "clap",
+ "colored",
+ "crossterm 0.29.0",
+ "flexi_logger",
+ "futures",
+ "home",
+ "lofty",
+ "log",
+ "mpris-server",
+ "ratatui",
+ "reqwest",
+ "rodio",
+ "serde",
+ "serde-inline-default",
+ "serde_default",
+ "serde_json",
+ "strum 0.27.2",
+ "toml",
+ "uuid",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1483,33 +1510,6 @@ name = "jni-sys"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
-
-[[package]]
-name = "jolteon"
-version = "1.2.2"
-dependencies = [
- "async-std",
- "chrono",
- "clap",
- "colored",
- "crossterm 0.29.0",
- "flexi_logger",
- "futures",
- "home",
- "lofty",
- "log",
- "mpris-server",
- "ratatui",
- "reqwest",
- "rodio",
- "serde",
- "serde-inline-default",
- "serde_default",
- "serde_json",
- "strum 0.27.2",
- "toml",
- "uuid",
-]
 
 [[package]]
 name = "js-sys"
