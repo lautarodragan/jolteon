@@ -127,7 +127,7 @@ impl<T> TreeNode<T> {
         recursive(path.to_vec().into(), nodes)
     }
 
-    pub fn iter(&self) -> TreeNodeIterator<T> {
+    pub fn iter(&self) -> TreeNodeIterator<'_, T> {
         TreeNodeIterator {
             root: self,
             current_node: None,

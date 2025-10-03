@@ -37,7 +37,7 @@ impl Queue {
         f(&songs);
     }
 
-    pub fn songs(&self) -> MutexGuard<VecDeque<Song>> {
+    pub fn songs(&self) -> MutexGuard<'_, VecDeque<Song>> {
         self.songs.lock().unwrap()
     }
 

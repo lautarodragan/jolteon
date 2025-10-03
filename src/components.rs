@@ -5,7 +5,6 @@ mod library;
 mod list;
 mod playlists;
 mod queue;
-mod rendering_error;
 mod root;
 mod tree;
 
