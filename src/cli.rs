@@ -18,7 +18,7 @@ use lofty::{
 };
 
 use crate::{
-    actions::{Action, Actions},
+    actions::{Action, Actions, DEFAULT_ACTIONS_STR},
     auto_update::{CARGO_PKG_VERSION, RELEASE_VERSION_OVERRIDE},
     duration::duration_to_string,
     main_player::MainPlayer,
@@ -44,6 +44,7 @@ enum OutputFormat {
 #[derive(Subcommand, Debug)]
 enum Command {
     PrintDefaultConfig,
+    PrintDefaultKeyBindings,
     Version,
     About,
     Play {
@@ -203,6 +204,10 @@ pub fn cli() {
         Command::PrintDefaultConfig => {
             println!("# default {} configuration:", env!("CARGO_PKG_NAME"));
             println!("{}", Settings::default());
+        }
+        Command::PrintDefaultKeyBindings => {
+            println!("# default {} key bindings:", env!("CARGO_PKG_NAME"));
+            println!("{}", DEFAULT_ACTIONS_STR);
         }
         Command::Version => {
             println!("Jolteon {}", RELEASE_VERSION_OVERRIDE.unwrap_or(CARGO_PKG_VERSION));
