@@ -2,8 +2,8 @@
 
 JSON=`curl -s 'https://api.github.com/repos/lautarodragan/jolteon/releases/latest'`
 
-URLS=`echo "$JSON" | jq -r ".assets[].browser_download_url"`
-# curl -s 'https://api.github.com/repos/lautarodragan/jolteon/releases/latest' | grep "browser_download_url"
+# URLS=`echo "$JSON" | jq -r ".assets[].browser_download_url"`
+URLS=`curl -s 'https://api.github.com/repos/lautarodragan/jolteon/releases/latest' | grep "browser_download_url" | cut -d: -f2- | tr -d ' ' | tr -d '"'`
 
 DOWNLOAD_URL=""
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
