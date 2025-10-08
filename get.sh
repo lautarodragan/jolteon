@@ -13,9 +13,11 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   if [[ `uname -m` == "arm64" ]]; then
     DOWNLOAD_URL=`echo "$URLS" | grep darwin | grep aarch`
   elif [[ "$OSTYPE" == "x86_64" ]]; then
-    DOWNLOAD_URL=`echo "$URLS" | grep darwin`
+    DOWNLOAD_URL=`echo "$URLS" | grep darwin | grep x86_64`
   else
-    echo error
+    echo "No release found for your OS."
+    echo "If you're running on one of the supported OSes (Linux, MacOS Intel/ARM), then this is a bug in the installation script."
+    echo "Please report this by submitting a bug to https://github.com/lautarodragan/jolteon/issues."
     exit 1
   fi
 else
