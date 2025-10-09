@@ -45,4 +45,5 @@ clap = { version = "4.5.46", features = ["derive"] }
 
 # TODO https://github.com/RustAudio/cpal/pull/909 (merged but not released)
 [patch.crates-io]
-cpal = { git = 'https://github.com/lautarodragan/cpal' }
+cpal = { git = 'https://github.com/RustAudio/cpal', rev = 'f7206e9ba65e5f0ab33fc1530c0c25f753355614' }
+# CPAL commit b11f8f1e1103f8415ec932bd0ba11af21475e8fd causes a bug in Jolteon.
