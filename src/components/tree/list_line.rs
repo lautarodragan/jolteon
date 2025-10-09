@@ -5,7 +5,7 @@ use ratatui::{
     layout::Rect,
     prelude::{Line, Span},
     style::{Modifier, Style},
-    widgets::{Widget, WidgetRef},
+    widgets::Widget,
 };
 
 use crate::theme::Theme;
@@ -69,6 +69,6 @@ impl Widget for ListLine<'_> {
         } else {
             Line::from(self.text)
         };
-        line.style(style).render_ref(area, buf);
+        line.style(style).render(area, buf);
     }
 }

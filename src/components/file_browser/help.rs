@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use ratatui::{buffer::Buffer, layout::Rect, style::Style, text::Span, widgets::WidgetRef};
+use ratatui::{buffer::Buffer, layout::Rect, prelude::Widget, style::Style, text::Span, widgets::WidgetRef};
 
 use crate::{
     actions::{Action, Actions, FileBrowserAction, KeyBinding},
@@ -161,7 +161,7 @@ impl WidgetRef for KeyBindingPill<'_> {
         buf[area].set_symbol("▐").set_fg(self.theme.top_bar_background);
         area.x += 1;
 
-        self.span_key_binding.render_ref(area, buf);
+        (&self.span_key_binding).render(area, buf);
         area.x += self.span_key_binding_width;
 
         buf[area]
@@ -176,7 +176,7 @@ impl WidgetRef for KeyBindingPill<'_> {
             .set_bg(self.theme.top_bar_background);
         area.x += 1;
 
-        self.span_action.render_ref(area, buf);
+        (&self.span_action).render(area, buf);
         area.x += self.span_action_width;
 
         buf[area].set_symbol("▌").set_fg(self.theme.top_bar_background);

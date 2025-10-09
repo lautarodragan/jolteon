@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
+    prelude::Widget,
     style::Style,
     widgets::{WidgetRef, Wrap},
 };
@@ -97,7 +98,7 @@ impl WidgetRef for Help<'_> {
         )
         .style(Style::new().fg(self.theme.foreground_secondary))
         .wrap(Wrap { trim: true })
-        .render_ref(area_top, buf);
+        .render(area_top, buf);
 
         self.actions.render_ref(area_main, buf);
     }

@@ -5,7 +5,7 @@ use ratatui::{
     prelude::*,
     style::Style,
     text::Line,
-    widgets::{Block, Borders, Gauge},
+    widgets::{Block, Borders, Gauge, TitlePosition},
 };
 
 use crate::{duration::duration_to_string, structs::Song, theme::Theme};
@@ -115,7 +115,7 @@ impl Widget for CurrentlyPlaying {
                 .title(song_to_string(current_song))
                 .borders(Borders::NONE)
                 .title_alignment(Alignment::Center)
-                .title_position(ratatui::widgets::block::Position::Bottom);
+                .title_position(TitlePosition::Bottom);
             playing_file.render(area_top, buf);
         } else {
             render_anim(area_top, buf, self.frame, self.theme);

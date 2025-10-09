@@ -6,7 +6,7 @@ use std::{
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    prelude::{Line, Modifier, Span, Style},
+    prelude::{Line, Modifier, Span, Style, Widget},
     widgets::WidgetRef,
 };
 
@@ -74,6 +74,6 @@ impl WidgetRef for CurrentDirectory {
 
         let browser_title = Line::from(vec![parent_path, folder_name]);
 
-        browser_title.render_ref(area, buf);
+        browser_title.render(area, buf);
     }
 }

@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    prelude::Alignment,
+    prelude::{Alignment, Widget},
     style::Style,
     widgets::WidgetRef,
 };
@@ -60,7 +60,7 @@ impl WidgetRef for Playlists<'_> {
                 .title(" Playlist Graveyard ")
                 .title_style(Style::new().fg(self.theme.foreground))
                 .title_alignment(Alignment::Center);
-            block.render_ref(left_bottom_header, buf);
+            block.render(left_bottom_header, buf);
 
             self.deleted_playlist_list.render_ref(left_bottom_list, buf);
         } else {
