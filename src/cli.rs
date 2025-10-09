@@ -207,7 +207,7 @@ pub fn cli() {
         }
         Command::PrintDefaultKeyBindings => {
             println!("# default {} key bindings:", env!("CARGO_PKG_NAME"));
-            println!("{}", DEFAULT_ACTIONS_STR);
+            println!("{DEFAULT_ACTIONS_STR}");
         }
         Command::Version => {
             println!("Jolteon {}", RELEASE_VERSION_OVERRIDE.unwrap_or(CARGO_PKG_VERSION));
