@@ -16,10 +16,12 @@ use lofty::{
     probe::Probe,
     tag::{ItemValue, Tag},
 };
+use log::error;
 
 use crate::{
     actions::{Action, Actions, DEFAULT_ACTIONS_STR},
     auto_update::{CARGO_PKG_VERSION, RELEASE_VERSION_OVERRIDE},
+    cue::CueSheet,
     duration::duration_to_string,
     main_player::MainPlayer,
     settings::Settings,
@@ -53,6 +55,16 @@ enum Command {
 
         #[arg(short, long, default_value_t = 0.5)]
         volume: f32,
+    },
+    Cue {
+        #[arg(value_name = "FILE")]
+        path: PathBuf,
+
+        #[arg(short, long, default_value_t = false)]
+        flat: bool,
+
+        #[arg(value_enum, short, long, default_value_t = OutputFormat::Text)]
+        output: OutputFormat,
     },
     Tags {
         #[arg(value_name = "FILE")]
@@ -90,7 +102,15 @@ pub fn cli() {
         Some(command) => command,
         None => {
             if let Some(path) = args.path {
-                Command::Play { path, volume: 0.5 }
+                if path.ends_with(".cue") {
+                    Command::Cue {
+                        path,
+                        flat: false,
+                        output: OutputFormat::Text,
+                    }
+                } else {
+                    Command::Play { path, volume: 0.5 }
+                }
             } else {
                 return;
             }
@@ -193,7 +213,9 @@ pub fn cli() {
                 stdout(),
                 crossterm::cursor::MoveToNextLine(5),
                 Print("\n"),
-                Print("Bye")
+                Print("Bye"),
+                SetAttribute(Attribute::Reset),
+                crossterm::cursor::Show
             )
             .unwrap();
 
@@ -286,9 +308,44 @@ pub fn cli() {
                 print_tag_items(tag, false);
             }
         }
+        Command::Cue { path, flat, output } => {
+            let cue = CueSheet::from_file(path.as_path());
+            match cue {
+                Ok(cue) => {
+                    if flat {
+                        let cue = cue.flat();
+                        if output == OutputFormat::Text {
+                            println!("{cue:#?}");
+                        } else {
+                            match serde_json::to_string_pretty(&cue) {
+                                Ok(cue) => {
+                                    println!("{cue}");
+                                }
+                                Err(err) => {
+                                    error!("{err:#?}");
+                                }
+                            };
+                        }
+                    } else if output == OutputFormat::Text {
+                        println!("{cue:#?}");
+                    } else {
+                        match serde_json::to_string_pretty(&cue) {
+                            Ok(cue) => {
+                                println!("{cue}");
+                            }
+                            Err(err) => {
+                                error!("{err:#?}");
+                            }
+                        };
+                    }
+                }
+                Err(err) => {
+                    error!("{err:#?}");
+                }
+            }
+        }
     }
 
-    execute!(stdout(), SetAttribute(Attribute::Reset), crossterm::cursor::Show,).unwrap();
     println!();
 
     std::process::exit(0);

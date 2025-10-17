@@ -4,13 +4,16 @@ use std::{
     time::Duration,
 };
 
+use serde::Serialize;
+
 use crate::{
     components::dir_entry_is_song,
     cue::{cue_line::CueLine, cue_line_node::CueLineNode, cue_sheet_item::CueSheetItem},
+    duration::duration_to_string,
 };
 
 #[allow(dead_code)]
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize)]
 pub struct CueSheet {
     cue_sheet_file_path: PathBuf,
     unknown: Vec<String>,
@@ -20,7 +23,7 @@ pub struct CueSheet {
     files: Vec<CueFile>,
 }
 
-#[derive(Debug, PartialEq, Eq, Default, Clone)]
+#[derive(Debug, PartialEq, Eq, Default, Clone, Serialize)]
 pub struct CueFile {
     name: String,
     tracks: Vec<Track>,
@@ -52,13 +55,44 @@ impl CueFile {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Default, Clone)]
+#[derive(Debug, PartialEq, Eq, Default, Clone, Serialize)]
 pub struct Track {
     index: String,
     // type: String (could be enum. always "audio" for now)
     title: String,
     start_time: String,
     performer: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq, Default, Clone, Serialize)]
+pub struct FlatTrack {
+    file: String,
+    track_number: String,
+    title: String,
+    start: String,
+    length: Option<String>,
+    performer: Option<String>,
+    album: Option<String>,
+}
+
+impl FlatTrack {
+    pub fn start(&self) -> Option<Duration> {
+        let parsed = self.start.split(":").collect::<Vec<_>>(); // mm:ss:xx
+
+        if parsed.is_empty() || parsed.len() > 3 {
+            return None;
+        }
+
+        let Ok(minutes) = parsed[0].parse::<u64>() else {
+            return None;
+        };
+
+        let Ok(seconds) = parsed[1].parse::<u64>() else {
+            return None;
+        };
+
+        Some(Duration::from_secs(minutes * 60 + seconds))
+    }
 }
 
 impl Track {
@@ -195,6 +229,38 @@ impl CueSheet {
 
     pub fn unknowns(&self) -> Vec<String> {
         self.unknown.clone()
+    }
+
+    pub fn flat(&self) -> Vec<FlatTrack> {
+        // TODO: improve CueSheet so we don't have to do the nasty splitting hacks here
+        let mut tracks: Vec<FlatTrack> = self
+            .files
+            .iter()
+            .flat_map(|file| {
+                file.tracks.iter().map(|track| FlatTrack {
+                    file: (*file.name.split("\"").collect::<Vec<&str>>().get(1).unwrap()).to_string(), // "path" WAVE
+                    track_number: (*track.index.split(" ").collect::<Vec<&str>>().first().unwrap()).to_string(),
+                    title: track.title.clone(),
+                    start: (*track.start_time.split(" ").collect::<Vec<&str>>().last().unwrap()).to_string(),
+                    length: None,
+                    performer: track.performer.clone(),
+                    album: self.title.clone(),
+                })
+            })
+            .collect();
+
+        if tracks.len() > 2 {
+            for i in 0..tracks.len() - 1 {
+                let this_duration = tracks[i].start();
+                let next_duration = tracks[i + 1].start();
+
+                if let (Some(this), Some(next)) = (this_duration, next_duration) {
+                    tracks[i].length = Some(duration_to_string(next - this));
+                }
+            }
+        }
+
+        tracks
     }
 }
 
