@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use ratatui::{buffer::Buffer, layout::Rect, prelude::Widget, style::Style, text::Span, widgets::WidgetRef};
-
+use ratatui::style::Color;
 use crate::{
     actions::{Action, Actions, FileBrowserAction, KeyBinding},
     components::file_browser::AddMode,
@@ -158,7 +158,10 @@ impl WidgetRef for KeyBindingPill<'_> {
             return;
         }
 
-        buf[area].set_symbol("▐").set_fg(self.theme.top_bar_background);
+        if self.theme.top_bar_background != Color::Reset {
+            buf[area].set_symbol("▐").set_fg(self.theme.top_bar_background);
+        }
+
         area.x += 1;
 
         (&self.span_key_binding).render(area, buf);
@@ -179,6 +182,8 @@ impl WidgetRef for KeyBindingPill<'_> {
         (&self.span_action).render(area, buf);
         area.x += self.span_action_width;
 
-        buf[area].set_symbol("▌").set_fg(self.theme.top_bar_background);
+        if self.theme.top_bar_background != Color::Reset {
+            buf[area].set_symbol("▌").set_fg(self.theme.top_bar_background);
+        }
     }
 }
