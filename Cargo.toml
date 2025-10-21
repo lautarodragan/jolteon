@@ -1,5 +1,5 @@
 [package]
-name = "Jolteon"
+name = "jolteon"
 description = "The best music player."
 version = "1.2.2"
 edition = "2024"
