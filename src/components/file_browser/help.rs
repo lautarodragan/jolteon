@@ -1,7 +1,14 @@
 use std::fmt::{Display, Formatter};
 
-use ratatui::{buffer::Buffer, layout::Rect, prelude::Widget, style::Style, text::Span, widgets::WidgetRef};
-use ratatui::style::Color;
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    prelude::Widget,
+    style::{Color, Style},
+    text::Span,
+    widgets::WidgetRef,
+};
+
 use crate::{
     actions::{Action, Actions, FileBrowserAction, KeyBinding},
     components::file_browser::AddMode,
