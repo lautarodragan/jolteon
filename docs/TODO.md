@@ -1,8 +1,29 @@
 # TODO
 
+## Unterminal
+
+Running Jolteon in a terminal emulator has a few downsides.
+Terminal emulators have a ton of features Jolteon doesn't need, which increases the RAM cost.
+It also makes managing key bindings a bit more cumbersome.
+
+Doing an actual UI would enable fancier things and possibly lower the CPU and RAM cost a bit.
+On the other hand, doing so cross-platform might be harder.
+
+Libs to try:
+- https://github.com/longbridge/gpui-component
+- https://github.com/slint-ui/slint
+- https://github.com/gtk-rs/gtk4-rs
+- https://github.com/iced-rs/iced
+- https://github.com/tauri-apps/tauri
+- https://github.com/tauri-apps/tao
+- https://github.com/libui-rs/libui
+
+Libs to skip:
+- https://github.com/emilk/egui
+
 ## Friendlier Releases
 
-- `cargo install jolteon`
+- Fix: installer for Intel Macs
 - https://webinstall.dev/
 
 ## Tree Filter/Search Improvement: Search Through Closed Nodes
@@ -69,6 +90,12 @@ Some sort of engine that suggests music.
 - Visual indicator of there being off-screen elements in the list (we have no scroll bars)
   - First/last visible element being `${elementName} + ${remainingCount} more...`, dim'd, if `remainingCount > 0`
   - An actual scroll bar?
+
+## MIDI
+
+- https://github.com/chris-zen/coremidi
+- https://github.com/Boddlnagg/midir
+- https://github.com/sinshu/rustysynth
 
 ## Refactor: AtomicDuration
 
