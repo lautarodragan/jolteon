@@ -97,6 +97,12 @@ Some sort of engine that suggests music.
 - https://github.com/Boddlnagg/midir
 - https://github.com/sinshu/rustysynth
 
+## Metadata Import
+
+- https://beets.io/ / https://github.com/beetbox/beets / https://news.ycombinator.com/item?id=45873037
+- https://musicbrainz.org/
+- https://harmony.pulsewidth.org.uk/
+
 ## Refactor: AtomicDuration
 
 An `AtomicDuration` struct may be more ergonomic than a `Mutex<Duration>`, and might be marginally faster.
