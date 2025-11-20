@@ -45,6 +45,17 @@ cd jolteon
 cargo install --path .
 ```
 
+On Linux, you may need to install the ALSA lib dev package.
+
+```
+# Arch
+sudo pacman -S alsa-lib
+
+# Ubuntu
+sudo apt-get install libasound2-dev
+```
+
+
 ## Features
 
 - The number keys `1` through `5` select the different screens. The top bar shows the available screens and highlights the active one.
