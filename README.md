@@ -14,19 +14,20 @@ The best music player.
 
 ## Installation
 
-### Script
-
-```
-curl -s -o- https://raw.githubusercontent.com/lautarodragan/jolteon/refs/heads/main/get.sh | bash
-```
-
 ### Binaries
 
 Jolteon is available for Linux and MacOS (both Apple Silicon and Intel).
 
 You should be able to just download the binary, `chmod +x jolteon`, and run it.
 
-- See [releases](https://github.com/lautarodragan/jolteon/releases) for manually published releases and nightly builds.
+Run the following script to download the latest release for your platform:
+
+```
+curl -s -o- https://raw.githubusercontent.com/lautarodragan/jolteon/refs/heads/main/get.sh | bash
+```
+
+Or…
+- See [releases](https://github.com/lautarodragan/jolteon/releases) for published releases and nightly builds.
 - See the [release workflow](https://github.com/lautarodragan/jolteon/actions/workflows/cd.yml) run history for binaries built automatically for every commit to `main`.
 
 ### Cargo
