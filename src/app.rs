@@ -7,8 +7,8 @@ use std::{
     time::Duration,
 };
 
-use async_std::task;
 use crossterm::{event, event::Event};
+use tokio::task;
 
 use crate::{
     actions::{Action, Actions, OnAction, OnActionMut},
@@ -39,7 +39,7 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
             log::error!("{err:?}");
         }
     })
-    .await;
+    .await?;
 
     Ok(())
 }

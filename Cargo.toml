@@ -29,7 +29,7 @@ serde = {version = "1.0.228", features = ["derive"]}
 home = "0.5.11"
 ratatui = { version = "0.30.0-alpha.5", features = ["serde", "unstable-widget-ref"] }
 mpris-server = "0.9.0"
-async-std = {version = "1.13.2", features = ["attributes", "unstable"]}
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "sync"] }
 futures = "0.3.31"
 flexi_logger = { version = "0.31.7" }
 log = "0.4.28"

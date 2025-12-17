@@ -63,7 +63,7 @@ pub fn log_format(w: &mut dyn std::io::Write, now: &mut DeferredNow, record: &Re
     Ok(())
 }
 
-#[async_std::main]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     set_panic_hook();
 

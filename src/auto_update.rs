@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use async_std::task;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
+use tokio::task;
 
 use crate::toml::{TomlFileError, read_toml_file, write_toml_file};
 

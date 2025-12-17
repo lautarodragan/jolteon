@@ -1,6 +1,5 @@
-use std::{error::Error, thread};
+use std::{error::Error, sync::Arc, thread};
 
-use async_std::sync::{Arc, Mutex};
 use mpris_server::{
     LoopStatus,
     Metadata,
@@ -15,6 +14,7 @@ use mpris_server::{
     Volume,
     zbus,
 };
+use tokio::sync::Mutex;
 
 use crate::structs::Song;
 
@@ -26,10 +26,10 @@ pub struct MprisState {
 
 impl MprisState {
     pub fn on_play_pause(&self, f: impl Fn() + Send + Sync + 'static) {
-        *self.on_play_pause.lock_blocking() = Some(Box::new(f));
+        *self.on_play_pause.blocking_lock() = Some(Box::new(f));
     }
     pub fn on_stop(&self, f: impl Fn() + Send + Sync + 'static) {
-        *self.on_stop.lock_blocking() = Some(Box::new(f));
+        *self.on_stop.blocking_lock() = Some(Box::new(f));
     }
 }
 
@@ -247,12 +247,12 @@ impl Mpris {
     }
 
     pub fn on_play_pause(&self, f: impl Fn() + Send + Sync + 'static) {
-        let s = self.server.lock_blocking();
+        let s = self.server.blocking_lock();
         s.imp().on_play_pause(f);
     }
 
     pub fn on_stop(&self, f: impl Fn() + Send + Sync + 'static) {
-        let s = self.server.lock_blocking();
+        let s = self.server.blocking_lock();
         s.imp().on_stop(f);
     }
 
