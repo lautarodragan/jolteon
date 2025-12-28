@@ -28,6 +28,7 @@ pub struct CurrentlyPlaying {
     queue_song_count: usize,
     is_paused: bool,
     is_repeating: bool,
+    volume: f32,
     frame: u64,
 }
 
@@ -41,6 +42,7 @@ impl CurrentlyPlaying {
         queue_song_count: usize,
         is_paused: bool,
         is_repeating: bool,
+        volume: f32,
         frame: u64,
     ) -> Self {
         Self {
@@ -51,6 +53,7 @@ impl CurrentlyPlaying {
             queue_song_count,
             is_paused,
             is_repeating,
+            volume,
             frame,
         }
     }
@@ -171,19 +174,24 @@ impl Widget for CurrentlyPlaying {
             playing_gauge.render(area_bottom, buf);
         }
 
-        let [_, area_bottom_right] =
-            Layout::horizontal([Constraint::Fill(1), Constraint::Length(10)]).areas(area_bottom);
+        let [_, area_bottom_right, _] =
+            Layout::horizontal([Constraint::Fill(1), Constraint::Length(30), Constraint::Length(1)]).areas(area_bottom);
 
+        let mut status = vec![];
         if self.is_paused {
-            Line::from("PAUSED")
-                .style(Style::default().fg(self.theme.foreground).bg(self.theme.background))
-                .alignment(Alignment::Right)
-                .render(area_bottom_right, buf);
-        } else if self.is_repeating {
-            Line::from("REPEAT ONE")
-                .style(Style::default().fg(self.theme.foreground).bg(self.theme.background))
-                .alignment(Alignment::Right)
-                .render(area_bottom_right, buf);
+            status.push("PAUSED");
         }
+        if self.is_repeating {
+            status.push("REPEAT ONE");
+        }
+        let vol = format!("{}%", (self.volume * 100f32).floor());
+        status.push(vol.as_str());
+
+        let status = status.join(" | ");
+
+        Line::from(status)
+            .style(Style::default().fg(self.theme.foreground).bg(self.theme.background))
+            .alignment(Alignment::Right)
+            .render(area_bottom_right, buf);
     }
 }

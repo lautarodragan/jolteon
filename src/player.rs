@@ -434,6 +434,10 @@ impl SingleTrackPlayer {
         *volume = (*volume + amount).clamp(0., 1.);
     }
 
+    pub fn get_volume(&self) -> f32 {
+        *self.volume.lock().unwrap()
+    }
+
     pub fn set_volume(&self, amount: f32) {
         let mut volume = self.volume.lock().unwrap();
         *volume = amount.clamp(0., 1.);

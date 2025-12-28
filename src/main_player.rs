@@ -190,6 +190,10 @@ impl MainPlayer {
         self.queue.clone()
     }
 
+    pub fn volume(&self) -> f32 {
+        self.single_track_player().get_volume()
+    }
+
     //// Playback Management
 
     pub fn playing_song(&self) -> Option<Song> {

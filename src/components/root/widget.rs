@@ -65,6 +65,7 @@ impl Widget for &mut Root<'_> {
             self.queue_screen.borrow().len(),
             is_paused,
             is_repeating,
+            player.volume(),
             self.frame,
         )
         .render(area_player, buf);
