@@ -190,7 +190,7 @@ impl MainPlayer {
         self.queue.clone()
     }
 
-    pub fn volume(&self) -> f32 {
+    pub fn volume(&self) -> u32 {
         self.single_track_player().get_volume()
     }
 

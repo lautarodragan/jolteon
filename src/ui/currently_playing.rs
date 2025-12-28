@@ -28,7 +28,7 @@ pub struct CurrentlyPlaying {
     queue_song_count: usize,
     is_paused: bool,
     is_repeating: bool,
-    volume: f32,
+    volume: u32,
     frame: u64,
 }
 
@@ -42,7 +42,7 @@ impl CurrentlyPlaying {
         queue_song_count: usize,
         is_paused: bool,
         is_repeating: bool,
-        volume: f32,
+        volume: u32,
         frame: u64,
     ) -> Self {
         Self {
@@ -184,7 +184,7 @@ impl Widget for CurrentlyPlaying {
         if self.is_repeating {
             status.push("REPEAT ONE");
         }
-        let vol = format!("{}%", (self.volume * 100f32).floor());
+        let vol = format!("{}%", self.volume);
         status.push(vol.as_str());
 
         let status = status.join(" | ");

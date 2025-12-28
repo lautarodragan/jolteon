@@ -2,7 +2,7 @@ use std::{
     sync::{
         Arc,
         Mutex,
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering},
         mpsc::{RecvTimeoutError, Sender, channel},
     },
     thread,
@@ -29,7 +29,7 @@ pub struct SingleTrackPlayer {
     is_stopped: Arc<AtomicBool>,
     is_paused: Arc<AtomicBool>,
     playing_position: Arc<Mutex<Duration>>,
-    volume: Arc<Mutex<f32>>,
+    volume: Arc<AtomicU32>,
 
     on_playback_end: Arc<Mutex<Option<Box<dyn Fn(Song) + Send + 'static>>>>,
     on_error: Arc<Mutex<Option<Box<dyn Fn(String) + Send + 'static>>>>,
@@ -55,7 +55,7 @@ impl SingleTrackPlayer {
         let is_stopped = Arc::new(AtomicBool::new(true));
         let is_paused = Arc::new(AtomicBool::default());
         let playing_position = Arc::new(Mutex::new(Duration::ZERO));
-        let volume = Arc::new(Mutex::new(1.0));
+        let volume = Arc::new(AtomicU32::new(100)); // volume as percentage (0-100)
 
         let on_playback_end = Arc::new(Mutex::new(None::<Box<dyn Fn(Song) + Send + 'static>>));
         let on_error = Arc::new(Mutex::new(None::<Box<dyn Fn(String) + Send + 'static>>));
@@ -149,7 +149,7 @@ impl SingleTrackPlayer {
                                 return;
                             }
 
-                            controls.set_volume(*volume.lock().unwrap());
+                            controls.set_volume(volume.load(Ordering::Relaxed) as f32 / 100.);
                             controls.set_paused(pause.load(Ordering::SeqCst));
 
                             if let Some(seek) = must_seek.lock().unwrap().take() {
@@ -429,18 +429,18 @@ impl SingleTrackPlayer {
         self.seek(-5);
     }
 
-    pub fn change_volume(&self, amount: f32) {
-        let mut volume = self.volume.lock().unwrap();
-        *volume = (*volume + amount).clamp(0., 1.);
+    pub fn change_volume(&self, amount: i32) {
+        let volume = self.volume.load(Ordering::Relaxed);
+        let volume = (volume as i32 + amount).clamp(0, 100) as u32;
+        self.volume.store(volume, Ordering::Relaxed);
     }
 
-    pub fn get_volume(&self) -> f32 {
-        *self.volume.lock().unwrap()
+    pub fn get_volume(&self) -> u32 {
+        self.volume.load(Ordering::Relaxed)
     }
 
     pub fn set_volume(&self, amount: f32) {
-        let mut volume = self.volume.lock().unwrap();
-        *volume = amount.clamp(0., 1.);
+        self.volume.store((amount * 100.) as u32, Ordering::Relaxed);
     }
 }
 
@@ -454,10 +454,10 @@ impl OnAction<PlayerAction> for SingleTrackPlayer {
                 self.stop();
             }
             PlayerAction::VolumeUp => {
-                self.change_volume(0.05);
+                self.change_volume(5);
             }
             PlayerAction::VolumeDown => {
-                self.change_volume(-0.05);
+                self.change_volume(-5);
             }
             PlayerAction::SeekForwards => {
                 self.seek_forward();
