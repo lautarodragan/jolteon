@@ -1,12 +1,17 @@
-alias f := fmt
-alias ff := fmt_force
+alias f := format
+alias fmt := format
+alias ff := format_force
 
-fmt:
-  cargo fmt
-  cargo fix
-  cargo clippy --fix
+default:
+  @just --list
 
-fmt_force:
+format force="":
+  #!/usr/bin/env nu
+  let force = "{{force}}" == "-f" or "{{force}}" == "--force"
+  let dirty = if $force { ["--allow-dirty"] } else { [] }
+
   cargo fmt
-  cargo fix --allow-dirty
-  cargo clippy --fix --allow-dirty
+  cargo fix ...$dirty
+  cargo clippy --fix ...$dirty
+
+format_force: (format "-f")
