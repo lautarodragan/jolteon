@@ -15,3 +15,6 @@ format force="":
   cargo clippy --fix ...$dirty
 
 format_force: (format "-f")
+
+install:
+  cargo install --path .
