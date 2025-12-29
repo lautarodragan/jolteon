@@ -148,7 +148,7 @@ impl MainPlayer {
                                     log::debug!("will repeat one song");
                                     *repeat_mode.lock().unwrap() = RepeatMode::One;
                                 }
-                                MainPlayerMessage::Action(PlayerAction::RepeatOff) => {
+                                MainPlayerMessage::Action(PlayerAction::RepeatNone) => {
                                     log::debug!("will not repeat");
                                     *repeat_mode.lock().unwrap() = RepeatMode::Off;
                                 }
@@ -279,7 +279,7 @@ impl MainPlayer {
 impl OnAction<PlayerAction> for MainPlayer {
     fn on_action(&self, action: Vec<PlayerAction>) {
         match action[0] {
-            PlayerAction::RepeatOff | PlayerAction::RepeatOne | PlayerAction::RepeatQueue => {
+            PlayerAction::RepeatNone | PlayerAction::RepeatOne | PlayerAction::RepeatQueue => {
                 self.sender.send(MainPlayerMessage::Action(action[0])).unwrap();
             }
             _ => {}

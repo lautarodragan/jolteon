@@ -110,7 +110,7 @@ pub enum PlayerAction {
     VolumeDown,
     SeekForwards,
     SeekBackwards,
-    RepeatOff,
+    RepeatNone,
     RepeatOne,
     RepeatQueue,
 }
