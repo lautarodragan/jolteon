@@ -3,7 +3,6 @@ use std::{
     sync::{
         Arc,
         Mutex,
-        atomic::{AtomicBool, Ordering},
         mpsc::{Sender, channel},
     },
     thread,
@@ -36,6 +35,13 @@ enum MainPlayerMessage {
     Command(MainPlayerCommand),
 }
 
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+pub enum RepeatMode {
+    Off,
+    One,
+    Queue,
+}
+
 pub struct MainPlayer {
     thread: JoinHandle<()>,
     sender: Sender<MainPlayerMessage>,
@@ -43,7 +49,7 @@ pub struct MainPlayer {
     queue: Arc<Queue>,
     on_queue_changed: Arc<Mutex<Option<Box<dyn Fn() + Send + 'static>>>>,
     on_error: Arc<Mutex<Option<Box<dyn Fn(String) + Send + 'static>>>>,
-    is_repeating: Arc<AtomicBool>,
+    repeat_mode: Arc<Mutex<RepeatMode>>,
 }
 
 impl MainPlayer {
@@ -87,7 +93,7 @@ impl MainPlayer {
         });
 
         let on_queue_changed = Arc::new(Mutex::new(None));
-        let is_repeating = Arc::new(AtomicBool::new(false));
+        let repeat_mode = Arc::new(Mutex::new(RepeatMode::Off));
 
         let t = thread::Builder::new()
             .name("main_player".to_string())
@@ -95,18 +101,22 @@ impl MainPlayer {
                 let player = player.clone();
                 let queue = queue.clone();
                 let on_queue_changed = on_queue_changed.clone();
-                let is_repeating = Arc::clone(&is_repeating);
+                let repeat_mode = Arc::clone(&repeat_mode);
 
                 move || {
-                    let mut repeat = false;
                     let mut song: Option<Song> = None;
 
                     loop {
-                        if repeat && song.is_some() {
+                        let repeat_mode_lock = repeat_mode.lock().unwrap();
+
+                        if *repeat_mode_lock == RepeatMode::One && song.is_some() {
                             player.play_song(song.clone().unwrap());
                         } else {
                             song = queue.pop();
                             if let Some(ref song) = song {
+                                if *repeat_mode_lock == RepeatMode::Queue {
+                                    queue.add_back(song.clone());
+                                }
                                 log::debug!("song_player grabbed song from queue {song:?}");
                                 player.play_song(song.clone());
                                 on_queue_changed.lock().unwrap().as_ref().inspect(|f| f());
@@ -116,6 +126,8 @@ impl MainPlayer {
                                 player.set_is_paused(false);
                             }
                         }
+
+                        drop(repeat_mode_lock);
 
                         loop {
                             match rx.recv().unwrap() {
@@ -134,13 +146,15 @@ impl MainPlayer {
                                 }
                                 MainPlayerMessage::Action(PlayerAction::RepeatOne) => {
                                     log::debug!("will repeat one song");
-                                    repeat = true;
-                                    is_repeating.store(true, Ordering::Release);
+                                    *repeat_mode.lock().unwrap() = RepeatMode::One;
                                 }
                                 MainPlayerMessage::Action(PlayerAction::RepeatOff) => {
                                     log::debug!("will not repeat");
-                                    repeat = false;
-                                    is_repeating.store(false, Ordering::Release);
+                                    *repeat_mode.lock().unwrap() = RepeatMode::Off;
+                                }
+                                MainPlayerMessage::Action(PlayerAction::RepeatQueue) => {
+                                    log::debug!("will repeat entire queue");
+                                    *repeat_mode.lock().unwrap() = RepeatMode::Queue;
                                 }
                                 m => {
                                     log::warn!("MainPlayer received unknown message {m:?}");
@@ -163,7 +177,7 @@ impl MainPlayer {
             on_queue_changed,
             on_error,
             queue,
-            is_repeating,
+            repeat_mode,
         }
     }
 
@@ -209,7 +223,12 @@ impl MainPlayer {
     }
 
     pub fn is_repeating(&self) -> bool {
-        self.is_repeating.load(Ordering::Acquire)
+        // self.is_repeating.load(Ordering::Acquire)
+        *self.repeat_mode.lock().unwrap() == RepeatMode::One
+    }
+
+    pub fn repeat_mode(&self) -> RepeatMode {
+        *self.repeat_mode.lock().unwrap()
     }
 
     pub fn play(&self, song: Song) {
@@ -260,7 +279,7 @@ impl MainPlayer {
 impl OnAction<PlayerAction> for MainPlayer {
     fn on_action(&self, action: Vec<PlayerAction>) {
         match action[0] {
-            PlayerAction::RepeatOne | PlayerAction::RepeatOff => {
+            PlayerAction::RepeatOff | PlayerAction::RepeatOne | PlayerAction::RepeatQueue => {
                 self.sender.send(MainPlayerMessage::Action(action[0])).unwrap();
             }
             _ => {}

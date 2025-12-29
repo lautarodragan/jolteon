@@ -55,7 +55,7 @@ impl Widget for &mut Root<'_> {
                 step % 12 < 6 || step >= ANIM_LEN / 2 // toggle visible/hidden every 6 frames, for half the length of the animation; then stay visible until the end.
             });
 
-        let is_repeating = player.is_repeating();
+        let repeat_mode = player.repeat_mode();
 
         crate::ui::CurrentlyPlaying::new(
             self.theme,
@@ -64,7 +64,7 @@ impl Widget for &mut Root<'_> {
             self.queue_screen.borrow().duration(),
             self.queue_screen.borrow().len(),
             is_paused,
-            is_repeating,
+            repeat_mode,
             player.volume(),
             self.frame,
         )

@@ -112,6 +112,7 @@ pub enum PlayerAction {
     SeekBackwards,
     RepeatOff,
     RepeatOne,
+    RepeatQueue,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]

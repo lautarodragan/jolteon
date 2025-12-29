@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, Gauge, TitlePosition},
 };
 
-use crate::{duration::duration_to_string, structs::Song, theme::Theme};
+use crate::{duration::duration_to_string, main_player::RepeatMode, structs::Song, theme::Theme};
 
 pub fn song_to_string(song: &Song) -> String {
     let title = song.title.clone();
@@ -27,7 +27,7 @@ pub struct CurrentlyPlaying {
     queue_total_time: Duration,
     queue_song_count: usize,
     is_paused: bool,
-    is_repeating: bool,
+    repeat_mode: RepeatMode,
     volume: u32,
     frame: u64,
 }
@@ -41,7 +41,7 @@ impl CurrentlyPlaying {
         queue_total_time: Duration,
         queue_song_count: usize,
         is_paused: bool,
-        is_repeating: bool,
+        repeat_mode: RepeatMode,
         volume: u32,
         frame: u64,
     ) -> Self {
@@ -52,7 +52,7 @@ impl CurrentlyPlaying {
             queue_total_time,
             queue_song_count,
             is_paused,
-            is_repeating,
+            repeat_mode,
             volume,
             frame,
         }
@@ -181,8 +181,14 @@ impl Widget for CurrentlyPlaying {
         if self.is_paused {
             status.push("PAUSED");
         }
-        if self.is_repeating {
-            status.push("REPEAT ONE");
+        match self.repeat_mode {
+            RepeatMode::Off => {}
+            RepeatMode::One => {
+                status.push("REPEAT ONE");
+            }
+            RepeatMode::Queue => {
+                status.push("REPEAT QUEUE");
+            }
         }
         let vol = format!("{}%", self.volume);
         status.push(vol.as_str());
