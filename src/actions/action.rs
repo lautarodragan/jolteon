@@ -113,6 +113,7 @@ pub enum PlayerAction {
     RepeatNone,
     RepeatOne,
     RepeatQueue,
+    RepeatToggle,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
@@ -373,4 +374,54 @@ fn str_to_key(key: &str, modifiers: KeyModifiers) -> Option<KeyCode> {
         return None;
     }
     Some(code)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_str_to_key() {
+        let key = str_to_key("a", KeyModifiers::NONE).unwrap();
+        assert_eq!(key, KeyCode::Char('a'));
+
+        let key = str_to_key("A", KeyModifiers::SHIFT).unwrap();
+        assert_eq!(key, KeyCode::Char('A'));
+
+        let key = str_to_key("F5", KeyModifiers::NONE).unwrap();
+        assert_eq!(key, KeyCode::F(5));
+
+        let key = str_to_key("Enter", KeyModifiers::NONE).unwrap();
+        assert_eq!(key, KeyCode::Enter);
+
+        let key = str_to_key("Space", KeyModifiers::NONE).unwrap();
+        assert_eq!(key, KeyCode::Char(' '));
+    }
+
+    #[test]
+    fn test_str_to_binding() {
+        let binding = str_to_binding("CtrlA").unwrap();
+        assert_eq!(binding, KeyBinding {
+            code: KeyCode::Char('a'),
+            modifiers: KeyModifiers::CONTROL
+        });
+
+        let binding = str_to_binding("AltShiftF2").unwrap();
+        assert_eq!(binding, KeyBinding {
+            code: KeyCode::F(2),
+            modifiers: KeyModifiers::ALT | KeyModifiers::SHIFT
+        });
+
+        let binding = str_to_binding("AltQ").unwrap();
+        assert_eq!(binding, KeyBinding {
+            code: KeyCode::Char('q'),
+            modifiers: KeyModifiers::ALT
+        });
+
+        let binding = str_to_binding("AltW").unwrap();
+        assert_eq!(binding, KeyBinding {
+            code: KeyCode::Char('w'),
+            modifiers: KeyModifiers::ALT
+        });
+    }
 }

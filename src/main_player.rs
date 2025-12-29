@@ -42,6 +42,16 @@ pub enum RepeatMode {
     Queue,
 }
 
+impl RepeatMode {
+    pub fn toggle(&self) -> Self {
+        match self {
+            RepeatMode::Off => RepeatMode::One,
+            RepeatMode::One => RepeatMode::Queue,
+            RepeatMode::Queue => RepeatMode::Off,
+        }
+    }
+}
+
 pub struct MainPlayer {
     thread: JoinHandle<()>,
     sender: Sender<MainPlayerMessage>,
@@ -155,6 +165,11 @@ impl MainPlayer {
                                 MainPlayerMessage::Action(PlayerAction::RepeatQueue) => {
                                     log::debug!("will repeat entire queue");
                                     *repeat_mode.lock().unwrap() = RepeatMode::Queue;
+                                }
+                                MainPlayerMessage::Action(PlayerAction::RepeatToggle) => {
+                                    log::debug!("will repeat entire queue");
+                                    let mut repeat_mode = repeat_mode.lock().unwrap();
+                                    *repeat_mode = repeat_mode.toggle();
                                 }
                                 m => {
                                     log::warn!("MainPlayer received unknown message {m:?}");
@@ -279,7 +294,10 @@ impl MainPlayer {
 impl OnAction<PlayerAction> for MainPlayer {
     fn on_action(&self, action: Vec<PlayerAction>) {
         match action[0] {
-            PlayerAction::RepeatNone | PlayerAction::RepeatOne | PlayerAction::RepeatQueue => {
+            PlayerAction::RepeatNone
+            | PlayerAction::RepeatOne
+            | PlayerAction::RepeatQueue
+            | PlayerAction::RepeatToggle => {
                 self.sender.send(MainPlayerMessage::Action(action[0])).unwrap();
             }
             _ => {}
