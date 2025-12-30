@@ -365,7 +365,7 @@ This same file does run well with `mpv`. It does report errors reading it, but i
 
 I tried switching the flac backend, but got even worse results. I looked into using [libmpv](https://github.com/mpv-player/mpv-examples/tree/master/libmpv) and [libavcodec](https://www.ffmpeg.org/libavcodec.html), which, in my mind, are pretty much guaranteed to be more stable, but switching to them is far from trivial.
 
-Figuring out the specific bug in the flac codes built in pure Rust is probably an easier and more reasonable path forward.
+Figuring out the specific bug in the flac codecs built in pure Rust is probably an easier and more reasonable path forward.
 
 And Jolteon shouldn't crash if the audio playback crashes, but that's a story for another day.
 
