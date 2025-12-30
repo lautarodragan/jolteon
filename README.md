@@ -107,22 +107,18 @@ sudo apt-get install libasound2-dev
 - Playing Queue
   - The queue is persisted when the application closes. If you close Jolteon with tracks in the queue, when you come back, it'll
     start playing the next automatically.
-  - 🚧 In the future, the currently playing song and its position will be persisted too, so, rather than to start playing 
-    the next song, it'll start playing the same song at the position it was when Jolteon was closed.
 - `.cue` sheet file support
-  - Metadata missing for the `.cue` file will be grabbed from the media file itself 
+  - Metadata missing for the `.cue` file will be read from the media file 
 - `.jolt` files to override audio metadata non-destructively
-  - 🚧 This works perfectly, but isn't properly documented. The format is straight forward. I's a plaintext, key-value file,
+  - The format is straight forward. I's a plaintext, key-value file,
     which allows overriding the `artist`, `album` and `disc_number`. Entries in the `.jolt` file take priority over metadata 
     in media files and cue sheet.
-- Controls
-  - Media keys Play/Pause support via MPRIS in Linux
+- Media keys Play/Pause support via MPRIS in Linux
 - Focus on stability
   - Application crashes are handled safely, restoring the terminal to its normal state before exiting the process.
   - Thread hygiene: all threads joined on exit - no thread is brute-force-killed by the OS on process exit.
   - Minimal use of `unwrap`. Only true bugs in the application should crash Jolteon. Any external source of indeterminism should be
     handled accordingly.
-  - 🚧 In the future, if any non-bug causes an issue, rather than just being ignored, proper UX will be implemented and feedback given.
 - A clock on the top bar. Can be turned off via configuration.
 - Configurable key bindings
   - See [actions.ini](assets/actions.ini) — the default key bindings.
@@ -134,19 +130,46 @@ sudo apt-get install libasound2-dev
     out-of-the-box themes is already done, so this feature is likely to come soon.
   - There will be some way to switch themes programmatically from outside the application, for themes to be switchable by external scripts.
   - Integration with OS light/dark mode will be added. Which theme is associated with each mode will be configurable, but have a sensible default.
-- 🚧 Gapless playback
-  - 🚧 Cue sheet tracks are handled as if they were individual files. If playing 2 consecutive tracks from a single Cue sheet,
-    when track A finishes playing, Jolteon will still close the file, open it again, and seek to the starting time of track B.
-    This basically defeats the gapless playback we get for free from Cue sheet files. In the future, this case will be handled specifically,
-    to take advantage of it and just keep playing the same audio file.
-  - 🚧 True gapless playback between different files is a different challenge. Latency is addressed by buffering two files at once
-    rather than just one, and, roughly speaking, chaining the decoding iterators. We may still wind up with undesired pauses or audible artifacts
-    between songs. Ideally, for gapless playback, we should always try to have a single, big audio file for the entire album, with its Cue sheet.
-- 🚧 Automatic updates
-  - Not fully implemented yet. The app checks for new GitHub releases when launched, and detects new versions,
-    but doesn't yet download the published binary.
 
 ### Upcoming
+
+<details>
+<summary><strong>Communication, Feedback & Notifications</strong></summary>
+
+If any non-bug causes an issue, rather than just being ignored, proper UX will be implemented and feedback given.
+For example: a file that cannot be played correctly, for whatever reason.
+
+</details>
+
+<details>
+<summary><strong>Persist Currently Playing Track</strong></summary>
+
+The currently playing song and its position will be persisted too, so, rather than to start playing 
+the next song, it'll start playing the same song at the position it was when Jolteon was closed.
+
+</details>
+
+<details>
+<summary><strong>Gapless playback</strong></summary>
+
+Cue sheet tracks are handled as if they were individual files. If playing 2 consecutive tracks from a single Cue sheet,
+when track A finishes playing, Jolteon will still close the file, open it again, and seek to the starting time of track B.
+This basically defeats the gapless playback we get for free from Cue sheet files. In the future, this case will be handled specifically,
+to take advantage of it and just keep playing the same audio file.
+
+True gapless playback between different files is a different challenge. Latency is addressed by buffering two files at once
+rather than just one, and, roughly speaking, chaining the decoding iterators. We may still wind up with undesired pauses or audible artifacts
+between songs. Ideally, for gapless playback, we should always try to have a single, big audio file for the entire album, with its Cue sheet.
+
+</details>
+
+<details>
+<summary><strong>Automatic updates</strong></summary>
+
+Partially implemented. The app checks for new GitHub releases when launched, and detects new versions,
+but doesn't yet download the published binary.
+
+</details>
 
 <details>
 <summary><strong>Virtual directories in media library</strong></summary>
