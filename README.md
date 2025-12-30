@@ -118,8 +118,8 @@ Inside Jolteon, the Help screen shows the active key bindings (default + custom 
 
 | Setting             | Type                                      | Default       | Description                                              |
 |---------------------|-------------------------------------------|---------------|----------------------------------------------------------|
-| clock_display       | boolean                                   | true          | Debugging option. Displays a frame counter on the screen |
-| paused_animation    | boolean                                   | true          | Debugging option. Displays a frame counter on the screen |
+| clock_display       | boolean                                   | true          | Whether or not to display the clock                      |
+| paused_animation    | boolean                                   | true          | Whether or not to anime the PAUSED indicator             |
 | theme               | "GruvboxDark" or "GruvboxDarkTransparent" | "GruvboxDark" | Choose one of the two built-in themes                    |
 | debug_frame_counter | boolean                                   | false         | Debugging option. Displays a frame counter on the screen |
 
