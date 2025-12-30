@@ -65,10 +65,10 @@ sudo apt-get install libasound2-dev
 - Media library
   - Search/Filter in the artist/album tree. Just press any letter or number key to start filtering. 
     Matches will be displayed in red, and, while filtering, the navigation keys will jump between matches.
-    Press `Esc` to exit filtering. Pressing `Enter` to play a song will also exit filtering mode.
-  - `Space` toggles expanding/collapsing (or opening/closing) the selected artist.
+    Press <kbd>Esc</kbd> to exit filtering. Pressing <kbd>Enter</kbd> to play a song will also exit filtering mode.
+  - <kbd>Space</kbd> toggles expanding/collapsing (or opening/closing) the selected artist.
   - <kbd>(</kbd>, <kbd>Alt9</kbd>, and <kbd>AltC</kbd> collapses all artists.
-  - `)`, `Alt0`, and `AltE` expands all artists.
+  - <kbd>)</kbd>, <kbd>Alt0</kbd>, and <kbd>AltE</kbd> expands all artists.
   - The entire library is just one big json file. This makes it easy to back it up, and you can even use `git` to track changes to it, etc.
   - Modifications to the library are saved instantly, not when the application closes.
   - 🚧 Upcoming: automatic sorting
