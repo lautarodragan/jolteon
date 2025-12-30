@@ -74,7 +74,7 @@ sudo apt-get install libasound2-dev
 | <kbd>Alt</kbd> + <kbd>W</kbd>      | Repeat: One Song                                          |
 | <kbd>Alt</kbd> + <kbd>E</kbd>      | Repeat: Entire Queue                                      |
 | <kbd>Alt</kbd> + <kbd>R</kbd>      | Repeat: Toggle                                            |
-|                                    | **Playlist Screen**                                       |
+|                                     **Playlist Screen**                                       |
 | <kbd>F8</kbd>                      | In Playlist Screen: Open Playlist Graveyard               |
 | <kbd>Enter</kbd>                   | In Playlist Screen: Add Selected Song / Playlist to Queue |
 | <kbd>Alt</kbd> + <kbd>Enter</kbd>  | In Playlist Screen: Play Selected Song / Playlist         |
