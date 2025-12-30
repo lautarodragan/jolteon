@@ -123,12 +123,13 @@ Inside Jolteon, the Help screen shows the active key bindings (default + custom 
 | theme               | "GruvboxDark" or "GruvboxDarkTransparent" | "GruvboxDark" | Choose one of the two built-in themes                    |
 | debug_frame_counter | boolean                                   | false         | Debugging option. Displays a frame counter on the screen |
 
-Note about `theme`: `GruvboxDarkTransparent` is literally `GruvboxDark` with a transparent background.
-This is particularly useful if you set the opacity of the terminal to anything other than fully opaque,
-since it'll allow seeing your wallpaper behind Jolteon.
-
 See [src/settings.rs](src/settings.rs) for more. The `struct Settings` has all the configuration options,
 and default values are set with `serde_inline_default` (for example, `#[serde_inline_default(true)]`).
+
+> [!NOTE]
+> `GruvboxDarkTransparent` is literally `GruvboxDark` with a transparent background.
+> This is particularly useful if you set the opacity of the terminal to anything other than fully opaque,
+> since it'll allow seeing your wallpaper behind Jolteon.
 
 > [!TIP]
 > In Hyprland and Kitty, try the following:
