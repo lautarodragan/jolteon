@@ -158,7 +158,7 @@ There's no real reason not to support both approaches at once, by organizing mus
   - _Cowboy Bebop_
   - _Ry Cooder - Crossroads_
 
-<details>
+</details>
 
 #### Album Covers
 
