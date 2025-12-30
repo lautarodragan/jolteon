@@ -92,8 +92,6 @@ sudo apt-get install libasound2-dev
   - Deleted playlist are soft-deleted, not truly deleted. The playlist graveyard can be opened and closed with F8.
   - 🚧 The playlist graveyard cannot be focused or used at all, right now. Just opened to see it, and closed. In the future, it'll be properly
     interactive, allowing un-deleting playlists, and maybe even hard-deleting.
-  - ⚠️ There's currently a bug that prevents selection of tracks in the song list in some cases. There's a cheap, temporary work-around:
-    hitting enter to play the selected song seems to "fix" it temporarily.
   - 🚧 Currently, files can _only_ be added to playlists from the file browser. Support to do so from the Library is coming soon.
 - File Browser
   - Explore files and folders on the left, files in the selected folder on the top-right, and details of the selected file on the 
