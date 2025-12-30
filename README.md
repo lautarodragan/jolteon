@@ -165,6 +165,21 @@ Run `jolteon help` to see available commands and arguments.
 The subcommand is optional, and defaults to `play`, so you can just `jolteon <file.flac>` to quickly
 play a song in non-interactive mode.
 
+> [!TIP]
+> `jolteon cue <file.cue> --output json` can be particularly useful for scripts!
+> It can be piped into `jq` or `from json` for further processing.
+> For example, with nushell:
+> 
+> ```
+> » ls **/*.cue | take 2 | get name | each { jolteon cue -o json $in | from json | select performer title } 
+> ╭───┬─────────────────┬────────────────────╮
+> │ # │    performer    │       title        │
+> ├───┼─────────────────┼────────────────────┤
+> │ 0 │ Artist 1        │ Awesome Album      │
+> │ 1 │ Artist 2        │ Cool Album         │
+> ╰───┴─────────────────┴────────────────────╯
+> ```
+
 ### Other Features
 
 - A clock on the top bar. Can be turned off via configuration.
