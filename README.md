@@ -104,9 +104,15 @@ Inside Jolteon, the Help screen shows the active key bindings (default + custom 
 
 > [!TIP]
 > Some Jolteon key bindings may conflict with the terminal's ones.
-> If you want every key binding available to Jolteon, Kitty supports `clear_all_shortcuts`:
+> Modern terminal emulators support options to disable all key binds, leaving them all available to Jolteon:
 > 
 > `kitty -o "clear_all_shortcuts yes" jolteon`
+> `ghostty --keybind=clear -e jolteon`
+> `wezterm --config disable_default_key_bindings=true -e jolteon`
+> 
+> This is particularly useful when launching from a .desktop file:
+> 
+> `Exec=kitty --class "jolteon" -o "clear_all_shortcuts yes" jolteon`
 
 ### Configuration Options
 
