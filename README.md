@@ -127,24 +127,29 @@ Note about `theme`: `GruvboxDarkTransparent` is literally `GruvboxDark` with a t
 This is particularly useful if you set the opacity of the terminal to anything other than fully opaque,
 since it'll allow seeing your wallpaper behind Jolteon.
 
-In Hyprland and Kitty, try the following:
+See [src/settings.rs](src/settings.rs) for more. The `struct Settings` has all the configuration options,
+and default values are set with `serde_inline_default` (for example, `#[serde_inline_default(true)]`).
 
-```
-# Hyprland
-decoration {
-  blur {
-    enabled = true
-    size = 3
-    passes = 1
-    vibrancy = 0.1696
-  }
-}
 
-# Kitty
-background_opacity 0.6
-map f5 set_background_opacity -0.1
-map f6 set_background_opacity +0.1
-```
+> [!TIP]
+> In Hyprland and Kitty, try the following:
+> 
+> ```
+> # Hyprland
+> decoration {
+>   blur {
+>     enabled = true
+>     size = 3
+>     passes = 1
+>     vibrancy = 0.1696
+>   }
+> }
+> 
+> # Kitty
+> background_opacity 0.6
+> map f5 set_background_opacity -0.1
+> map f6 set_background_opacity +0.1
+> ```
 
 ### Other Features
 
