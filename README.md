@@ -57,27 +57,28 @@ sudo apt-get install libasound2-dev
 
 ## Features
 
-| Key                                | Action                                                    |
-|------------------------------------|-----------------------------------------------------------|
-| <kbd>Tab</kbd>                     | Cycles through focusable elements in the screen.          |
-| <kbd>1</kbd>                       | Select Library                                            |
-| <kbd>2</kbd>                       | Select Playlists                                          |
-| <kbd>3</kbd>                       | Select Queue                                              |
-| <kbd>4</kbd>                       | Select FileBrowser                                        |
-| <kbd>5</kbd>                       | Select Help                                               |
-| <kbd>Ctrl</kbd> + <kbd>Space</kbd> | Toggle play/pause                                         |
-| <kbd>+</kbd>                       | Increase volume                                           |
-| <kbd>-</kbd>                       | Decrease volume                                           |
-| <kbd>Ctrl</kbd> + <kbd>Left</kbd>  | Seek backwards 5s                                         |
-| <kbd>Ctrl</kbd> + <kbd>Right</kbd> | Seek forward 5s                                           |
-| <kbd>Alt</kbd> + <kbd>Q</kbd>      | Repeat: None (Turn Off)                                   |
-| <kbd>Alt</kbd> + <kbd>W</kbd>      | Repeat: One Song                                          |
-| <kbd>Alt</kbd> + <kbd>E</kbd>      | Repeat: Entire Queue                                      |
-| <kbd>Alt</kbd> + <kbd>R</kbd>      | Repeat: Toggle                                            |
-|                                    | **Playlist Screen**                                       |
-| <kbd>F8</kbd>                      | Open Playlist Graveyard               |
-| <kbd>Enter</kbd>                   | Add Selected Song / Playlist to Queue |
-| <kbd>Alt</kbd> + <kbd>Enter</kbd>  | Play Selected Song / Playlist         |
+| Key                                | Action                                           |
+|------------------------------------|--------------------------------------------------|
+| <kbd>Tab</kbd>                     | Cycles through focusable elements in the screen. |
+| <kbd>1</kbd>                       | Select Library                                   |
+| <kbd>2</kbd>                       | Select Playlists                                 |
+| <kbd>3</kbd>                       | Select Queue                                     |
+| <kbd>4</kbd>                       | Select FileBrowser                               |
+| <kbd>5</kbd>                       | Select Help                                      |
+| <kbd>Ctrl</kbd> + <kbd>Space</kbd> | Toggle play/pause                                |
+| <kbd>+</kbd>                       | Increase volume                                  |
+| <kbd>-</kbd>                       | Decrease volume                                  |
+| <kbd>Ctrl</kbd> + <kbd>Left</kbd>  | Seek backwards 5s                                |
+| <kbd>Ctrl</kbd> + <kbd>Right</kbd> | Seek forward 5s                                  |
+| <kbd>Alt</kbd> + <kbd>Q</kbd>      | Repeat: None (Turn Off)                          |
+| <kbd>Alt</kbd> + <kbd>W</kbd>      | Repeat: One Song                                 |
+| <kbd>Alt</kbd> + <kbd>E</kbd>      | Repeat: Entire Queue                             |
+| <kbd>Alt</kbd> + <kbd>R</kbd>      | Repeat: Toggle                                   |
+|                                    |                                                  |
+|                                    | **Playlist Screen**                              |
+| <kbd>F8</kbd>                      | Open Playlist Graveyard                          |
+| <kbd>Enter</kbd>                   | Add Selected Song / Playlist to Queue            |
+| <kbd>Alt</kbd> + <kbd>Enter</kbd>  | Play Selected Song / Playlist                    |
 
 - When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen. The animation can be disabled via configuration. 
 - Media library
