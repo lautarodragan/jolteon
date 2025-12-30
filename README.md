@@ -57,23 +57,26 @@ sudo apt-get install libasound2-dev
 
 ## Features
 
-| Key                                | Action                                           |
-|------------------------------------|--------------------------------------------------|
-| <kbd>Tab</kbd>                     | Cycles through focusable elements in the screen. |
-| <kbd>1</kbd>                       | Select Library                                   |
-| <kbd>2</kbd>                       | Select Playlists                                 |
-| <kbd>3</kbd>                       | Select Queue                                     |
-| <kbd>4</kbd>                       | Select FileBrowser                               |
-| <kbd>5</kbd>                       | Select Help                                      |
-| <kbd>Ctrl</kbd> + <kbd>Space</kbd> | Toggle play/pause                                |
-| <kbd>+</kbd>                       | Increase volume                                  |
-| <kbd>-</kbd>                       | Decrease volume                                  |
-| <kbd>Ctrl</kbd> + <kbd>Left</kbd>  | Seek backwards 5s                                |
-| <kbd>Ctrl</kbd> + <kbd>Right</kbd> | Seek forward 5s                                  |
-| <kbd>Alt</kbd> + <kbd>Q</kbd>      | Repeat: None (Turn Off)                          |
-| <kbd>Alt</kbd> + <kbd>W</kbd>      | Repeat: One Song                                 |
-| <kbd>Alt</kbd> + <kbd>E</kbd>      | Repeat: Entire Queue                             |
-| <kbd>Alt</kbd> + <kbd>R</kbd>      | Repeat: Toggle                                   |
+| Key                                | Action                                                    |
+|------------------------------------|-----------------------------------------------------------|
+| <kbd>Tab</kbd>                     | Cycles through focusable elements in the screen.          |
+| <kbd>1</kbd>                       | Select Library                                            |
+| <kbd>2</kbd>                       | Select Playlists                                          |
+| <kbd>3</kbd>                       | Select Queue                                              |
+| <kbd>4</kbd>                       | Select FileBrowser                                        |
+| <kbd>5</kbd>                       | Select Help                                               |
+| <kbd>Ctrl</kbd> + <kbd>Space</kbd> | Toggle play/pause                                         |
+| <kbd>+</kbd>                       | Increase volume                                           |
+| <kbd>-</kbd>                       | Decrease volume                                           |
+| <kbd>Ctrl</kbd> + <kbd>Left</kbd>  | Seek backwards 5s                                         |
+| <kbd>Ctrl</kbd> + <kbd>Right</kbd> | Seek forward 5s                                           |
+| <kbd>Alt</kbd> + <kbd>Q</kbd>      | Repeat: None (Turn Off)                                   |
+| <kbd>Alt</kbd> + <kbd>W</kbd>      | Repeat: One Song                                          |
+| <kbd>Alt</kbd> + <kbd>E</kbd>      | Repeat: Entire Queue                                      |
+| <kbd>Alt</kbd> + <kbd>R</kbd>      | Repeat: Toggle                                            |
+| <kbd>F8</kbd>                      | In Playlist Screen: Open Playlist Graveyard               |
+| <kbd>Enter</kbd>                   | In Playlist Screen: Add Selected Song / Playlist to Queue |
+| <kbd>Alt</kbd> + <kbd>Enter</kbd>  | In Playlist Screen: Play Selected Song / Playlist         |
 
 - When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen. The animation can be disabled via configuration. 
 - Media library
@@ -87,12 +90,6 @@ sudo apt-get install libasound2-dev
   - Modifications to the library are saved instantly, not when the application closes.
   - 🚧 Upcoming: automatic sorting
   - 🚧 Soon, support to search individual songs will be added. UI and UX for this feature TBD.
-- Playlists
-  - `Enter` will add the selected song or playlist to the queue. `Alt+Enter` will play it immediately. 
-  - Deleted playlist are soft-deleted, not truly deleted. The playlist graveyard can be opened and closed with F8.
-  - 🚧 The playlist graveyard cannot be focused or used at all, right now. Just opened to see it, and closed. In the future, it'll be properly
-    interactive, allowing un-deleting playlists, and maybe even hard-deleting.
-  - 🚧 Currently, files can _only_ be added to playlists from the file browser. Support to do so from the Library is coming soon.
 - File Browser
   - Explore files and folders on the left, files in the selected folder on the top-right, and details of the selected file on the 
     bottom-right.
@@ -132,10 +129,28 @@ sudo apt-get install libasound2-dev
 ### Upcoming
 
 <details>
+<summary><strong>Playlist from Library</strong></summary>
+
+Currently, files can _only_ be added to playlists from the file browser. Support to do so from the Library is coming soon.
+
+</details>
+
+<details>
 <summary><strong>Communication, Feedback & Notifications</strong></summary>
 
-If any non-bug causes an issue, rather than just being ignored, proper UX will be implemented and feedback given.
+If any non-bug causes an issue, rather than just being ignored, proper UX wunication, Feedback & Noill be implemented and feedback given.
 For example: a file that cannot be played correctly, for whatever reason.
+
+</details>
+
+<details>
+<summary><strong>Playlist Graveyard</strong></summary>
+
+Status: partially implemented
+
+- Deleted playlist are soft-deleted, not truly deleted. The playlist graveyard can be opened and closed with <kbd>F8</kbd>.
+- The playlist graveyard cannot be focused or used at all, right now. Just opened to see it, and closed. In the future, it'll be properly
+  interactive, allowing un-deleting playlists, and maybe hard-deleting.
 
 </details>
 
