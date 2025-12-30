@@ -126,11 +126,6 @@ sudo apt-get install libasound2-dev
   - Or run `jolteon print-default-key-bindings`.
   - Can also `jolteon print-default-key-bindings > ~/.config/jolteon/actions.ini` to get started.
   - The Help screen has a bit of info on this, too, but the UX will improve in the future, like support to change the key bindings inside the application.
-- 🚧 Themes
-  - Currently, there's only one theme. You can find it in `assets/gruvbox_dark.toml`. 90% of the code allowing customization and multiple
-    out-of-the-box themes is already done, so this feature is likely to come soon.
-  - There will be some way to switch themes programmatically from outside the application, for themes to be switchable by external scripts.
-  - Integration with OS light/dark mode will be added. Which theme is associated with each mode will be configurable, but have a sensible default.
 
 ### Upcoming
 
@@ -146,6 +141,18 @@ Currently, files can _only_ be added to playlists from the file browser. Support
 
 If any non-bug causes an issue, rather than just being ignored, proper UX wunication, Feedback & Noill be implemented and feedback given.
 For example: a file that cannot be played correctly, for whatever reason.
+
+</details>
+
+<details>
+<summary><strong>Theme Customization</strong></summary>
+
+Status: partially implemented; almost complete.
+
+  out-of-the-box themes is already done, so this feature is likely to come soon.
+- There will be some way to switch themes programmatically from outside the application, for themes to be switchable by external scripts.
+- Integration with OS light/dark mode will be added. Which theme is associated with each mode will be configurable, but have a sensible default.
+- See `assets/gruvbox_dark.toml`
 
 </details>
 
