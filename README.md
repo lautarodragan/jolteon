@@ -59,38 +59,38 @@ sudo apt-get install libasound2-dev
 
 These are the main actions and their default key bindings:
 
-| Key                                         | Action                                             |
-|---------------------------------------------|----------------------------------------------------|
-| <kbd>Tab</kbd>                              | Cycles through focusable elements in the screen.   |
-| <kbd>1</kbd>                                | Select Library                                     |
-| <kbd>2</kbd>                                | Select Playlists                                   |
-| <kbd>3</kbd>                                | Select Queue                                       |
-| <kbd>4</kbd>                                | Select FileBrowser                                 |
-| <kbd>5</kbd>                                | Select Help                                        |
-| <kbd>Ctrl</kbd> + <kbd>Space</kbd>          | Toggle play/pause                                  |
-| <kbd>+</kbd>                                | Increase volume                                    |
-| <kbd>-</kbd>                                | Decrease volume                                    |
-| <kbd>Ctrl</kbd> + <kbd>Left</kbd>           | Seek backwards 5s                                  |
-| <kbd>Ctrl</kbd> + <kbd>Right</kbd>          | Seek forwards 5s                                   |
-| <kbd>Alt</kbd> + <kbd>Q</kbd>               | Repeat: None (Turn Off)                            |
-| <kbd>Alt</kbd> + <kbd>W</kbd>               | Repeat: One Song                                   |
-| <kbd>Alt</kbd> + <kbd>E</kbd>               | Repeat: Entire Queue                               |
-| <kbd>Alt</kbd> + <kbd>R</kbd>               | Repeat: Toggle                                     |
-|                                             |                                                    |
-|                                             | **Library Screen**                                 |
-| Any letter key                              | Search                                             |
-| <kbd>↓</kbd>                                | While Searching: Select Next Result                |
-| <kbd>↑</kbd>                                | While Searching: Select Previous Result            |
-| <kbd>Esc</kbd>                              | While Searching: Exit search mode                  |
-| <kbd>Enter</kbd>                            | While Searching: Exit search mode + play selection |
-| <kbd>Space</kbd>                            | Collapse or expand selected artist                 |
-| <kbd>(</kbd>, <kbd>Alt</kbd> + <kbd>9</kbd> | Collapse all artists                               |
-| <kbd>)</kbd>, <kbd>Alt</kbd> + <kbd>0</kbd> | Expand all artists                                 |
-|                                             |                                                    |
-|                                             | **Playlist Screen**                                |
-| <kbd>F8</kbd>                               | Open Playlist Graveyard                            |
-| <kbd>Enter</kbd>                            | Add Selected Song / Playlist to Queue              |
-| <kbd>Alt</kbd> + <kbd>Enter</kbd>           | Play Selected Song / Playlist                      |
+| Key                                         | Action                                                |
+|---------------------------------------------|-------------------------------------------------------|
+| <kbd>Tab</kbd>                              | Cycles through focusable elements in the screen.      |
+| <kbd>1</kbd>                                | Select Library                                        |
+| <kbd>2</kbd>                                | Select Playlists                                      |
+| <kbd>3</kbd>                                | Select Queue                                          |
+| <kbd>4</kbd>                                | Select FileBrowser                                    |
+| <kbd>5</kbd>                                | Select Help                                           |
+| <kbd>Ctrl</kbd> + <kbd>Space</kbd>          | Toggle play/pause                                     |
+| <kbd>+</kbd>                                | Increase volume                                       |
+| <kbd>-</kbd>                                | Decrease volume                                       |
+| <kbd>Ctrl</kbd> + <kbd>Left</kbd>           | Seek backwards 5s                                     |
+| <kbd>Ctrl</kbd> + <kbd>Right</kbd>          | Seek forwards 5s                                      |
+| <kbd>Alt</kbd> + <kbd>Q</kbd>               | Repeat: None (Turn Off)                               |
+| <kbd>Alt</kbd> + <kbd>W</kbd>               | Repeat: One Song                                      |
+| <kbd>Alt</kbd> + <kbd>E</kbd>               | Repeat: Entire Queue                                  |
+| <kbd>Alt</kbd> + <kbd>R</kbd>               | Repeat: Toggle                                        |
+|                                             |                                                       |
+|                                             | **Library Screen**                                    |
+| Any letter key                              | Search                                                |
+| <kbd>↓</kbd>                                | While Searching: Select Next Result                   |
+| <kbd>↑</kbd>                                | While Searching: Select Previous Result               |
+| <kbd>Esc</kbd>                              | While Searching: Exit search mode                     |
+| <kbd>Enter</kbd>                            | While Searching: Exit search mode + play selection    |
+| <kbd>Space</kbd>                            | Collapse or expand selected artist                    |
+| <kbd>(</kbd>, <kbd>Alt</kbd> + <kbd>9</kbd> | Collapse all artists                                  |
+| <kbd>)</kbd>, <kbd>Alt</kbd> + <kbd>0</kbd> | Expand all artists                                    |
+|                                             |                                                       |
+|                                             | **Playlist Screen**                                   |
+| <kbd>F8</kbd>                               | Open Playlist Graveyard                               |
+| <kbd>Enter</kbd>                            | Add Selected Song / Playlist to Queue                 |
+| <kbd>Alt</kbd> + <kbd>Enter</kbd>           | Play Selected Song /ee the full list of defa Playlist |
 
 The key bindings are configurable.
 
@@ -129,7 +129,6 @@ since it'll allow seeing your wallpaper behind Jolteon.
 
 See [src/settings.rs](src/settings.rs) for more. The `struct Settings` has all the configuration options,
 and default values are set with `serde_inline_default` (for example, `#[serde_inline_default(true)]`).
-
 
 > [!TIP]
 > In Hyprland and Kitty, try the following:
