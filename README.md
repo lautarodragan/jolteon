@@ -149,7 +149,6 @@ For example: a file that cannot be played correctly, for whatever reason.
 
 Status: partially implemented; almost complete.
 
-  out-of-the-box themes is already done, so this feature is likely to come soon.
 - There will be some way to switch themes programmatically from outside the application, for themes to be switchable by external scripts.
 - Integration with OS light/dark mode will be added. Which theme is associated with each mode will be configurable, but have a sensible default.
 - See `assets/gruvbox_dark.toml`
