@@ -378,7 +378,7 @@ tl;dr: is good
 <details>
 <summary>longer explanation</summary>
 
-I don't benchmark Jolteon, but I do use it many hours, every day, and the release build always stays at .5-2% of my CPU, and usually 0% RAM (yes, that's a zero).
+I don't benchmark Jolteon, but I do use it many hours, every day, and the release build always stays at .5% of my CPU, and usually 25MiB of RAM.
 I manually compare this to `mpv` and the numbers seem to match, and my machine is 6+ years old, so I'm happy with it.
 Specially considering RustRover and Chrome consume orders of magnitude more, permanently.
 
