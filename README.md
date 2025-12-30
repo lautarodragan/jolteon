@@ -171,13 +171,9 @@ play a song in non-interactive mode.
 > For example, with nushell:
 > 
 > ```
-> » ls **/*.cue | take 2 | get name | each { jolteon cue -o json $in | from json | select performer title } 
-> ╭───┬─────────────────┬────────────────────╮
-> │ # │    performer    │       title        │
-> ├───┼─────────────────┼────────────────────┤
-> │ 0 │ Artist 1        │ Awesome Album      │
-> │ 1 │ Artist 2        │ Cool Album         │
-> ╰───┴─────────────────┴────────────────────╯
+> » ls **/*.cue | take 2 | get name | each { jolteon cue -o json $in | from json | $"($in.performer): ($in.title)" } | str join "\n" 
+> Artist 1: Awesome Album
+> Artist 2: Cool Album
 > ```
 
 ### Other Features
