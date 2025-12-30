@@ -105,6 +105,7 @@ Inside Jolteon, the Help screen shows the active key bindings (default + custom 
 > [!TIP]
 > Some Jolteon key bindings may conflict with the terminal's ones.
 > If you want every key binding available to Jolteon, Kitty supports `clear_all_shortcuts`:
+> 
 > `kitty -o "clear_all_shortcuts yes" jolteon`
 
 ### Configuration Options
