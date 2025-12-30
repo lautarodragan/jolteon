@@ -148,6 +148,23 @@ All keys are optional.
 > If you change something in the `.jolt` file, you'll need to remove the tracks / albums
 > from the library and re-add them for the changes to be picked up.
 
+### CLI Mode
+
+Jolteon can also run in non-interactive mode.
+
+| Subcommand                 | Description                               |
+|----------------------------|-------------------------------------------|
+| play                       | Play a media file in non-interactive mode |
+| print-default-config       | Print the default configuration           |
+| print-default-key-bindings | Print the default key bindings            |
+| cue                        | Parse cue sheet files                     |
+| tags                       | Print a media file's tags                 |
+
+Run `jolteon help` to see available commands and arguments.
+
+The subcommand is optional, and defaults to `play`, so you can just `jolteon <file.flac>` to quickly
+play a song in non-interactive mode.
+
 ### Other Features
 
 - A clock on the top bar. Can be turned off via configuration.
