@@ -57,6 +57,8 @@ sudo apt-get install libasound2-dev
 
 ## Features
 
+These are the main actions and their default key bindings:
+
 | Key                                         | Action                                             |
 |---------------------------------------------|----------------------------------------------------|
 | <kbd>Tab</kbd>                              | Cycles through focusable elements in the screen.   |
@@ -69,7 +71,7 @@ sudo apt-get install libasound2-dev
 | <kbd>+</kbd>                                | Increase volume                                    |
 | <kbd>-</kbd>                                | Decrease volume                                    |
 | <kbd>Ctrl</kbd> + <kbd>Left</kbd>           | Seek backwards 5s                                  |
-| <kbd>Ctrl</kbd> + <kbd>Right</kbd>          | Seek forward 5s                                    |
+| <kbd>Ctrl</kbd> + <kbd>Right</kbd>          | Seek forwards 5s                                   |
 | <kbd>Alt</kbd> + <kbd>Q</kbd>               | Repeat: None (Turn Off)                            |
 | <kbd>Alt</kbd> + <kbd>W</kbd>               | Repeat: One Song                                   |
 | <kbd>Alt</kbd> + <kbd>E</kbd>               | Repeat: Entire Queue                               |
@@ -90,7 +92,59 @@ sudo apt-get install libasound2-dev
 | <kbd>Enter</kbd>                            | Add Selected Song / Playlist to Queue              |
 | <kbd>Alt</kbd> + <kbd>Enter</kbd>           | Play Selected Song / Playlist                      |
 
+The key bindings are configurable.
+
+To see the full list of default key bindings, you can run `jolteon print-default-key-bindings`
+or see [actions.ini](assets/actions.ini).
+
+Custom key bindings are read from `~/.config/jolteon/actions.ini`.
+You can `jolteon print-default-key-bindings > ~/.config/jolteon/actions.ini` to get started.
+
+Inside Jolteon, the Help screen shows the active key bindings (default + custom overrides).
+
+> [!TIP]
+> Some Jolteon key bindings may conflict with the terminal's ones.
+> If you want every key binding available to Jolteon, Kitty supports `clear_all_shortcuts`:
+> `kitty -o "clear_all_shortcuts yes" jolteon`
+
+### Configuration Options
+
+| Setting             | Type                                      | Default       | Description                                              |
+|---------------------|-------------------------------------------|---------------|----------------------------------------------------------|
+| clock_display       | boolean                                   | true          | Debugging option. Displays a frame counter on the screen |
+| paused_animation    | boolean                                   | true          | Debugging option. Displays a frame counter on the screen |
+| theme               | "GruvboxDark" or "GruvboxDarkTransparent" | "GruvboxDark" | Choose one of the two built-in themes                    |
+| debug_frame_counter | boolean                                   | false         | Debugging option. Displays a frame counter on the screen |
+
+Note about `theme`: `GruvboxDarkTransparent` is literally `GruvboxDark` with a transparent background.
+This is particularly useful if you set the opacity of the terminal to anything other than fully opaque,
+since it'll allow seeing your wallpaper behind Jolteon.
+
+In Hyprland and Kitty, try the following:
+
+```
+# Hyprland
+decoration {
+  blur {
+    enabled = true
+    size = 3
+    passes = 1
+    vibrancy = 0.1696
+  }
+}
+
+# Kitty
+background_opacity 0.6
+map f5 set_background_opacity -0.1
+map f6 set_background_opacity +0.1
+```
+
+### Other Features
+
+Status:
 - When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen. The animation can be disabled via configuration. 
+- A clock on the top bar. Can be turned off via configuration.
+
 - Media library
   - The entire library is just one big json file. This makes it easy to back it up, and you can even use `git` to track changes to it, etc.
   - Modifications to the library are saved instantly, not when the application closes.
@@ -120,12 +174,6 @@ sudo apt-get install libasound2-dev
   - Thread hygiene: all threads joined on exit - no thread is brute-force-killed by the OS on process exit.
   - Minimal use of `unwrap`. Only true bugs in the application should crash Jolteon. Any external source of indeterminism should be
     handled accordingly.
-- A clock on the top bar. Can be turned off via configuration.
-- Configurable key bindings
-  - See [actions.ini](assets/actions.ini) — the default key bindings.
-  - Or run `jolteon print-default-key-bindings`.
-  - Can also `jolteon print-default-key-bindings > ~/.config/jolteon/actions.ini` to get started.
-  - The Help screen has a bit of info on this, too, but the UX will improve in the future, like support to change the key bindings inside the application.
 
 ### Upcoming
 
@@ -160,7 +208,8 @@ Status: partially implemented; almost complete.
 
 Status: partially implemented
 
-- Deleted playlist are soft-deleted, not truly deleted. The playlist graveyard can be opened and closed with <kbd>F8</kbd>.
+- Deleted playlist are soft-deleted, not truly deleted. 
+- The playlist graveyard can be opened and closed with <kbd>F8</kbd>.
 - The playlist graveyard cannot be focused or used at all, right now. Just opened to see it, and closed. In the future, it'll be properly
   interactive, allowing un-deleting playlists, and maybe hard-deleting.
 
