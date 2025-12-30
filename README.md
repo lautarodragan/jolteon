@@ -55,12 +55,26 @@ sudo pacman -S alsa-lib
 sudo apt-get install libasound2-dev
 ```
 
-
 ## Features
 
-- The number keys `1` through `5` select the different screens. The top bar shows the available screens and highlights the active one.
-- `Tab` cycles through focusable elements in the screen.
-- `Ctrl+Space` toggles play/pause. 
+| Key                                | Action                                           |
+|------------------------------------|--------------------------------------------------|
+| <kbd>Tab</kbd>                     | cycles through focusable elements in the screen. |
+| <kbd>1</kbd>                       | Select Library                                   |
+| <kbd>2</kbd>                       | Select Playlists                                 |
+| <kbd>3</kbd>                       | Select Queue                                     |
+| <kbd>4</kbd>                       | Select FileBrowser                               |
+| <kbd>5</kbd>                       | Select Help                                      |
+| <kbd>Ctrl</kbd> + <kbd>Space</kbd> | Toggle play/pause                                |
+| <kbd>+</kbd>                       | Increase volume                                  |
+| <kbd>-</kbd>                       | Decrease volume                                  |
+| <kbd>Ctrl</kbd> + <kbd>Left</kbd>  | Seek backwards 5s                                |
+| <kbd>Ctrl</kbd> + <kbd>Right</kbd> | Seek forward 5s                                  |
+| <kbd>Alt</kbd> + <kbd>Q</kbd>      | Repeat: None (Turn Off)                          |
+| <kbd>Alt</kbd> + <kbd>W</kbd>      | Repeat: One Song                                 |
+| <kbd>Alt</kbd> + <kbd>E</kbd>      | Repeat: Entire Queue                             |
+| <kbd>Alt</kbd> + <kbd>R</kbd>      | Repeat: Toggle                                   |
+
 - When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen. The animation can be disabled via configuration. 
 - Media library
   - Search/Filter in the artist/album tree. Just press any letter or number key to start filtering. 
@@ -102,10 +116,7 @@ sudo apt-get install libasound2-dev
     which allows overriding the `artist`, `album` and `disc_number`. Entries in the `.jolt` file take priority over metadata 
     in media files and cue sheet.
 - Controls
-  - Play/Pause
-  - Seek 5 seconds forward/backward
   - Media keys Play/Pause support via MPRIS in Linux
-- Help Screen
 - Focus on stability
   - Application crashes are handled safely, restoring the terminal to its normal state before exiting the process.
   - Thread hygiene: all threads joined on exit - no thread is brute-force-killed by the OS on process exit.
