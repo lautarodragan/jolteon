@@ -173,12 +173,12 @@ I'll have to figure out the best UI and UX for this, and probably make it option
 
 The following formats should work: `aac`, `flac`, `mp3`, `mp4`, `m4a`, `ogg`, `wav`.
 
+<details>
+<summary>Codec Issues?</summary>
+
 Jolteon uses Rodeo to play music, with the symphonia backend. 
 
 I mainly use `flac` files, and some `mp3`. Other formats aren't usually tested.
-
-<details>
-<summary>Codec Issues?</summary>
 
 So far, I've only found _one_ issue with _one_ flac file, which fails to perform seeks, and, after a few seconds of playback, causes the cpal thread to panic, crashing Jolteon. 
 This same file does run well with `mpv`. It does report errors reading it, but it still recovers well from them, and is able to seek without issues.
