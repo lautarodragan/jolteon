@@ -379,8 +379,7 @@ tl;dr: is good
 <summary>longer explanation</summary>
 
 I don't benchmark Jolteon, but I do use it many hours, every day, and the release build always stays at .5% of my CPU, and usually 25MiB of RAM.
-I manually compare this to `mpv` and the numbers seem to match, and my machine is 6+ years old, so I'm happy with it.
-Specially considering RustRover and Chrome consume orders of magnitude more, permanently.
+I manually compare this to `mpv` (with `--no-audio-display`) and Jolteon usually consumes about the same CPU and significantly less RAM.
 
 I haven't experienced any issues with the audio performance itself, but this is handled by symphonia and cpal, so there isn't a lot Jolteon can do to break it.
 Same goes for the UI, which is managed by Ratatui.
