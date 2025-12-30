@@ -67,7 +67,7 @@ sudo apt-get install libasound2-dev
     Matches will be displayed in red, and, while filtering, the navigation keys will jump between matches.
     Press `Esc` to exit filtering. Pressing `Enter` to play a song will also exit filtering mode.
   - `Space` toggles expanding/collapsing (or opening/closing) the selected artist.
-  - `(`, `Alt9`, and `AltC` collapses all artists.
+  - <kbd>(</kbd>, <kbd>Alt9</kbd>, and <kbd>AltC</kbd> collapses all artists.
   - `)`, `Alt0`, and `AltE` expands all artists.
   - The entire library is just one big json file. This makes it easy to back it up, and you can even use `git` to track changes to it, etc.
   - Modifications to the library are saved instantly, not when the application closes.
