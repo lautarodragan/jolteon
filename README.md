@@ -182,8 +182,10 @@ Currently, files can _only_ be added to playlists from the file browser. Support
 <details>
 <summary><strong>Communication, Feedback & Notifications</strong></summary>
 
-If any non-bug causes an issue, rather than just being ignored, proper UX wunication, Feedback & Noill be implemented and feedback given.
+If any non-bug causes an issue, rather than just being ignored, it'll be communicated in a status area.
 For example: a file that cannot be played correctly, for whatever reason.
+
+Same goes for performed actions ("Added X to library", for example).
 
 </details>
 
