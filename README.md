@@ -140,6 +140,11 @@ year = 2000
 
 All keys are optional.
 
+> [!NOTE]
+> Currently, there is no way to re-scan metadata after something is added to the library.
+> If you change something in the `.jolt` file, you'll need to remove the tracks / albums
+> from the library and re-add them for the changes to be picked up.
+
 ### Other Features
 
 - A clock on the top bar. Can be turned off via configuration.
