@@ -59,7 +59,7 @@ sudo apt-get install libasound2-dev
 
 | Key                                | Action                                           |
 |------------------------------------|--------------------------------------------------|
-| <kbd>Tab</kbd>                     | cycles through focusable elements in the screen. |
+| <kbd>Tab</kbd>                     | Cycles through focusable elements in the screen. |
 | <kbd>1</kbd>                       | Select Library                                   |
 | <kbd>2</kbd>                       | Select Playlists                                 |
 | <kbd>3</kbd>                       | Select Queue                                     |
