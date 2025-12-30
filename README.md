@@ -100,7 +100,7 @@ Let's start with the basics. These are the main actions and their default key bi
 |                                             | **Playlist Screen**                                   |
 | <kbd>F8</kbd>                               | Open/Close Playlist Graveyard                         |
 | <kbd>Enter</kbd>                            | Add Selected Song / Playlist to Queue                 |
-| <kbd>Alt</kbd> + <kbd>Enter</kbd>           | Play Selected Song /ee the full list of defa Playlist |
+| <kbd>Alt</kbd> + <kbd>Enter</kbd>           | Play Selected Song / Playlist immediately             |
 
 The key bindings are configurable.
 
