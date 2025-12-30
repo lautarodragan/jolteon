@@ -196,7 +196,7 @@ Status: partially implemented; almost complete.
 
 - There will be some way to switch themes programmatically from outside the application, for themes to be switchable by external scripts.
 - Integration with OS light/dark mode will be added. Which theme is associated with each mode will be configurable, but have a sensible default.
-- See `assets/gruvbox_dark.toml`
+- See <assets/gruvbox_dark.toml>
 
 </details>
 
