@@ -317,7 +317,7 @@ I'll have to figure out the best UI and UX for this, and probably make it option
 | Setting             | Type                                      | Default       | Description                                              |
 |---------------------|-------------------------------------------|---------------|----------------------------------------------------------|
 | clock_display       | boolean                                   | true          | Whether or not to display the clock                      |
-| paused_animation    | boolean                                   | true          | Whether or not to anime the PAUSED indicator             |
+| paused_animation    | boolean                                   | true          | Whether or not to animate the PAUSED indicator           |
 | theme               | "GruvboxDark" or "GruvboxDarkTransparent" | "GruvboxDark" | Choose one of the two built-in themes                    |
 | debug_frame_counter | boolean                                   | false         | Debugging option. Displays a frame counter on the screen |
 
