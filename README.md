@@ -57,7 +57,12 @@ sudo apt-get install libasound2-dev
 
 ## Features
 
-These are the main actions and their default key bindings:
+Jolteon offers the standard features you'd expect of a music player: a library, playlists, playing queue and a file browser,
+a status indicator, and supports cue sheets and media keys. 
+
+It also offers some special features that no other player has.
+
+Let's start with the basics. These are the main actions and their default key bindings:
 
 | Key                                         | Action                                                |
 |---------------------------------------------|-------------------------------------------------------|
@@ -114,80 +119,58 @@ Inside Jolteon, the Help screen shows the active key bindings (default + custom 
 > 
 > `Exec=kitty --class "jolteon" -o "clear_all_shortcuts yes" jolteon`
 
-### Configuration Options
+### `.jolt` files
 
-| Setting             | Type                                      | Default       | Description                                              |
-|---------------------|-------------------------------------------|---------------|----------------------------------------------------------|
-| clock_display       | boolean                                   | true          | Whether or not to display the clock                      |
-| paused_animation    | boolean                                   | true          | Whether or not to anime the PAUSED indicator             |
-| theme               | "GruvboxDark" or "GruvboxDarkTransparent" | "GruvboxDark" | Choose one of the two built-in themes                    |
-| debug_frame_counter | boolean                                   | false         | Debugging option. Displays a frame counter on the screen |
+It's pretty common for media files to have incorrect or inconsistent metadata.
+Traditionally, there are two solutions to this problem:
+- Avoid the media library altogether, and just browse files
+- Modify the metadata in the files with some program
 
-See [src/settings.rs](src/settings.rs) for more. The `struct Settings` has all the configuration options,
-and default values are set with `serde_inline_default` (for example, `#[serde_inline_default(true)]`).
+Jolteon offers a better alternative: overriding metadata non-destructively via `.jolt` files.
 
-> [!NOTE]
-> `GruvboxDarkTransparent` is literally `GruvboxDark` with a transparent background.
-> This is particularly useful if you set the opacity of the terminal to anything other than fully opaque,
-> since it'll allow seeing your wallpaper behind Jolteon.
+Just place a `.jolt` file along the media files and Jolteon will read it when adding them to the library. 
 
-> [!TIP]
-> In Hyprland and Kitty, try the following:
-> 
-> ```
-> # Hyprland
-> decoration {
->   blur {
->     enabled = true
->     size = 3
->     passes = 1
->     vibrancy = 0.1696
->   }
-> }
-> 
-> # Kitty
-> background_opacity 0.6
-> map f5 set_background_opacity -0.1
-> map f6 set_background_opacity +0.1
-> ```
+```
+album = "Album Name Override"
+artist = "Artist Name Override"
+year = 2000
+```
+
+All keys are optional.
 
 ### Other Features
 
-Status:
-- When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen. The animation can be disabled via configuration. 
 - A clock on the top bar. Can be turned off via configuration.
-
-- Media library
-  - The entire library is just one big json file. This makes it easy to back it up, and you can even use `git` to track changes to it, etc.
-  - Modifications to the library are saved instantly, not when the application closes.
-  - 🚧 Upcoming: automatic sorting
-  - 🚧 Soon, support to search individual songs will be added. UI and UX for this feature TBD.
 - File Browser
   - Explore files and folders on the left, files in the selected folder on the top-right, and details of the selected file on the 
     bottom-right.
   - Play (add to queue) music files right there in the browser, or add them to the selected playlist or library.
   - Key Bindings are shown on the screen.
-  - The current directory is persisted when the application closes. You can close Jolteon, come back, and pick up where you left off. 
-  - 🚧 Soon, adding a folder to the library or queue will prioritize .cue files inside the folder. Right now, cue sheet files are ignored
-    when adding an entire folder, so you'll have to open the folder and work on the individual .cue file instead.
-  - 🚧 Upcoming: Bookmarks
-- Playing Queue
+- Status Persistence
   - The queue is persisted when the application closes. If you close Jolteon with tracks in the queue, when you come back, it'll
     start playing the next automatically.
-- `.cue` sheet file support
-  - Metadata missing for the `.cue` file will be read from the media file 
-- `.jolt` files to override audio metadata non-destructively
-  - The format is straight forward. I's a plaintext, key-value file,
-    which allows overriding the `artist`, `album` and `disc_number`. Entries in the `.jolt` file take priority over metadata 
-    in media files and cue sheet.
-- Media keys Play/Pause support via MPRIS in Linux
+  - Modifications to the library are saved instantly, not when the application closes. If the application is shut down abruptly, you won't lose data.
+  - The current directory in File Browser is persisted when the application closes. You can close Jolteon, come back, and pick up where you left off. 
+  - The entire library is just one big JSON file. This makes it easy to back it up, and you can even use `git` to track changes to it, etc.
 - Focus on stability
-  - Application crashes are handled safely, restoring the terminal to its normal state before exiting the process.
-  - Thread hygiene: all threads joined on exit - no thread is brute-force-killed by the OS on process exit.
-  - Minimal use of `unwrap`. Only true bugs in the application should crash Jolteon. Any external source of indeterminism should be
-    handled accordingly.
 
 ### Upcoming
+
+<details>
+<summary><strong>Media Library Improvements</strong></summary>
+
+- Automatic sorting
+- Search for song through entire library
+
+</details>
+
+<details>
+<summary><strong>File Browser Improvements</strong></summary>
+
+- Bookmarks
+- When adding an entire folder, scan folder for `.cue` files and offer using the cue sheet rather than adding individual tracks from the folder.
+
+</details>
 
 <details>
 <summary><strong>Playlist from Library</strong></summary>
@@ -288,6 +271,43 @@ Kitty supports full-resolution, full-color images. It shouldn't be particularly 
 I'll have to figure out the best UI and UX for this, and probably make it optional/configurable.
 
 </details>
+
+## Configuration Options
+
+| Setting             | Type                                      | Default       | Description                                              |
+|---------------------|-------------------------------------------|---------------|----------------------------------------------------------|
+| clock_display       | boolean                                   | true          | Whether or not to display the clock                      |
+| paused_animation    | boolean                                   | true          | Whether or not to anime the PAUSED indicator             |
+| theme               | "GruvboxDark" or "GruvboxDarkTransparent" | "GruvboxDark" | Choose one of the two built-in themes                    |
+| debug_frame_counter | boolean                                   | false         | Debugging option. Displays a frame counter on the screen |
+
+See [src/settings.rs](src/settings.rs) for more. The `struct Settings` has all the configuration options,
+and default values are set with `serde_inline_default` (for example, `#[serde_inline_default(true)]`).
+
+> [!NOTE]
+> `GruvboxDarkTransparent` is literally `GruvboxDark` with a transparent background.
+> This is particularly useful if you set the opacity of the terminal to anything other than fully opaque,
+> since it'll allow seeing your wallpaper behind Jolteon.
+
+> [!TIP]
+> In Hyprland and Kitty, try the following:
+> 
+> ```
+> # Hyprland
+> decoration {
+>   blur {
+>     enabled = true
+>     size = 3
+>     passes = 1
+>     vibrancy = 0.1696
+>   }
+> }
+> 
+> # Kitty
+> background_opacity 0.6
+> map f5 set_background_opacity -0.1
+> map f6 set_background_opacity +0.1
+> ```
 
 ## Supported Audio Formats
 
