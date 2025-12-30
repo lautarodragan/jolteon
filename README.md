@@ -193,6 +193,11 @@ And Jolteon shouldn't crash if the audio playback crashes, but that's a story fo
 
 ## Performance
 
+tl;dr: is good
+
+<details>
+<summary>longer explanation</summary>
+
 I don't bench-mark Jolteon, but I do use it many hours, every day, and the release build always stays at .5-2% of my CPU, and usually 0% RAM (yes, that's a zero).
 I manually compare this to `mpv` and the numbers seem to match, and my machine is 6+ years old, so I'm happy with it.
 Specially considering RustRover and Chrome consume orders of magnitude more, permanently.
@@ -206,6 +211,8 @@ seen it crash or increase memory usage.
 If you do experience any sort of performance issues — be it choppy UI, keyboard input response, choppy audio, or significantly higher CPU/RAM usage than `mpv` or any other well-known media player
 for the same file, please open an issue reporting it. Being able to reproduce this with an audio file available in the public domain, or with a license that permits sharing it, would be ideal,
 even if hard or very unlikely.
+
+</details>
 
 ## Philosophy
 
