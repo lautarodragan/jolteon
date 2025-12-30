@@ -86,6 +86,8 @@ Let's start with the basics. These are the main actions and their default key bi
 | Any letter key                              | Search                                                |
 | <kbd>Alt</kbd> + <kbd>↓</kbd>               | Next artist                                           |
 | <kbd>Alt</kbd> + <kbd>↑</kbd>               | Previous artist                                       |
+| <kbd>Ctrl</kbd> + <kbd>↓</kbd>              | Reorder album inside artist                           |
+| <kbd>Ctrl</kbd> + <kbd>↑</kbd>              | Reorder album inside artist                           |
 | <kbd>↓</kbd>                                | While Searching: Select Next Result                   |
 | <kbd>↑</kbd>                                | While Searching: Select Previous Result               |
 | <kbd>Esc</kbd>                              | While Searching: Exit search mode                     |
