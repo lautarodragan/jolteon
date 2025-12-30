@@ -177,7 +177,8 @@ Jolteon uses Rodeo to play music, with the symphonia backend.
 
 I mainly use `flac` files, and some `mp3`. Other formats aren't usually tested.
 
-### Codec Issues
+<details>
+<summary>Codec Issues</summary>
 
 So far, I've only found _one_ issue with _one_ flac file, which fails to perform seeks, and, after a few seconds of playback, causes the cpal thread to panic, crashing Jolteon. 
 This same file does run well with `mpv`. It does report errors reading it, but it still recovers well from them, and is able to seek without issues.
@@ -187,6 +188,8 @@ I tried switching the flac backend, but got even worse results. I looked into us
 Figuring out the specific bug in the flac codes built in pure Rust is probably an easier and more reasonable path forward.
 
 And Jolteon shouldn't crash if the audio playback crashes, but that's a story for another day.
+
+</details>
 
 ## Performance
 
