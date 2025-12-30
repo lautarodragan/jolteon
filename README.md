@@ -74,10 +74,10 @@ sudo apt-get install libasound2-dev
 | <kbd>Alt</kbd> + <kbd>W</kbd>      | Repeat: One Song                                          |
 | <kbd>Alt</kbd> + <kbd>E</kbd>      | Repeat: Entire Queue                                      |
 | <kbd>Alt</kbd> + <kbd>R</kbd>      | Repeat: Toggle                                            |
-|                                     **Playlist Screen**                                       |
-| <kbd>F8</kbd>                      | In Playlist Screen: Open Playlist Graveyard               |
-| <kbd>Enter</kbd>                   | In Playlist Screen: Add Selected Song / Playlist to Queue |
-| <kbd>Alt</kbd> + <kbd>Enter</kbd>  | In Playlist Screen: Play Selected Song / Playlist         |
+|                                    | **Playlist Screen**                                       |
+| <kbd>F8</kbd>                      | Open Playlist Graveyard               |
+| <kbd>Enter</kbd>                   | Add Selected Song / Playlist to Queue |
+| <kbd>Alt</kbd> + <kbd>Enter</kbd>  | Play Selected Song / Playlist         |
 
 - When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen. The animation can be disabled via configuration. 
 - Media library
