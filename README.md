@@ -160,11 +160,14 @@ There's no real reason not to support both approaches at once, by organizing mus
 
 </details>
 
-#### Album Covers
+<details>
+<summary><strong>Album Covers</strong></summary>
 
 Kitty supports full-resolution, full-color images. It shouldn't be particularly hard to add this feature.
 
 I'll have to figure out the best UI and UX for this, and probably make it optional/configurable.
+
+</details>
 
 ## Supported Audio Formats
 
