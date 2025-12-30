@@ -137,7 +137,8 @@ sudo apt-get install libasound2-dev
 
 ### Upcoming
 
-#### Virtual directories in media library.
+<details>
+<summary><strong>Virtual directories in media library</strong></summary>
 
 Displaying music by artist, album, track number and song title is generally more desirable than navigating the file system, but, sometimes, being able
 to manually structure and organize music beyond its metadata is convenient.
@@ -156,6 +157,8 @@ There's no real reason not to support both approaches at once, by organizing mus
 - _Soundtracks_
   - _Cowboy Bebop_
   - _Ry Cooder - Crossroads_
+
+<details>
 
 #### Album Covers
 
