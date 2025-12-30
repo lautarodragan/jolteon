@@ -57,37 +57,41 @@ sudo apt-get install libasound2-dev
 
 ## Features
 
-| Key                                | Action                                           |
-|------------------------------------|--------------------------------------------------|
-| <kbd>Tab</kbd>                     | Cycles through focusable elements in the screen. |
-| <kbd>1</kbd>                       | Select Library                                   |
-| <kbd>2</kbd>                       | Select Playlists                                 |
-| <kbd>3</kbd>                       | Select Queue                                     |
-| <kbd>4</kbd>                       | Select FileBrowser                               |
-| <kbd>5</kbd>                       | Select Help                                      |
-| <kbd>Ctrl</kbd> + <kbd>Space</kbd> | Toggle play/pause                                |
-| <kbd>+</kbd>                       | Increase volume                                  |
-| <kbd>-</kbd>                       | Decrease volume                                  |
-| <kbd>Ctrl</kbd> + <kbd>Left</kbd>  | Seek backwards 5s                                |
-| <kbd>Ctrl</kbd> + <kbd>Right</kbd> | Seek forward 5s                                  |
-| <kbd>Alt</kbd> + <kbd>Q</kbd>      | Repeat: None (Turn Off)                          |
-| <kbd>Alt</kbd> + <kbd>W</kbd>      | Repeat: One Song                                 |
-| <kbd>Alt</kbd> + <kbd>E</kbd>      | Repeat: Entire Queue                             |
-| <kbd>Alt</kbd> + <kbd>R</kbd>      | Repeat: Toggle                                   |
-|                                    |                                                  |
-|                                    | **Playlist Screen**                              |
-| <kbd>F8</kbd>                      | Open Playlist Graveyard                          |
-| <kbd>Enter</kbd>                   | Add Selected Song / Playlist to Queue            |
-| <kbd>Alt</kbd> + <kbd>Enter</kbd>  | Play Selected Song / Playlist                    |
+| Key                                         | Action                                             |
+|---------------------------------------------|----------------------------------------------------|
+| <kbd>Tab</kbd>                              | Cycles through focusable elements in the screen.   |
+| <kbd>1</kbd>                                | Select Library                                     |
+| <kbd>2</kbd>                                | Select Playlists                                   |
+| <kbd>3</kbd>                                | Select Queue                                       |
+| <kbd>4</kbd>                                | Select FileBrowser                                 |
+| <kbd>5</kbd>                                | Select Help                                        |
+| <kbd>Ctrl</kbd> + <kbd>Space</kbd>          | Toggle play/pause                                  |
+| <kbd>+</kbd>                                | Increase volume                                    |
+| <kbd>-</kbd>                                | Decrease volume                                    |
+| <kbd>Ctrl</kbd> + <kbd>Left</kbd>           | Seek backwards 5s                                  |
+| <kbd>Ctrl</kbd> + <kbd>Right</kbd>          | Seek forward 5s                                    |
+| <kbd>Alt</kbd> + <kbd>Q</kbd>               | Repeat: None (Turn Off)                            |
+| <kbd>Alt</kbd> + <kbd>W</kbd>               | Repeat: One Song                                   |
+| <kbd>Alt</kbd> + <kbd>E</kbd>               | Repeat: Entire Queue                               |
+| <kbd>Alt</kbd> + <kbd>R</kbd>               | Repeat: Toggle                                     |
+|                                             |                                                    |
+|                                             | **Library Screen**                                 |
+| Any letter key                              | Search                                             |
+| <kbd>↓</kbd>                                | While Searching: Select Next Result                |
+| <kbd>↑</kbd>                                | While Searching: Select Previous Result            |
+| <kbd>Esc</kbd>                              | While Searching: Exit search mode                  |
+| <kbd>Enter</kbd>                            | While Searching: Exit search mode + play selection |
+| <kbd>Space</kbd>                            | Collapse or expand selected artist                 |
+| <kbd>(</kbd>, <kbd>Alt</kbd> + <kbd>9</kbd> | Collapse all artists                               |
+| <kbd>)</kbd>, <kbd>Alt</kbd> + <kbd>0</kbd> | Expand all artists                                 |
+|                                             |                                                    |
+|                                             | **Playlist Screen**                                |
+| <kbd>F8</kbd>                               | Open Playlist Graveyard                            |
+| <kbd>Enter</kbd>                            | Add Selected Song / Playlist to Queue              |
+| <kbd>Alt</kbd> + <kbd>Enter</kbd>           | Play Selected Song / Playlist                      |
 
 - When paused, a blinking `PAUSED` indicator is displayed in the lower-right corner on the screen. The animation can be disabled via configuration. 
 - Media library
-  - Search/Filter in the artist/album tree. Just press any letter or number key to start filtering. 
-    Matches will be displayed in red, and, while filtering, the navigation keys will jump between matches.
-    Press <kbd>Esc</kbd> to exit filtering. Pressing <kbd>Enter</kbd> to play a song will also exit filtering mode.
-  - <kbd>Space</kbd> toggles expanding/collapsing (or opening/closing) the selected artist.
-  - <kbd>(</kbd>, <kbd>Alt9</kbd>, and <kbd>AltC</kbd> collapses all artists.
-  - <kbd>)</kbd>, <kbd>Alt0</kbd>, and <kbd>AltE</kbd> expands all artists.
   - The entire library is just one big json file. This makes it easy to back it up, and you can even use `git` to track changes to it, etc.
   - Modifications to the library are saved instantly, not when the application closes.
   - 🚧 Upcoming: automatic sorting
