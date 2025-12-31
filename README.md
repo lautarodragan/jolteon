@@ -185,8 +185,9 @@ play a song in non-interactive mode.
     start playing the next automatically.
   - Modifications to the library are saved instantly, not when the application closes. If the application is shut down abruptly, you won't lose data.
   - The current directory in File Browser is persisted when the application closes. You can close Jolteon, come back, and pick up where you left off. 
-  - The entire library is just one big JSON file. This makes it easy to back it up, and you can even use `git` to track changes to it, etc.
 - Focus on stability
+- Portability
+  - The entire library is just one big JSON file, and configuration and state files are TOML files. This makes it easy to back them up, modify them manually, and even use `git` to track changes to them.
 
 ### Upcoming
 
