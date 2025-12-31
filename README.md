@@ -179,11 +179,7 @@ play a song in non-interactive mode.
 ### Other Features
 
 - A clock on the top bar. Can be turned off via configuration.
-- File Browser
-  - Explore files and folders on the left, files in the selected folder on the top-right, and details of the selected file on the 
-    bottom-right.
-  - Play (add to queue) music files right there in the browser, or add them to the selected playlist or library.
-  - Key Bindings are shown on the screen.
+- View file metadata / tags and cue sheet details in File Browser
 - Status Persistence
   - The queue is persisted when the application closes. If you close Jolteon with tracks in the queue, when you come back, it'll
     start playing the next automatically.
