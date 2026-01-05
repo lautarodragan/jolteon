@@ -15,5 +15,5 @@ jobs:
     runs-on: ${{ matrix.platform.os }}
     steps:
       - uses: actions/checkout@v4
-
       - run: podman build -t jolteon .
+      - run: podman run --rm jolteon /jolteon/target/x86_64-unknown-linux-gnu/release/jolteon version
