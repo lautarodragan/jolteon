@@ -24,13 +24,15 @@ Run the following script to download the latest release for your platform:
 
 Bash:
 ```
-# Bash
 curl -s -o- https://raw.githubusercontent.com/lautarodragan/jolteon/refs/heads/main/get.sh | bash
+```
 
-# Nushell
+Nushell:
+```
 http get https://raw.githubusercontent.com/lautarodragan/jolteon/refs/heads/main/get.nu | nu -c $in
 
-# Nushell, longer version
+Nushell, longer version:
+```
 let folder = mktemp --tmpdir --directory --suffix .jolteon
 let file = $folder | path join "get.nu"
 print $"Downloading Jolteon installation script to ($file)"
