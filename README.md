@@ -30,6 +30,7 @@ curl -s -o- https://raw.githubusercontent.com/lautarodragan/jolteon/refs/heads/m
 Nushell:
 ```
 http get https://raw.githubusercontent.com/lautarodragan/jolteon/refs/heads/main/get.nu | nu -c $in
+```
 
 Nushell, longer version:
 ```
