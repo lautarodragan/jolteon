@@ -5,8 +5,8 @@ The best music player.
 # Table of contents
 1. [Installation](#installation)
 1. [Features](#features)
+1. [Upcoming Features](#upcoming)
 1. [Supported Audio Formats](#supported-audio-formats)
-1. [Customization](#customization)
 1. [Performance](#performance)
 1. [Philosophy](#philosophy)
 1. [Developing](#developing)
