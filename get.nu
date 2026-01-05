@@ -5,7 +5,7 @@ def print-list []: list<string> -> nothing {
   print ""
 }
 
-def ansi-warning [msg: string]: nothing -> nothing {
+def print-warning [msg: string]: nothing -> nothing {
   [
     (ansi rb)
     "Warning:"
@@ -16,7 +16,7 @@ def ansi-warning [msg: string]: nothing -> nothing {
   ] | str join | print
 }
 
-def ansi-error [msg: string]: nothing -> nothing {
+def print-error [msg: string]: nothing -> nothing {
   [
     (ansi bg_red)
     "Error:"
@@ -49,7 +49,7 @@ print ""
 let previous = which -a jolteon
 
 if ($previous | is-not-empty) {
-  ansi-warning "there already is a `jolteon` binary available at the following location(s):"
+  print-warning "there already is a `jolteon` binary available at the following location(s):"
   $previous | get path | print-list
   print ""
   # exit
@@ -68,7 +68,7 @@ let artifact_url = ($assets_urls | find -n -i $kernel | find -n -i $arch)
 
 # if (true or ($artifact_url | is-empty)) {
 if ($artifact_url | is-empty) {
-  ansi-error "could not find an artifact do download for your OS"
+  print-error "could not find an artifact do download for your OS"
   print $"OS name: ($kernel)"
   print $"Arch: ($arch)"
   print "Available assets:"
@@ -77,7 +77,7 @@ if ($artifact_url | is-empty) {
   print "https://github.com/lautarodragan/jolteon/issues/new"
   exit 1
 } else if ($artifact_url | length) > 2 {
-  ansi-warning "more than one URL matches the kernel + arch"
+  print-warning "more than one URL matches the kernel + arch"
   print "The following artifacts will be ignored:"
   $artifact_url | skip 1 | print-list
 }
@@ -98,48 +98,43 @@ print ""
 chmod +x $app
 
 print $"Running ('jolteon version' | ansi-code) as a basic test"
-try {
-  let output = run-external $app version | complete
 
-  if $output.exit_code > 0 {
-    ansi-error "jolteon exited with a non-zero status code"
-    print $"Status code was: ($output.exit_code)"
+let output = run-external $app version | complete
 
-    if ($output.stdout | is-empty) {
-      print "Standard output was empty."
-    } else {
-      print "Standard output was:"
-      ansi-quote $output.stdout
-      print ""
-    }
+if $output.exit_code > 0 {
+  print-error "jolteon exited with a non-zero status code"
+  print $"Status code was: ($output.exit_code)"
 
-    if ($output.stderr | is-empty) {
-      print "Error output was empty."
-    } else {
-      print "Standard error was:"
-      ansi-quote $output.stderr
-      print ""
-    }
-
-    print "Aborting installation."
-    exit 1
-  }
-
-  let stdout = $output.stdout | str trim | str trim -c "\n"
-
-  if ($stdout | str contains -i "jolteon") {
-    print $"✅ Output was: ($stdout)"
+  if ($output.stdout | is-empty) {
+    print "Standard output was empty."
   } else {
-    print $"❌ Output was: ($stdout)"
-    print "Aborting installation."
-    exit 1
+    print "Standard output was:"
+    ansi-quote $output.stdout
+    print ""
   }
-} catch { |err|
-  ansi-error $err.msg
+
+  if ($output.stderr | is-empty) {
+    print "Error output was empty."
+  } else {
+    print "Standard error was:"
+    ansi-quote $output.stderr
+    print ""
+  }
+
   print "Aborting installation."
-  print $err
   exit 1
 }
+
+let stdout = $output.stdout | str trim | str trim -c "\n"
+
+if ($stdout | str contains -i "jolteon") {
+  print $"✅ Output was: ($stdout)"
+} else {
+  print $"❌ Output was: ($stdout)"
+  print "Aborting installation."
+  exit 1
+}
+
 # let target_dir = $env.HOME | path join ".local2" | path join "bin"
 let target_dir = $env.HOME | path join ".local" | path join "bin"
 let target_path = $target_dir | path join "jolteon"
