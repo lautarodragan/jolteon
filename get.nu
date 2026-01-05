@@ -188,7 +188,7 @@ if $target_dir not-in $env.PATH {
   print ""
   print $"It looks like ($target_dir) isn't in your $env.PATH"
   print $"Try adding it to your Nushell configuration:"
-  print $"'$env.PATH ++= [($nu.home-path | path join .local bin)]' | save --append ($nu.config-path)"
+  print $"'\\n$env.PATH ++= [($nu.home-path | path join .local bin)]\\n' | save --append ($nu.config-path)"
   print "Would you like me to add it for you?"
   match ([No Yes] | input list) {
     "No" => { print "OK. I won't add it." }
