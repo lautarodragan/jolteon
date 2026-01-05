@@ -62,10 +62,12 @@ let release = http get $url
 let assets_urls = ($release | get assets.browser_download_url)
 
 let kernel = uname | get kernel-name
-let arch = uname | get machine
+let arch = match (uname | get machine) {
+  "arm64" => "aarch64"
+  $other => $other
+}
 
 let artifact_url = ($assets_urls | find -n -i $kernel | find -n -i $arch)
-
 
 if ($artifact_url | is-empty) {
   print-error "could not find an artifact to download for your OS"
@@ -90,8 +92,8 @@ let file = $folder | path join $basename
 print $"Downloading ($basename)\n  from ($artifact_url)\n  to ($file)\n"
 http get $artifact_url | save $file
 
-let app = tar vxf $file -C $folder
-let app = $folder | path join $app
+tar xf $file -C $folder
+let app = ls $folder | get name | where $it !~ ".tar.gz" | first
 print $"Extracted to ($app)"
 print ""
 
@@ -135,7 +137,7 @@ if ($stdout | str contains -i "jolteon") {
   exit 1
 }
 
-let target_dir = $nu.home-path | path join ".local" "bin" # ~/.local/bin
+let target_dir = $env.HOME | path join ".local" "bin" # ~/.local/bin
 let target_path = $target_dir | path join "jolteon" # ~/.local/bin/jolteon
 
 print $"Moving jolteon to ($target_path)"
@@ -188,13 +190,13 @@ if $target_dir not-in $env.PATH {
   print ""
   print $"It looks like ($target_dir) isn't in your $env.PATH"
   print $"Try adding it to your Nushell configuration:"
-  print $"'\\n$env.PATH ++= [($nu.home-path | path join .local bin)]\\n' | save --append ($nu.config-path)"
+  print $"'\\n$env.PATH ++= [($env.HOME | path join .local bin)]\\n' | save --append ($nu.config-path)"
   print "Would you like me to add it for you?"
   match ([No Yes] | input list) {
     "No" => { print "OK. I won't add it." }
     "Yes" => {
       print "OK. I will add it."
-      "\n$env.PATH ++= [($nu.home-path | path join .local bin)]\n" | save --append ($nu.config-path)
+      "\n$env.PATH ++= [($env.HOME | path join .local bin)]\n" | save --append ($nu.config-path)
     }
   }
 }
