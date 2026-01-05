@@ -93,6 +93,7 @@ print $"Downloading ($basename)\n  from ($artifact_url)\n  to ($file)\n"
 http get $artifact_url | save $file
 
 tar xf $file -C $folder
+# We could capture the output of `tar` (passing -v), but it differs from OS to OS. This is simpler.
 let app = ls $folder | get name | where $it !~ ".tar.gz" | first
 print $"Extracted to ($app)"
 print ""
