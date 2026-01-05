@@ -1,4 +1,4 @@
-#!/bin/env -S nu
+#!/usr/bin/env nu
 
 def print-list []: list<string> -> nothing {
   each { "- " + $in } | str join "\n" | print
@@ -66,9 +66,9 @@ let arch = uname | get machine
 
 let artifact_url = ($assets_urls | find -n -i $kernel | find -n -i $arch)
 
-# if (true or ($artifact_url | is-empty)) {
+
 if ($artifact_url | is-empty) {
-  print-error "could not find an artifact do download for your OS"
+  print-error "could not find an artifact to download for your OS"
   print $"OS name: ($kernel)"
   print $"Arch: ($arch)"
   print "Available assets:"
