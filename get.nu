@@ -135,20 +135,13 @@ if ($stdout | str contains -i "jolteon") {
   exit 1
 }
 
-# let target_dir = $env.HOME | path join ".local2" | path join "bin"
-let target_dir = $env.HOME | path join ".local" | path join "bin"
-let target_path = $target_dir | path join "jolteon"
+let target_dir = $nu.home-path | path join ".local" "bin" # ~/.local/bin
+let target_path = $target_dir | path join "jolteon" # ~/.local/bin/jolteon
 
 print $"Moving jolteon to ($target_path)"
 
 # Ensure ~/.local/bin exists. Safe because it's a no-op if it already exists, and Nu's `mkdir` handles sub-paths, like `mkdir -p`.
 mkdir $target_dir
-
-# print $"mv -i ($app) ($target_path)"
-
-# print "wot?"
-# let answer = [yes, no] | input list
-# print $"You chose ($answer)"
 
 if ($target_path | path exists) {
   loop {
@@ -160,13 +153,13 @@ if ($target_path | path exists) {
       "Exit the installer without finishing the installation"
     ] | input list -i
     match $answer {
-      0 => {
+      0 => { # Backup
         let backup_dir = mktemp -d -p $target_dir
         print $"Moving current jolteon to ($backup_dir)"
         mv $target_path $backup_dir
         break
       }
-      1 => {
+      1 => { # Replace
         print $"This will overwrite the existing ($target_path) with the one we just downloaded."
         print "Are you sure?"
         if (["No. Let me choose another option.", "Yes. Overwrite it."] | input list -i) == 1 {
@@ -174,9 +167,9 @@ if ($target_path | path exists) {
           break
         }
       }
-      2 => {
+      2 => { # Abort
         print "Installation cancelled."
-        exit 1
+        exit 2
       }
     }
   }
@@ -193,6 +186,8 @@ if ($which_jolteon | is-empty) {
 
 if $target_dir not-in $env.PATH {
   print $"It looks like ($target_dir) isn't in your $env.PATH"
+  print $"Try adding it to your Nushell configuration:"
+  print $"'$env.PATH ++= [($nu.home-path | path join .local bin)]' | save --append ($nu.config-path)"
 }
 
 print ""
