@@ -27,7 +27,7 @@ def print-error [msg: string]: nothing -> nothing {
   ] | str join | print
 }
 
-def ansi-quote [msg: string]: nothing -> nothing {
+def print-quote [msg: string]: nothing -> nothing {
   print (ansi grey)
   $msg | str trim -c "\n" | split row "\n" | each { "> " + $in } | str join "\n" | print
   print (ansi reset)
@@ -109,7 +109,7 @@ if $output.exit_code > 0 {
     print "Standard output was empty."
   } else {
     print "Standard output was:"
-    ansi-quote $output.stdout
+    print-quote $output.stdout
     print ""
   }
 
@@ -117,7 +117,7 @@ if $output.exit_code > 0 {
     print "Error output was empty."
   } else {
     print "Standard error was:"
-    ansi-quote $output.stderr
+    print-quote $output.stderr
     print ""
   }
 
