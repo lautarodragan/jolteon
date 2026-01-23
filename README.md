@@ -86,6 +86,9 @@ sudo apt-get install libasound2-dev
 <details>
 <summary><strong>Screenshots (Transparent)</strong></summary>
 
+Using Kitty with `background_opacity 0.6`, Hyprland with blur enabled, and Jolteon configured to use `GruvboxDarkTransparent` 
+and the beautiful wallpaper of [Outset Island by Matt Vince](https://www.mattvince.com/product-category/downloads/page/2/).
+
 <img src="assets/screenshots/transparent/1-library.png" alt="Screenshot of the library screen with a transparent background" />
 <img src="assets/screenshots/transparent/2-playlists.png" alt="Screenshot of the playlist screen with a transparent background" />
 <img src="assets/screenshots/transparent/3-queue.png" alt="Screenshot of the queue screen with a transparent background" />
