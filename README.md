@@ -4,6 +4,7 @@ The best music player.
 
 # Table of contents
 1. [Installation](#installation)
+1. [Screenshots](#screenshots)
 1. [Features](#features)
 1. [Upcoming Features](#upcoming)
 1. [Supported Audio Formats](#supported-audio-formats)
@@ -69,6 +70,28 @@ sudo pacman -S alsa-lib
 # Ubuntu
 sudo apt-get install libasound2-dev
 ```
+
+## Screenshots
+
+<details>
+<summary><strong>Screenshots (Opaque)</strong></summary>
+
+<img src="assets/screenshots/opaque/1-library.png" alt="Screenshot of the library screen" />
+<img src="assets/screenshots/opaque/2-playlists.png" alt="Screenshot of the playlist screen" />
+<img src="assets/screenshots/opaque/3-queue.png" alt="Screenshot of the queue screen" />
+<img src="assets/screenshots/opaque/4-file-browser.png" alt="Screenshot of the file browser screen" />
+
+</details>
+
+<details>
+<summary><strong>Screenshots (Transparent)</strong></summary>
+
+<img src="assets/screenshots/transparent/1-library.png" alt="Screenshot of the library screen with a transparent background" />
+<img src="assets/screenshots/transparent/2-playlists.png" alt="Screenshot of the playlist screen with a transparent background" />
+<img src="assets/screenshots/transparent/3-queue.png" alt="Screenshot of the queue screen with a transparent background" />
+<img src="assets/screenshots/transparent/4-file-browser.png" alt="Screenshot of the file browser screen with a transparent background" />
+
+</details>
 
 ## Features
 
