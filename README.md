@@ -105,43 +105,47 @@ It also offers some special features that no other player has.
 
 Let's start with the basics. These are the main actions and their default key bindings:
 
-| Key                                         | Action                                                |
-|---------------------------------------------|-------------------------------------------------------|
-| <kbd>Tab</kbd>                              | Cycles through focusable elements in the screen.      |
-| <kbd>1</kbd>                                | Select Library                                        |
-| <kbd>2</kbd>                                | Select Playlists                                      |
-| <kbd>3</kbd>                                | Select Queue                                          |
-| <kbd>4</kbd>                                | Select FileBrowser                                    |
-| <kbd>5</kbd>                                | Select Help                                           |
-| <kbd>Ctrl</kbd> + <kbd>Space</kbd>          | Toggle play/pause                                     |
-| <kbd>+</kbd>                                | Increase volume                                       |
-| <kbd>-</kbd>                                | Decrease volume                                       |
-| <kbd>Ctrl</kbd> + <kbd>Left</kbd>           | Seek backwards 5s                                     |
-| <kbd>Ctrl</kbd> + <kbd>Right</kbd>          | Seek forwards 5s                                      |
-| <kbd>Alt</kbd> + <kbd>Q</kbd>               | Repeat: None (Turn Off)                               |
-| <kbd>Alt</kbd> + <kbd>W</kbd>               | Repeat: One Song                                      |
-| <kbd>Alt</kbd> + <kbd>E</kbd>               | Repeat: Entire Queue                                  |
-| <kbd>Alt</kbd> + <kbd>R</kbd>               | Repeat: Toggle                                        |
-|                                             |                                                       |
-|                                             | **Library Screen**                                    |
-| Any letter key                              | Search                                                |
-| <kbd>Alt</kbd> + <kbd>↓</kbd>               | Next artist                                           |
-| <kbd>Alt</kbd> + <kbd>↑</kbd>               | Previous artist                                       |
-| <kbd>Ctrl</kbd> + <kbd>↓</kbd>              | Reorder album inside artist                           |
-| <kbd>Ctrl</kbd> + <kbd>↑</kbd>              | Reorder album inside artist                           |
-| <kbd>Ctrl</kbd> + <kbd>Del</kbd>            | Remove album from library                             |
-| <kbd>↓</kbd>                                | While Searching: Select Next Result                   |
-| <kbd>↑</kbd>                                | While Searching: Select Previous Result               |
-| <kbd>Esc</kbd>                              | While Searching: Exit search mode                     |
-| <kbd>Enter</kbd>                            | While Searching: Exit search mode + play selection    |
-| <kbd>Space</kbd>                            | Collapse or expand selected artist                    |
-| <kbd>(</kbd>, <kbd>Alt</kbd> + <kbd>9</kbd> | Collapse all artists                                  |
-| <kbd>)</kbd>, <kbd>Alt</kbd> + <kbd>0</kbd> | Expand all artists                                    |
-|                                             |                                                       |
-|                                             | **Playlist Screen**                                   |
-| <kbd>F8</kbd>                               | Open/Close Playlist Graveyard                         |
-| <kbd>Enter</kbd>                            | Add Selected Song / Playlist to Queue                 |
-| <kbd>Alt</kbd> + <kbd>Enter</kbd>           | Play Selected Song / Playlist immediately             |
+| Key                                         | Action                                             |
+|---------------------------------------------|----------------------------------------------------|
+| <kbd>Tab</kbd>                              | Cycles through focusable elements in the screen.   |
+| <kbd>1</kbd>                                | Select Library                                     |
+| <kbd>2</kbd>                                | Select Playlists                                   |
+| <kbd>3</kbd>                                | Select Queue                                       |
+| <kbd>4</kbd>                                | Select FileBrowser                                 |
+| <kbd>5</kbd>                                | Select Help                                        |
+| <kbd>Ctrl</kbd> + <kbd>Space</kbd>          | Toggle play/pause                                  |
+| <kbd>+</kbd>                                | Increase volume                                    |
+| <kbd>-</kbd>                                | Decrease volume                                    |
+| <kbd>Ctrl</kbd> + <kbd>Left</kbd>           | Seek backwards 5s                                  |
+| <kbd>Ctrl</kbd> + <kbd>Right</kbd>          | Seek forwards 5s                                   |
+| <kbd>Alt</kbd> + <kbd>Q</kbd>               | Repeat: None (Turn Off)                            |
+| <kbd>Alt</kbd> + <kbd>W</kbd>               | Repeat: One Song                                   |
+| <kbd>Alt</kbd> + <kbd>E</kbd>               | Repeat: Entire Queue                               |
+| <kbd>Alt</kbd> + <kbd>R</kbd>               | Repeat: Toggle                                     |
+|                                             |                                                    |
+|                                             | **Library Screen**                                 |
+| Any letter key                              | Search                                             |
+| <kbd>Alt</kbd> + <kbd>↓</kbd>               | Next artist                                        |
+| <kbd>Alt</kbd> + <kbd>↑</kbd>               | Previous artist                                    |
+| <kbd>Ctrl</kbd> + <kbd>↓</kbd>              | Reorder album inside artist                        |
+| <kbd>Ctrl</kbd> + <kbd>↑</kbd>              | Reorder album inside artist                        |
+| <kbd>Ctrl</kbd> + <kbd>Del</kbd>            | Remove album from library                          |
+| <kbd>↓</kbd>                                | While Searching: Select Next Result                |
+| <kbd>↑</kbd>                                | While Searching: Select Previous Result            |
+| <kbd>Esc</kbd>                              | While Searching: Exit search mode                  |
+| <kbd>Enter</kbd>                            | While Searching: Exit search mode + play selection |
+| <kbd>Space</kbd>                            | Collapse or expand selected artist                 |
+| <kbd>(</kbd>, <kbd>Alt</kbd> + <kbd>9</kbd> | Collapse all artists                               |
+| <kbd>)</kbd>, <kbd>Alt</kbd> + <kbd>0</kbd> | Expand all artists                                 |
+|                                             |                                                    |
+|                                             | **Playlist Screen**                                |
+| <kbd>F5</kbd>                               | View: Toggle Artist                                | 
+| <kbd>F6</kbd>                               | View: Toggle Album                                 |
+| <kbd>F7</kbd>                               | View: Toggle Year                                  |
+| <kbd>F8</kbd>                               | View: Toggle TrackNumber                           |
+| <kbd>F9</kbd>                               | Open/Close Playlist Graveyard                      |
+| <kbd>Enter</kbd>                            | Add Selected Song / Playlist to Queue              |
+| <kbd>Alt</kbd> + <kbd>Enter</kbd>           | Play Selected Song / Playlist immediately          |
 
 The key bindings are configurable.
 

@@ -130,6 +130,10 @@ pub enum FileBrowserAction {
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum PlaylistsAction {
     ShowHideGraveyard,
+    ViewToggleArtist,
+    ViewToggleAlbum,
+    ViewToggleYear,
+    ViewToggleTrackNumber,
 }
 
 impl TryFrom<&str> for Action {

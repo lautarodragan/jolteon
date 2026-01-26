@@ -75,6 +75,40 @@ impl<'a> Playlists<'a> {
             }
         });
 
+        song_list.render_fn({
+            let playlist_list = playlist_list.clone();
+            move |song: &Song| {
+                let playlist_view = playlist_list.with_selected_item(|pl| pl.playlist_view.clone());
+                let mut parts = vec![];
+
+                if playlist_view.artist
+                    && let Some(ref artist) = song.artist
+                {
+                    parts.push(artist.clone());
+                }
+
+                if playlist_view.year
+                    && let Some(ref year) = song.year
+                {
+                    parts.push(year.to_string())
+                }
+
+                if playlist_view.album
+                    && let Some(ref album) = song.album
+                {
+                    parts.push(album.clone())
+                }
+
+                if playlist_view.track_number {
+                    parts.push(song.track.unwrap_or(0).to_string());
+                }
+
+                parts.push(song.title.clone());
+
+                parts.join(" - ")
+            }
+        });
+
         song_list.on_reorder({
             let playlist_list = playlist_list.clone();
             let deleted_playlist_list = deleted_playlist_list.clone();
