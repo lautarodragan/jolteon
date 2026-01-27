@@ -10,6 +10,7 @@ pub struct Queue<'a> {
 impl<'a> Queue<'a> {
     pub fn new(songs: Vec<Song>, theme: Theme) -> Self {
         let song_list = List::new(theme, songs);
+        song_list.set_is_focused(true);
 
         Self {
             song_list,
