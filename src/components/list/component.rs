@@ -281,13 +281,21 @@ where
             }
         }
 
-        let selected_item_index = self.selected_item_index.get();
-        if !items[selected_item_index].is_match {
-            if let Some(i) = items.iter().skip(selected_item_index).position(|item| item.is_match) {
-                let i = i + selected_item_index;
+        let initial_index = self.selected_item_index.get();
+        if !items[initial_index].is_match {
+            let new_index = items
+                .iter()
+                .skip(initial_index)
+                .position(|item| item.is_match)
+                .map(|i| i + initial_index)
+                .or_else(|| items.iter().position(|item| item.is_match));
+
+            if let Some(i) = new_index {
                 self.selected_item_index.set(i);
-            } else if let Some(i) = items.iter().position(|item| item.is_match) {
-                self.selected_item_index.set(i);
+                let newly_selected_item = items[i].inner.clone();
+                drop(filter);
+                drop(items);
+                (self.on_select_fn)(newly_selected_item);
             }
         }
     }
