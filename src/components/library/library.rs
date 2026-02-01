@@ -374,13 +374,10 @@ fn load_lib() -> Vec<TreeNode<AlbumTreeItem>> {
             return vec![];
         }
     };
-    match serde_json::from_str::<Vec<TreeNode<AlbumTreeItem>>>(&string) {
-        Ok(a) => a,
-        Err(e) => {
-            log::error!("from_str error {e:?}");
-            vec![]
-        }
-    }
+    serde_json::from_str::<Vec<TreeNode<AlbumTreeItem>>>(&string).unwrap_or_else(|e| {
+        log::error!("from_str error {e:?}");
+        vec![]
+    })
 }
 
 fn save_lib(nodes: &Vec<TreeNode<AlbumTreeItem>>) {
