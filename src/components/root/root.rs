@@ -210,14 +210,9 @@ impl<'a> Root<'a> {
                 let soundtracks = Rc::clone(&soundtracks);
 
                 move |songs| {
-                    log::debug!("holi");
-                    for song in &songs {
-                        if let Some(ref ost) = song.soundtrack_subject {
-                            log::debug!("ost {ost}");
-                        }
-                    }
-                    soundtracks.borrow_mut().add_songs(songs.clone());
-                    // library.borrow_mut().add_songs(songs);
+                    let (songs_soundtracks, songs_etc) = songs.into_iter().partition(|song| song.soundtrack_subject.is_some());
+                    soundtracks.borrow_mut().add_songs(songs_soundtracks);
+                    library.borrow_mut().add_songs(songs_etc);
                 }
             });
             browser.on_add_to_playlist({
