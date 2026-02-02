@@ -41,9 +41,9 @@ fn find_closest_jolt(path: &Path) -> Option<Jolt> {
 }
 
 impl Song {
-    pub fn from_file(path: &PathBuf) -> Result<Self, LoftyError> {
+    pub fn from_file(path: &Path) -> Result<Self, LoftyError> {
         let tagged_file = Probe::open(path)?.read()?;
-        let jolt = find_closest_jolt(path.as_path());
+        let jolt = find_closest_jolt(path);
 
         let (artist, album, title, track, year, disc_number) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
