@@ -35,12 +35,17 @@ pub struct Song {
     pub year: Option<u32>,
 }
 
+fn find_nearby_jolt(path: &Path) -> Option<Jolt> {
+    path.ancestors()
+        .skip(1) // skip the file path itself
+        .take(2) // look at parent and grandparent
+        .find_map(|ancestor| Jolt::from_path(ancestor.join(".jolt")).ok())
+}
+
 impl Song {
     pub fn from_file(path: &PathBuf) -> Result<Self, LoftyError> {
         let tagged_file = Probe::open(path)?.read()?;
-        let jolt = Jolt::from_path(path.parent().unwrap().join(".jolt"))
-            .ok()
-            .or_else(|| Jolt::from_path(path.parent().unwrap().parent().unwrap().join(".jolt")).ok());
+        let jolt = find_nearby_jolt(path.as_path());
 
         let (artist, album, title, track, year, disc_number) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
