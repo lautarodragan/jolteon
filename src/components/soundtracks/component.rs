@@ -53,7 +53,7 @@ impl<'a> Soundtracks<'a> {
         let render_song_long = |song: &Song| -> String {
             [
                 song.year.map(|y| y.to_string()).unwrap_or("(no_album)".to_string()),
-                song.soundtrack_subject.clone().unwrap_or("(no_album)".to_string()),
+                song.album.clone().unwrap_or("(no_album)".to_string()),
                 song.track.unwrap_or(0).to_string(),
                 song.title.clone(),
             ]
