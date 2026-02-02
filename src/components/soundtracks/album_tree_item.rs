@@ -1,0 +1,52 @@
+use std::fmt::{Display, Formatter};
+
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use crate::structs::Song;
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Work {
+    pub id: Option<Uuid>,
+    pub name: String,
+    pub albums: Vec<Album>,
+}
+
+impl Work {
+    pub fn songs(&self) -> Vec<Song> {
+        self.albums.iter().flat_map(|album| album.songs.clone()).collect()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Album {
+    pub id: Option<Uuid>,
+    pub artist: String,
+    pub name: String,
+    pub year: Option<u32>,
+    pub songs: Vec<Song>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum AlbumTreeItem {
+    Work(Work),
+    Album(Album),
+}
+
+impl AlbumTreeItem {
+    pub fn songs(&self) -> Vec<Song> {
+        match self {
+            AlbumTreeItem::Work(_) => vec![],
+            AlbumTreeItem::Album(a) => a.songs.clone(),
+        }
+    }
+}
+
+impl Display for AlbumTreeItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AlbumTreeItem::Work(s) => write!(f, "{}", s.name),
+            AlbumTreeItem::Album(album) => write!(f, "{} - {}", album.year.unwrap_or_default(), album.name),
+        }
+    }
+}

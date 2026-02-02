@@ -16,6 +16,7 @@ use crate::{
     theme::Theme,
     ui::ComponentMut,
 };
+use crate::components::soundtracks::Soundtracks;
 
 #[derive(Debug)]
 pub enum QueueChange {
@@ -73,6 +74,7 @@ impl<'a> Root<'a> {
 
         let queue_screen = Rc::new(RefCell::new(QueueScreen::new(state.queue_items.clone(), theme)));
         let library = Rc::new(RefCell::new(Library::new(theme)));
+        let soundtracks = Rc::new(RefCell::new(Soundtracks::new(theme)));
         let playlist = Rc::new(RefCell::new(Playlists::new(theme)));
         let browser = Rc::new(RefCell::new(FileBrowser::new(actions, theme, current_directory)));
 
@@ -198,6 +200,7 @@ impl<'a> Root<'a> {
 
             screens: vec![
                 ("Library".to_string(), library.clone()),
+                ("Soundtracks".to_string(), soundtracks.clone()),
                 ("Playlists".to_string(), playlist.clone()),
                 ("Queue".to_string(), queue_screen.clone()),
                 ("File Browser".to_string(), browser.clone()),

@@ -7,6 +7,7 @@ mod playlists;
 mod queue;
 mod root;
 mod tree;
+mod soundtracks;
 
 pub use file_browser::{FileBrowser, FileBrowserSelection, dir_entry_is_song, directory_to_songs_and_folders};
 pub use focus_group::*;
