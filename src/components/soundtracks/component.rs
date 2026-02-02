@@ -53,7 +53,7 @@ impl<'a> Soundtracks<'a> {
         let render_song_long = |song: &Song| -> String {
             [
                 song.year.map(|y| y.to_string()).unwrap_or("(no_album)".to_string()),
-                song.album.clone().unwrap_or("(no_album)".to_string()),
+                song.soundtrack_subject.clone().unwrap_or("(no_album)".to_string()),
                 song.track.unwrap_or(0).to_string(),
                 song.title.clone(),
             ]
@@ -265,7 +265,7 @@ fn song_vec_to_map(songs: Vec<Song>) -> HashMap<String, HashMap<String, Vec<Song
     let mut artist_album_map: HashMap<String, HashMap<String, Vec<Song>>> = HashMap::new();
 
     for song in songs.into_iter() {
-        let (Some(artist), Some(album)) = (song.artist.clone(), song.album.clone()) else {
+        let (Some(artist), Some(album)) = (song.soundtrack_subject.clone(), song.album.clone()) else {
             log::warn!("Missing data for song {song:?}. Cannot add to library.");
             continue;
         };

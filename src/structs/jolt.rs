@@ -13,7 +13,7 @@ pub enum WorkType {
 pub struct Jolt {
     #[serde(skip)]
     pub path: PathBuf,
-    pub work_type: WorkType,
+    // pub work_type: WorkType,
     pub artist: Option<String>,
     /// If this entity is a Soundtrack, soundtrack_subject is the name of the related work of art.
     /// For example, the album `Back To The Future (Music From The Motion Picture Soundtrack)`

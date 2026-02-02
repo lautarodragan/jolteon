@@ -180,8 +180,14 @@ impl<'a> Root<'a> {
                 let soundtracks = Rc::clone(&soundtracks);
 
                 move |songs| {
+                    log::debug!("holi");
+                    for song in &songs {
+                        if let Some(ref ost) = song.soundtrack_subject {
+                            log::debug!("ost {ost}");
+                        }
+                    }
                     soundtracks.borrow_mut().add_songs(songs.clone());
-                    library.borrow_mut().add_songs(songs);
+                    // library.borrow_mut().add_songs(songs);
                 }
             });
             browser.on_add_to_playlist({

@@ -29,6 +29,7 @@ pub struct Song {
     pub title: String,
     pub artist: Option<String>,
     pub album: Option<String>,
+    pub soundtrack_subject: Option<String>,
     pub disc_number: Option<u32>,
     pub track: Option<u32>,
     pub year: Option<u32>,
@@ -59,6 +60,7 @@ impl Song {
             title: title.unwrap_or(path.file_name().unwrap().to_str().unwrap().to_string()),
             artist: jolt.as_ref().and_then(|j| j.artist.clone()).or(artist),
             album: jolt.as_ref().and_then(|j| j.album.clone()).or(album),
+            soundtrack_subject: jolt.as_ref().and_then(|j| j.soundtrack_subject.clone()),
             disc_number,
             track,
             year: jolt.as_ref().and_then(|j| j.year).or(year),
@@ -172,6 +174,7 @@ impl Song {
                 title: t.title(),
                 start_time: t.start_time(),
                 album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
+                soundtrack_subject: jolt.as_ref().and_then(|j| j.soundtrack_subject.clone()),
                 track: t.index().split_whitespace().nth(0).and_then(|i| i.parse().ok()),
                 year: jolt.as_ref().and_then(|j| j.year).or(song.year).or(cue_year),
                 disc_number: jolt.as_ref().and_then(|j| j.disc_number), // There seems to be no standard disc number field for Cue Sheets...
