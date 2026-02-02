@@ -206,7 +206,7 @@ impl<'a> Root<'a> {
                 }
             });
             browser.on_add_to_lib({
-                let library = library.clone();
+                let library = Rc::clone(&library);
                 let soundtracks = Rc::clone(&soundtracks);
 
                 move |songs| {
