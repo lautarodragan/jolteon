@@ -147,7 +147,7 @@ impl Song {
             }
         };
 
-        let jolt = Jolt::from_path(song_path.parent().unwrap().join(".jolt")).ok();
+        let jolt = find_closest_jolt(song_path.as_path());
 
         // TODO: attempt to read date from REM DATE comment
         let cue_date = cue_sheet
