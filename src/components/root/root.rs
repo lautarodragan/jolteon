@@ -5,10 +5,10 @@ use std::{
     rc::Rc,
     sync::Weak,
 };
-use std::sync::Arc;
+
 use crate::{
     actions::Actions,
-    components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
+    components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen, Soundtracks},
     main_player::MainPlayer,
     settings::Settings,
     state::State,
@@ -16,7 +16,6 @@ use crate::{
     theme::Theme,
     ui::ComponentMut,
 };
-use crate::components::soundtracks::Soundtracks;
 
 #[derive(Debug)]
 pub enum QueueChange {

@@ -1,6 +1,6 @@
 mod album_tree_item;
-mod keyboard_handler;
 mod component;
+mod keyboard_handler;
 mod widget;
 
-pub use component::Soundtracks;
+pub use component::*;
