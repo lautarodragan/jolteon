@@ -37,8 +37,6 @@ pub struct Song {
 
 fn find_nearby_jolt(path: &Path) -> Option<Jolt> {
     path.ancestors()
-        .skip(1) // skip the file path itself
-        .take(2) // look at parent and grandparent
         .find_map(|ancestor| Jolt::from_path(ancestor.join(".jolt")).ok())
 }
 
@@ -78,11 +76,7 @@ impl Song {
         // TODO: improve this. stop using the FileBrowser stuff.
         //   check for songs, cue
         let entries = directory_to_songs_and_folders(path, true);
-
-        let jolt = entries.iter().find_map(|e| match e {
-            FileBrowserSelection::Jolt(j) => Some(j),
-            _ => None,
-        });
+        let jolt = find_nearby_jolt(path);
 
         log::trace!(target: "::Song::from_dir", "{jolt:#?}");
 
@@ -92,7 +86,7 @@ impl Song {
                 if let FileBrowserSelection::Song(song) = s {
                     let mut song = song.clone();
 
-                    if let Some(jolt) = jolt {
+                    if let Some(ref jolt) = jolt {
                         if jolt.album.is_some() {
                             song.album.clone_from(&jolt.album);
                         }
