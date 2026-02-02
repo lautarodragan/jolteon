@@ -35,7 +35,7 @@ pub struct Song {
     pub year: Option<u32>,
 }
 
-fn find_nearby_jolt(path: &Path) -> Option<Jolt> {
+fn find_closest_jolt(path: &Path) -> Option<Jolt> {
     path.ancestors()
         .find_map(|ancestor| Jolt::from_path(ancestor.join(".jolt")).ok())
 }
@@ -43,7 +43,7 @@ fn find_nearby_jolt(path: &Path) -> Option<Jolt> {
 impl Song {
     pub fn from_file(path: &PathBuf) -> Result<Self, LoftyError> {
         let tagged_file = Probe::open(path)?.read()?;
-        let jolt = find_nearby_jolt(path.as_path());
+        let jolt = find_closest_jolt(path.as_path());
 
         let (artist, album, title, track, year, disc_number) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
@@ -76,7 +76,7 @@ impl Song {
         // TODO: improve this. stop using the FileBrowser stuff.
         //   check for songs, cue
         let entries = directory_to_songs_and_folders(path, true);
-        let jolt = find_nearby_jolt(path);
+        let jolt = find_closest_jolt(path);
 
         log::trace!(target: "::Song::from_dir", "{jolt:#?}");
 
