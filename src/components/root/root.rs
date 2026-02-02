@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
     sync::Weak,
 };
-
+use std::sync::Arc;
 use crate::{
     actions::Actions,
     components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
@@ -177,8 +177,10 @@ impl<'a> Root<'a> {
             });
             browser.on_add_to_lib({
                 let library = library.clone();
+                let soundtracks = Rc::clone(&soundtracks);
 
                 move |songs| {
+                    soundtracks.borrow_mut().add_songs(songs.clone());
                     library.borrow_mut().add_songs(songs);
                 }
             });

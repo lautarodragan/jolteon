@@ -2,11 +2,20 @@ use std::{fs::read_to_string, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
+pub enum WorkType {
+    #[default]
+    Album,
+    Soundtrack,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Jolt {
     #[serde(skip)]
     pub path: PathBuf,
+    pub work_type: WorkType,
     pub artist: Option<String>,
+    pub soundtrack: Option<String>,
     pub album: Option<String>,
     pub disc_number: Option<u32>,
     pub year: Option<u32>,
