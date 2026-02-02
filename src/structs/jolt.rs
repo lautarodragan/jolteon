@@ -15,7 +15,10 @@ pub struct Jolt {
     pub path: PathBuf,
     pub work_type: WorkType,
     pub artist: Option<String>,
-    pub soundtrack: Option<String>,
+    /// If this entity is a Soundtrack, soundtrack_subject is the name of the related work of art.
+    /// For example, the album `Back To The Future (Music From The Motion Picture Soundtrack)`
+    /// should have this set to `Back To The Future`.
+    pub soundtrack_subject: Option<String>,
     pub album: Option<String>,
     pub disc_number: Option<u32>,
     pub year: Option<u32>,
