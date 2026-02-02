@@ -210,7 +210,8 @@ impl<'a> Root<'a> {
                 let soundtracks = Rc::clone(&soundtracks);
 
                 move |songs| {
-                    let (songs_soundtracks, songs_etc) = songs.into_iter().partition(|song| song.soundtrack_subject.is_some());
+                    let (songs_soundtracks, songs_etc) =
+                        songs.into_iter().partition(|song| song.soundtrack_subject.is_some());
                     soundtracks.borrow_mut().add_songs(songs_soundtracks);
                     library.borrow_mut().add_songs(songs_etc);
                 }

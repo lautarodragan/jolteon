@@ -38,7 +38,9 @@ pub struct Song {
 impl Song {
     pub fn from_file(path: &PathBuf) -> Result<Self, LoftyError> {
         let tagged_file = Probe::open(path)?.read()?;
-        let jolt = Jolt::from_path(path.parent().unwrap().join(".jolt")).ok().or_else(|| Jolt::from_path(path.parent().unwrap().parent().unwrap().join(".jolt")).ok());
+        let jolt = Jolt::from_path(path.parent().unwrap().join(".jolt"))
+            .ok()
+            .or_else(|| Jolt::from_path(path.parent().unwrap().parent().unwrap().join(".jolt")).ok());
 
         let (artist, album, title, track, year, disc_number) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
