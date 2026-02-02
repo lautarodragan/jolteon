@@ -111,6 +111,37 @@ impl<'a> Root<'a> {
         }
 
         {
+            let soundtracks = soundtracks.borrow_mut();
+            soundtracks.on_enter({
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
+
+                move |song| {
+                    queue_screen.borrow_mut().append(vec![song.clone()]);
+                    on_queue_changed_fn.call(QueueChange::AddBack(song));
+                }
+            });
+            soundtracks.on_enter_alt({
+                let player = player.clone();
+                move |song| {
+                    player.upgrade().inspect(|p| p.play(song));
+                }
+            });
+            soundtracks.on_select_songs_fn({
+                // selected artist/album
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
+
+                move |songs| {
+                    log::trace!(target: "::app.soundtracks", "on_select_songs_fn -> adding songs to queue");
+                    let songs: Vec<Song> = songs.into_iter().cloned().collect();
+                    queue_screen.borrow_mut().append(songs.clone());
+                    on_queue_changed_fn.call(QueueChange::Append(songs));
+                }
+            });
+        }
+
+        {
             let playlist = playlist.borrow_mut();
             playlist.on_enter_song({
                 let queue_screen = queue_screen.clone();
