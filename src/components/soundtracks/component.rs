@@ -37,8 +37,17 @@ impl<'a> Soundtracks<'a> {
             album_tree_items
                 .first()
                 .map(|node| {
-                    if let AlbumTreeItem::Work(ref artist) = node.inner {
-                        artist.songs()
+                    if let AlbumTreeItem::Work(_) = node.inner {
+                        node.children
+                            .iter()
+                            .flat_map(|child| {
+                                if let AlbumTreeItem::Album(ref album) = child.inner {
+                                    album.songs.clone()
+                                } else {
+                                    Vec::new()
+                                }
+                            })
+                            .collect::<Vec<Song>>()
                     } else {
                         vec![]
                     }
