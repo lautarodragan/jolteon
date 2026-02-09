@@ -52,7 +52,7 @@ impl<'a> Soundtracks<'a> {
 
         let render_song_long = |song: &Song| -> String {
             [
-                song.year.map(|y| y.to_string()).unwrap_or("(no_album)".to_string()),
+                song.year.map(|y| y.to_string()).unwrap_or("(no_year)".to_string()),
                 song.album.clone().unwrap_or("(no_album)".to_string()),
                 song.track.unwrap_or(0).to_string(),
                 song.title.clone(),
@@ -90,7 +90,7 @@ impl<'a> Soundtracks<'a> {
                 }
             }
         });
-        song_list.on_select(|song| log::debug!("library: selected song {song:#?}"));
+        song_list.on_select(|song| log::debug!("soundtracks: selected song {song:#?}"));
         song_list.on_delete({
             let album_tree = Rc::downgrade(&album_tree);
             move |song, index| {
@@ -228,7 +228,7 @@ impl<'a> Soundtracks<'a> {
 
     pub fn add_songs(&self, mut songs: Vec<Song>) {
         log::debug!(
-            "Library.add_songs({:?})",
+            "Soundtracks.add_songs({:?})",
             songs.iter().map(|s| s.title.as_str()).collect::<Vec<&str>>()
         );
 
@@ -369,7 +369,7 @@ fn load_lib() -> Vec<TreeNode<AlbumTreeItem>> {
 }
 
 fn save_lib(nodes: &Vec<TreeNode<AlbumTreeItem>>) {
-    log::trace!("Library save_lib");
+    log::trace!("Soundtracks save_lib: saving soundtracks.json");
     let path = home::home_dir()
         .map(|path| path.as_path().join(".config/jolteon/soundtracks.json"))
         .unwrap();
