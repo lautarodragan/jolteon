@@ -6,6 +6,7 @@ mod list;
 mod playlists;
 mod queue;
 mod root;
+mod soundtracks;
 mod tree;
 
 pub use file_browser::{FileBrowser, FileBrowserSelection, dir_entry_is_song, directory_to_songs_and_folders};
@@ -16,4 +17,5 @@ pub use list::List;
 pub use playlists::Playlists;
 pub use queue::Queue;
 pub use root::*;
+pub use soundtracks::*;
 pub use tree::*;

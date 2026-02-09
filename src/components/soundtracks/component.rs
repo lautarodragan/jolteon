@@ -7,7 +7,7 @@ use std::{
 
 use uuid::Uuid;
 
-use super::album_tree_item::{Album, AlbumTreeItem, Artist};
+use super::album_tree_item::{Album, AlbumTreeItem, Work};
 use crate::{
     components::{FocusGroup, List, Tree, TreeNode},
     structs::{Direction, Song},
@@ -15,7 +15,7 @@ use crate::{
     ui::{Component, Focusable},
 };
 
-pub struct Library<'a> {
+pub struct Soundtracks<'a> {
     #[allow(dead_code)]
     pub(super) theme: Theme,
 
@@ -26,7 +26,7 @@ pub struct Library<'a> {
     pub(super) on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>>,
 }
 
-impl<'a> Library<'a> {
+impl<'a> Soundtracks<'a> {
     pub fn new(theme: Theme) -> Self {
         let album_tree_items = load_lib();
 
@@ -37,7 +37,7 @@ impl<'a> Library<'a> {
             album_tree_items
                 .first()
                 .map(|node| {
-                    if let AlbumTreeItem::Artist(ref artist) = node.inner {
+                    if let AlbumTreeItem::Work(ref artist) = node.inner {
                         artist.songs()
                     } else {
                         vec![]
@@ -52,7 +52,7 @@ impl<'a> Library<'a> {
 
         let render_song_long = |song: &Song| -> String {
             [
-                song.year.map(|y| y.to_string()).unwrap_or("(no_album)".to_string()),
+                song.year.map(|y| y.to_string()).unwrap_or("(no_year)".to_string()),
                 song.album.clone().unwrap_or("(no_album)".to_string()),
                 song.track.unwrap_or(0).to_string(),
                 song.title.clone(),
@@ -90,7 +90,7 @@ impl<'a> Library<'a> {
                 }
             }
         });
-        song_list.on_select(|song| log::debug!("library: selected song {song:#?}"));
+        song_list.on_select(|song| log::debug!("soundtracks: selected song {song:#?}"));
         song_list.on_delete({
             let album_tree = Rc::downgrade(&album_tree);
             move |song, index| {
@@ -117,10 +117,7 @@ impl<'a> Library<'a> {
                 let album_tree = album_tree.borrow_mut();
                 album_tree.with_selected_node_mut(|selected_node| {
                     match &mut selected_node.inner {
-                        AlbumTreeItem::Folder(_category) => {
-                            // TODO
-                        }
-                        AlbumTreeItem::Artist(_) => {
+                        AlbumTreeItem::Work(_) => {
                             let album = selected_node
                                 .children
                                 .iter_mut()
@@ -155,12 +152,7 @@ impl<'a> Library<'a> {
                     // log::trace!(target: "::library.album_tree.on_select", "selected {:#?}", item);
 
                     let songs = match &item.inner {
-                        AlbumTreeItem::Folder(_category) => {
-                            // TODO
-                            song_list.render_fn(render_song_long);
-                            vec![]
-                        }
-                        AlbumTreeItem::Artist(_) => {
+                        AlbumTreeItem::Work(_) => {
                             song_list.render_fn(render_song_long);
                             item.children.iter().flat_map(|child| child.inner.songs()).collect()
                         }
@@ -179,11 +171,7 @@ impl<'a> Library<'a> {
                     log::trace!(target: "::library.album_tree.on_confirm", "artist confirmed {item:?}");
 
                     let songs = match item {
-                        AlbumTreeItem::Folder(_category) => {
-                            // TODO
-                            vec![]
-                        }
-                        AlbumTreeItem::Artist(artist) => artist.albums.iter().flat_map(|album| &album.songs).collect(),
+                        AlbumTreeItem::Work(artist) => artist.albums.iter().flat_map(|album| &album.songs).collect(),
                         AlbumTreeItem::Album(album) => album.songs.iter().collect(),
                     };
                     on_select_songs_fn.borrow_mut()(songs);
@@ -240,7 +228,7 @@ impl<'a> Library<'a> {
 
     pub fn add_songs(&self, mut songs: Vec<Song>) {
         log::debug!(
-            "Library.add_songs({:?})",
+            "Soundtracks.add_songs({:?})",
             songs.iter().map(|s| s.title.as_str()).collect::<Vec<&str>>()
         );
 
@@ -263,11 +251,11 @@ impl<'a> Library<'a> {
     }
 }
 
-impl Drop for Library<'_> {
+impl Drop for Soundtracks<'_> {
     fn drop(&mut self) {
-        log::trace!("Library.drop()");
+        log::trace!("Soundtracks.drop()");
         self.album_tree.borrow_mut().with_nodes_mut(|nodes| {
-            log::trace!("Library.drop() -> saving lib");
+            log::trace!("Soundtracks.drop() -> saving lib");
             save_lib(nodes)
         });
     }
@@ -277,7 +265,7 @@ fn song_vec_to_map(songs: Vec<Song>) -> HashMap<String, HashMap<String, Vec<Song
     let mut artist_album_map: HashMap<String, HashMap<String, Vec<Song>>> = HashMap::new();
 
     for song in songs.into_iter() {
-        let (Some(artist), Some(album)) = (song.artist.clone(), song.album.clone()) else {
+        let (Some(artist), Some(album)) = (song.soundtrack_subject.clone(), song.album.clone()) else {
             log::warn!("Missing data for song {song:?}. Cannot add to library.");
             continue;
         };
@@ -302,7 +290,7 @@ fn find_artist_node<'a>(
     artist_nodes
         .iter_mut()
         .find_map(|artist_node| match &artist_node.inner {
-            AlbumTreeItem::Artist(node_artist) if node_artist.name == artist_name => Some(artist_node),
+            AlbumTreeItem::Work(node_artist) if node_artist.name == artist_name => Some(artist_node),
             _ => None,
         })
 }
@@ -314,8 +302,8 @@ fn add_artist_node(
 ) {
     artist_nodes.push({
         TreeNode::new_with_children(
-            AlbumTreeItem::Artist(Artist {
-                library_id: Some(Uuid::new_v4()),
+            AlbumTreeItem::Work(Work {
+                id: Some(Uuid::new_v4()),
                 name: artist.clone(),
                 albums: vec![], // the albums are stored as children nodes
             }),
@@ -323,7 +311,7 @@ fn add_artist_node(
                 .into_iter()
                 .map(|(album_name, album_songs)| {
                     TreeNode::new(AlbumTreeItem::Album(Album {
-                        library_id: Some(Uuid::new_v4()),
+                        id: Some(Uuid::new_v4()),
                         artist: artist.clone(),
                         name: album_name,
                         year: album_songs.first().and_then(|s| s.year),
@@ -351,7 +339,7 @@ fn add_album_nodes(artist_node: &mut TreeNode<AlbumTreeItem>, artist_name: Strin
             album.songs.extend(songs);
         } else {
             artist_node.children.push(TreeNode::new(AlbumTreeItem::Album(Album {
-                library_id: Some(Uuid::new_v4()),
+                id: Some(Uuid::new_v4()),
                 artist: artist_name.clone(),
                 name: album_name,
                 year: songs.iter().find_map(|song| song.year),
@@ -361,11 +349,11 @@ fn add_album_nodes(artist_node: &mut TreeNode<AlbumTreeItem>, artist_name: Strin
     }
 }
 
-impl Focusable for Library<'_> {}
+impl Focusable for Soundtracks<'_> {}
 
 fn load_lib() -> Vec<TreeNode<AlbumTreeItem>> {
     let path = home::home_dir()
-        .map(|path| path.as_path().join(".config/jolteon/library.json"))
+        .map(|path| path.as_path().join(".config/jolteon/soundtracks.json"))
         .unwrap();
     let string = match read_to_string(&path) {
         Ok(a) => a,
@@ -381,9 +369,9 @@ fn load_lib() -> Vec<TreeNode<AlbumTreeItem>> {
 }
 
 fn save_lib(nodes: &Vec<TreeNode<AlbumTreeItem>>) {
-    log::trace!("Library save_lib");
+    log::trace!("Soundtracks save_lib: saving soundtracks.json");
     let path = home::home_dir()
-        .map(|path| path.as_path().join(".config/jolteon/library.json"))
+        .map(|path| path.as_path().join(".config/jolteon/soundtracks.json"))
         .unwrap();
 
     let string = match serde_json::to_string_pretty(nodes) {

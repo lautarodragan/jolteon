@@ -29,15 +29,21 @@ pub struct Song {
     pub title: String,
     pub artist: Option<String>,
     pub album: Option<String>,
+    pub soundtrack_subject: Option<String>,
     pub disc_number: Option<u32>,
     pub track: Option<u32>,
     pub year: Option<u32>,
 }
 
+fn find_closest_jolt(path: &Path) -> Option<Jolt> {
+    path.ancestors()
+        .find_map(|ancestor| Jolt::from_path(ancestor.join(".jolt")).ok())
+}
+
 impl Song {
-    pub fn from_file(path: &PathBuf) -> Result<Self, LoftyError> {
+    pub fn from_file(path: &Path) -> Result<Self, LoftyError> {
         let tagged_file = Probe::open(path)?.read()?;
-        let jolt = Jolt::from_path(path.parent().unwrap().join(".jolt")).ok();
+        let jolt = find_closest_jolt(path);
 
         let (artist, album, title, track, year, disc_number) = match tagged_file.primary_tag() {
             Some(primary_tag) => (
@@ -59,6 +65,7 @@ impl Song {
             title: title.unwrap_or(path.file_name().unwrap().to_str().unwrap().to_string()),
             artist: jolt.as_ref().and_then(|j| j.artist.clone()).or(artist),
             album: jolt.as_ref().and_then(|j| j.album.clone()).or(album),
+            soundtrack_subject: jolt.as_ref().and_then(|j| j.soundtrack_subject.clone()),
             disc_number,
             track,
             year: jolt.as_ref().and_then(|j| j.year).or(year),
@@ -69,11 +76,7 @@ impl Song {
         // TODO: improve this. stop using the FileBrowser stuff.
         //   check for songs, cue
         let entries = directory_to_songs_and_folders(path, true);
-
-        let jolt = entries.iter().find_map(|e| match e {
-            FileBrowserSelection::Jolt(j) => Some(j),
-            _ => None,
-        });
+        let jolt = find_closest_jolt(path);
 
         log::trace!(target: "::Song::from_dir", "{jolt:#?}");
 
@@ -83,7 +86,7 @@ impl Song {
                 if let FileBrowserSelection::Song(song) = s {
                     let mut song = song.clone();
 
-                    if let Some(jolt) = jolt {
+                    if let Some(ref jolt) = jolt {
                         if jolt.album.is_some() {
                             song.album.clone_from(&jolt.album);
                         }
@@ -144,7 +147,7 @@ impl Song {
             }
         };
 
-        let jolt = Jolt::from_path(song_path.parent().unwrap().join(".jolt")).ok();
+        let jolt = find_closest_jolt(song_path.as_path());
 
         // TODO: attempt to read date from REM DATE comment
         let cue_date = cue_sheet
@@ -172,6 +175,7 @@ impl Song {
                 title: t.title(),
                 start_time: t.start_time(),
                 album: jolt.as_ref().and_then(|j| j.album.clone()).or(cue_sheet.title()),
+                soundtrack_subject: jolt.as_ref().and_then(|j| j.soundtrack_subject.clone()),
                 track: t.index().split_whitespace().nth(0).and_then(|i| i.parse().ok()),
                 year: jolt.as_ref().and_then(|j| j.year).or(song.year).or(cue_year),
                 disc_number: jolt.as_ref().and_then(|j| j.disc_number), // There seems to be no standard disc number field for Cue Sheets...

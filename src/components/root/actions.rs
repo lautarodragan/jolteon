@@ -6,10 +6,11 @@ impl OnActionMut for Root<'_> {
         match action[0] {
             Action::Screen(action) if !self.is_focus_trapped.get() => match action {
                 ScreenAction::Library => self.focused_screen = 0,
-                ScreenAction::Playlists => self.focused_screen = 1,
-                ScreenAction::Queue => self.focused_screen = 2,
-                ScreenAction::FileBrowser => self.focused_screen = 3,
-                ScreenAction::Help => self.focused_screen = 4,
+                ScreenAction::Soundtracks => self.focused_screen = 1,
+                ScreenAction::Playlists => self.focused_screen = 2,
+                ScreenAction::Queue => self.focused_screen = 3,
+                ScreenAction::FileBrowser => self.focused_screen = 4,
+                ScreenAction::Help => self.focused_screen = 5,
             },
             _ => {
                 let mut c = self.screens[self.focused_screen].1.borrow_mut();

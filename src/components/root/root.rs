@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     actions::Actions,
-    components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen},
+    components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen, Soundtracks},
     main_player::MainPlayer,
     settings::Settings,
     state::State,
@@ -73,6 +73,7 @@ impl<'a> Root<'a> {
 
         let queue_screen = Rc::new(RefCell::new(QueueScreen::new(state.queue_items.clone(), theme)));
         let library = Rc::new(RefCell::new(Library::new(theme)));
+        let soundtracks = Rc::new(RefCell::new(Soundtracks::new(theme)));
         let playlist = Rc::new(RefCell::new(Playlists::new(theme)));
         let browser = Rc::new(RefCell::new(FileBrowser::new(actions, theme, current_directory)));
 
@@ -102,6 +103,37 @@ impl<'a> Root<'a> {
 
                 move |songs| {
                     log::trace!(target: "::app.library", "on_select_songs_fn -> adding songs to queue");
+                    let songs: Vec<Song> = songs.into_iter().cloned().collect();
+                    queue_screen.borrow_mut().append(songs.clone());
+                    on_queue_changed_fn.call(QueueChange::Append(songs));
+                }
+            });
+        }
+
+        {
+            let soundtracks = soundtracks.borrow_mut();
+            soundtracks.on_enter({
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
+
+                move |song| {
+                    queue_screen.borrow_mut().append(vec![song.clone()]);
+                    on_queue_changed_fn.call(QueueChange::AddBack(song));
+                }
+            });
+            soundtracks.on_enter_alt({
+                let player = player.clone();
+                move |song| {
+                    player.upgrade().inspect(|p| p.play(song));
+                }
+            });
+            soundtracks.on_select_songs_fn({
+                // selected artist/album
+                let queue_screen = queue_screen.clone();
+                let on_queue_changed_fn = on_queue_changed_fn.clone();
+
+                move |songs| {
+                    log::trace!(target: "::app.soundtracks", "on_select_songs_fn -> adding songs to queue");
                     let songs: Vec<Song> = songs.into_iter().cloned().collect();
                     queue_screen.borrow_mut().append(songs.clone());
                     on_queue_changed_fn.call(QueueChange::Append(songs));
@@ -174,10 +206,14 @@ impl<'a> Root<'a> {
                 }
             });
             browser.on_add_to_lib({
-                let library = library.clone();
+                let library = Rc::clone(&library);
+                let soundtracks = Rc::clone(&soundtracks);
 
                 move |songs| {
-                    library.borrow_mut().add_songs(songs);
+                    let (songs_soundtracks, songs_etc) =
+                        songs.into_iter().partition(|song| song.soundtrack_subject.is_some());
+                    soundtracks.borrow_mut().add_songs(songs_soundtracks);
+                    library.borrow_mut().add_songs(songs_etc);
                 }
             });
             browser.on_add_to_playlist({
@@ -198,6 +234,7 @@ impl<'a> Root<'a> {
 
             screens: vec![
                 ("Library".to_string(), library.clone()),
+                ("Soundtracks".to_string(), soundtracks.clone()),
                 ("Playlists".to_string(), playlist.clone()),
                 ("Queue".to_string(), queue_screen.clone()),
                 ("File Browser".to_string(), browser.clone()),
