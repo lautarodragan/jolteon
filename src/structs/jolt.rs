@@ -2,18 +2,10 @@ use std::{fs::read_to_string, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
-pub enum WorkType {
-    #[default]
-    Album,
-    Soundtrack,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Jolt {
     #[serde(skip)]
     pub path: PathBuf,
-    // pub work_type: WorkType,
     pub artist: Option<String>,
     /// If this entity is a Soundtrack, soundtrack_subject is the name of the related work of art.
     /// For example, the album `Back To The Future (Music From The Motion Picture Soundtrack)`
