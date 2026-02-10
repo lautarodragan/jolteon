@@ -9,8 +9,8 @@ use uuid::Uuid;
 
 use super::album_tree_item::{Album, AlbumTreeItem, Artist};
 use crate::{
-    components::{FocusGroup, List, Tree, TreeNode},
-    structs::{Direction, Song},
+    components::{FocusGroup, SongList, Tree, TreeNode},
+    structs::Song,
     theme::Theme,
     ui::{Component, Focusable},
 };
@@ -19,7 +19,7 @@ pub struct Library<'a> {
     #[allow(dead_code)]
     pub(super) theme: Theme,
 
-    pub(super) song_list: Rc<List<'a, Song>>,
+    pub(super) song_list: Rc<SongList<'a>>,
     pub(super) album_tree: Rc<RefCell<Tree<'a, AlbumTreeItem>>>,
     pub(super) focus_group: FocusGroup<'a>,
 
@@ -32,7 +32,7 @@ impl<'a> Library<'a> {
 
         let on_select_songs_fn: Rc<RefCell<Box<dyn FnMut(Vec<&Song>) + 'a>>> = Rc::new(RefCell::new(Box::new(|_| {})));
 
-        let mut song_list = List::new(
+        let song_list = SongList::new(
             theme,
             album_tree_items
                 .first()
@@ -56,50 +56,6 @@ impl<'a> Library<'a> {
         );
         let album_tree = Rc::new(RefCell::new(Tree::new(theme, album_tree_items)));
 
-        let render_song_short =
-            |song: &Song| -> String { [song.track.unwrap_or(0).to_string(), song.title.clone()].join(" - ") };
-
-        let render_song_long = |song: &Song| -> String {
-            [
-                song.year.map(|y| y.to_string()).unwrap_or("(no_album)".to_string()),
-                song.album.clone().unwrap_or("(no_album)".to_string()),
-                song.track.unwrap_or(0).to_string(),
-                song.title.clone(),
-            ]
-            .join(" - ")
-        };
-
-        song_list.render_fn(render_song_long);
-
-        song_list.find_next_item_by_fn({
-            |songs, i, direction| {
-                let Some(ref selected_album) = songs[i].album else {
-                    log::warn!("no selected song album");
-                    return None;
-                };
-
-                if direction == Direction::Forwards {
-                    songs
-                        .iter()
-                        .skip(i)
-                        .position(|s| s.album.as_ref().is_some_and(|a| a != selected_album))
-                        .map(|ns| ns.saturating_add(i))
-                } else {
-                    songs
-                        .iter()
-                        .take(i)
-                        .rposition(|s| s.album.as_ref().is_some_and(|a| a != selected_album))
-                        .and_then(|ns| songs.get(ns))
-                        .and_then(|s| s.album.as_ref())
-                        .and_then(|next_song_album| {
-                            songs
-                                .iter()
-                                .position(|song| song.album.as_ref().is_some_and(|a| a.as_str() == next_song_album))
-                        })
-                }
-            }
-        });
-        song_list.on_select(|song| log::debug!("library: selected song {song:#?}"));
         song_list.on_delete({
             let album_tree = Rc::downgrade(&album_tree);
             move |song, index| {
@@ -166,15 +122,15 @@ impl<'a> Library<'a> {
                     let songs = match &item.inner {
                         AlbumTreeItem::Folder(_category) => {
                             // TODO
-                            song_list.render_fn(render_song_long);
+                            song_list.set_view_options_long();
                             vec![]
                         }
                         AlbumTreeItem::Artist(_) => {
-                            song_list.render_fn(render_song_long);
+                            song_list.set_view_options_long();
                             item.children.iter().flat_map(|child| child.inner.songs()).collect()
                         }
                         AlbumTreeItem::Album(album) => {
-                            song_list.render_fn(render_song_short);
+                            song_list.set_view_options_short();
                             album.songs.clone()
                         }
                     };

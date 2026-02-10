@@ -3,7 +3,7 @@ use std::rc::Rc;
 use chrono::Local;
 
 use crate::{
-    components::{FocusGroup, List},
+    components::{FocusGroup, List, SongList},
     structs::{Playlist, Song},
     theme::Theme,
     ui::{Component, Focusable},
@@ -13,7 +13,7 @@ pub struct Playlists<'a> {
     pub(super) theme: Theme,
     pub(super) playlist_list: Rc<List<'a, Playlist>>,
     pub(super) deleted_playlist_list: Rc<List<'a, Playlist>>,
-    pub(super) song_list: Rc<List<'a, Song>>,
+    pub(super) song_list: Rc<SongList<'a>>,
     pub(super) focus_group: FocusGroup<'a>,
     pub(super) show_deleted_playlists: bool,
 }
@@ -22,7 +22,7 @@ impl<'a> Playlists<'a> {
     pub fn new(theme: Theme) -> Self {
         let playlists_file = crate::files::Playlists::from_file();
 
-        let song_list = Rc::new(List::new(
+        let song_list = Rc::new(SongList::new(
             theme,
             playlists_file
                 .playlists
@@ -30,6 +30,11 @@ impl<'a> Playlists<'a> {
                 .map(|pl| pl.songs.clone())
                 .unwrap_or_default(),
         ));
+
+        if let Some(pl) = playlists_file.playlists.first() {
+            song_list.set_view_options(pl.view_options);
+        }
+
         let mut playlist_list = List::new(theme, playlists_file.playlists);
         let deleted_playlist_list = Rc::new(List::new(theme, playlists_file.deleted));
 
@@ -37,6 +42,7 @@ impl<'a> Playlists<'a> {
             let song_list = song_list.clone();
             move |pl| {
                 song_list.set_items(pl.songs.clone());
+                song_list.set_view_options(pl.view_options);
             }
         });
 
@@ -72,40 +78,6 @@ impl<'a> Playlists<'a> {
             move |pl, _| {
                 deleted_playlist_list.push_item(pl);
                 save(&playlist_list, &deleted_playlist_list);
-            }
-        });
-
-        song_list.render_fn({
-            let playlist_list = playlist_list.clone();
-            move |song: &Song| {
-                let playlist_view = playlist_list.with_selected_item(|pl| pl.playlist_view.clone());
-                let mut parts = vec![];
-
-                if playlist_view.artist
-                    && let Some(ref artist) = song.artist
-                {
-                    parts.push(artist.clone());
-                }
-
-                if playlist_view.year
-                    && let Some(ref year) = song.year
-                {
-                    parts.push(year.to_string())
-                }
-
-                if playlist_view.album
-                    && let Some(ref album) = song.album
-                {
-                    parts.push(album.clone())
-                }
-
-                if playlist_view.track_number {
-                    parts.push(song.track.unwrap_or(0).to_string());
-                }
-
-                parts.push(song.title.clone());
-
-                parts.join(" - ")
             }
         });
 
