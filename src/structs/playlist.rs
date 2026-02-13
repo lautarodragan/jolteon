@@ -1,14 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::structs::Song;
-
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct PlaylistView {
-    pub artist: bool,
-    pub album: bool,
-    pub year: bool,
-    pub track_number: bool,
-}
+use crate::{components::SongListViewOptions, structs::Song};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Playlist {
@@ -16,7 +8,7 @@ pub struct Playlist {
     pub songs: Vec<Song>,
     pub is_deleted: bool,
     #[serde(default)]
-    pub playlist_view: PlaylistView,
+    pub view_options: SongListViewOptions,
 }
 
 impl Playlist {
@@ -25,7 +17,7 @@ impl Playlist {
             name,
             songs: vec![],
             is_deleted: false,
-            playlist_view: PlaylistView::default(),
+            view_options: SongListViewOptions::default(),
         }
     }
 }

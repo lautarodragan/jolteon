@@ -6,6 +6,7 @@ mod list;
 mod playlists;
 mod queue;
 mod root;
+mod song_list;
 mod soundtracks;
 mod tree;
 
@@ -17,5 +18,6 @@ pub use list::List;
 pub use playlists::Playlists;
 pub use queue::Queue;
 pub use root::*;
+pub use song_list::{SongList, SongListViewOptions};
 pub use soundtracks::*;
 pub use tree::*;
