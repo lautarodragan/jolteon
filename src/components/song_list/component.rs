@@ -151,7 +151,7 @@ fn render_song_with_parts(song: &Song, parts: SongListViewOptions) -> String {
         if let Some(ref album) = song.album {
             pieces.push(album.clone());
         } else if parts.show_missing_album {
-            pieces.push("(no_album)".to_string());
+            pieces.push("(no album)".to_string());
         }
     }
 
