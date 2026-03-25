@@ -1,9 +1,19 @@
 use super::library::Library;
-use crate::actions::{Action, OnAction, OnActionMut};
+use crate::actions::{Action, NavigationAction, OnAction, OnActionMut};
 
 impl OnActionMut for Library<'_> {
     fn on_action(&mut self, actions: Vec<Action>) {
         // log::trace!(target: "::library.on_action", "{action:?}");
-        self.focus_group.on_action(actions);
+        match actions[0] {
+            Action::Navigation(NavigationAction::Right) => {
+                self.focus_group.focus_nth(1);
+            }
+            Action::Navigation(NavigationAction::Left) => {
+                self.focus_group.focus_nth(0);
+            }
+            _ => {
+                self.focus_group.on_action(actions);
+            }
+        }
     }
 }
