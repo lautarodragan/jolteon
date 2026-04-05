@@ -120,6 +120,7 @@ impl MainPlayer {
                         let repeat_mode_lock = repeat_mode.lock().unwrap();
 
                         if *repeat_mode_lock == RepeatMode::One && song.is_some() {
+                            player.set_is_paused(false); // added by IA to fix an issue. not sue if it fixes anything.
                             player.play_song(song.clone().unwrap());
                         } else {
                             song = queue.pop();
@@ -128,11 +129,11 @@ impl MainPlayer {
                                     queue.add_back(song.clone());
                                 }
                                 log::debug!("song_player grabbed song from queue {song:?}");
+                                player.set_is_paused(false); // added by IA to fix an issue. not sue if it fixes anything.
                                 player.play_song(song.clone());
                                 on_queue_changed.lock().unwrap().as_ref().inspect(|f| f());
                             } else {
                                 log::debug!("song_player queue was empty. will wait for changes.");
-                                // UX: Configurable Skip on Paused Behavior (TODO: configurable. See TODO.md)
                                 player.set_is_paused(false);
                             }
                         }
