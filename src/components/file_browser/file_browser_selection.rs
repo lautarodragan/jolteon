@@ -22,9 +22,9 @@ pub enum FileBrowserSelection {
 }
 
 impl FileBrowserSelection {
-    pub fn from_path(path: &PathBuf) -> Option<Self> {
+    pub fn from_path(path: &Path) -> Option<Self> {
         if path.is_dir() {
-            Some(FileBrowserSelection::Directory(path.clone()))
+            Some(FileBrowserSelection::Directory(path.to_path_buf()))
         } else if path.extension().is_some_and(|e| e == "cue") {
             CueSheet::from_file(path).ok().map(FileBrowserSelection::CueSheet)
         } else {
