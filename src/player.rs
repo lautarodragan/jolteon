@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use rodio::OutputStreamBuilder;
+use rodio::DeviceSinkBuilder;
 
 use crate::{
     actions::{OnAction, PlayerAction},
@@ -109,7 +109,7 @@ impl SingleTrackPlayer {
                 };
 
                 move || {
-                    let output_stream = OutputStreamBuilder::open_default_stream().unwrap(); // TODO: do not unwrap()
+                    let output_stream = DeviceSinkBuilder::open_default_sink().unwrap(); // TODO: do not unwrap()
 
                     let wait_until_song_ends = || {
                         let target = "::wait_until_song_ends";

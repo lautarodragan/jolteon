@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::BufReader,
+    num::NonZero,
     path::PathBuf,
     sync::{Arc, Mutex},
     time::Duration,
@@ -154,12 +155,12 @@ where
     }
 
     #[inline]
-    fn channels(&self) -> u16 {
+    fn channels(&self) -> NonZero<u16> {
         self.input.channels()
     }
 
     #[inline]
-    fn sample_rate(&self) -> u32 {
+    fn sample_rate(&self) -> NonZero<u32> {
         self.input.sample_rate()
     }
 
