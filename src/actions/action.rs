@@ -95,6 +95,8 @@ pub enum ListAction {
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Hash, EnumString, Ord, PartialOrd)]
 pub enum ScreenAction {
+    Next,
+    Previous,
     Library,
     Soundtracks,
     Playlists,
