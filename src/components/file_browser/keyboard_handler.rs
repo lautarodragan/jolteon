@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 
 use super::{AddMode, FileBrowser};
 use crate::{
-    actions::{Action, FileBrowserAction, OnAction, OnActionMut},
+    actions::{Action, FileBrowserAction, NavigationAction, OnAction, OnActionMut},
     components::{FileBrowserSelection, directory_to_songs_and_folders},
     spawn_terminal::spawn_terminal,
 };
@@ -68,7 +68,19 @@ impl OnActionMut for FileBrowser<'_> {
                 }
             }
         } else {
-            self.focus_group.on_action(actions);
+            match actions[0] {
+                Action::Navigation(NavigationAction::Right) => {
+                    // TODO: either prioritize self.focus_group.on_action(actions) or respect focus_stolen
+                    self.focus_group.focus_nth(1);
+                }
+                Action::Navigation(NavigationAction::Left) => {
+                    // TODO: either prioritize self.focus_group.on_action(actions) or respect focus_stolen,
+                    self.focus_group.focus_nth(0);
+                }
+                _ => {
+                    self.focus_group.on_action(actions);
+                }
+            }
         }
     }
 }
