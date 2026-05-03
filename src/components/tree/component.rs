@@ -189,6 +189,7 @@ where
     }
 
     pub fn filter_mut(&self, cb: impl FnOnce(&mut String)) {
+        // TODO: timeout -> filter is automatically cleared?
         if self.items.borrow().len() < 2 {
             return;
         }

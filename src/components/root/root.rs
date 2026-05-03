@@ -197,6 +197,9 @@ impl<'a> Root<'a> {
 
         {
             let browser = browser.borrow_mut();
+            // TODO: file_browser shouldn't know there exists a queue, lib, etc.
+            //   it should just have a "song(s) confirmed / confirmed_alt" event,
+            //   and root should be responsible of what to do with that event.
             browser.on_enqueue({
                 let queue_screen = queue_screen.clone();
                 let on_queue_changed_fn = on_queue_changed_fn.clone();
@@ -210,6 +213,9 @@ impl<'a> Root<'a> {
                 let soundtracks = Rc::clone(&soundtracks);
 
                 move |songs| {
+                    // TODO: interactive way to add to soundtracks.
+                    //   Currently, the only way to add to soundtracks is adding a .jolt
+                    //   file with `soundtrack_subject = something`.
                     let (songs_soundtracks, songs_etc) =
                         songs.into_iter().partition(|song| song.soundtrack_subject.is_some());
                     soundtracks.borrow_mut().add_songs(songs_soundtracks);
