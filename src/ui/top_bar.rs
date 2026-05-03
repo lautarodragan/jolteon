@@ -79,16 +79,18 @@ impl Widget for TopBar<'_> {
             );
         tabs.render(area, buf);
 
-        if self.settings.clock_display {
-            let clock = Line::from(time_format()).alignment(Alignment::Center);
-            clock.render(area, buf);
-        }
-
-        if self.settings.debug_frame_counter {
-            Line::from(format!("FRAME {}", self.frame_count))
-                .style(Style::default())
-                .right_aligned()
-                .render(area, buf);
+        if self.settings.clock_display || self.settings.debug_frame_counter {
+            // TODO: measure rendered width of tabs and remaining horizontal space,
+            //   and decide whether we should push this span elsewhere (where, tho?)
+            let mut s: Vec<String> = Vec::new();
+            if self.settings.debug_frame_counter {
+                s.push(format!("FRAME {}", self.frame_count));
+            }
+            if self.settings.clock_display {
+                s.push(time_format());
+            }
+            let s = s.join(" | ") + " ";
+            Line::from(s).style(Style::default()).right_aligned().render(area, buf);
         }
     }
 }
