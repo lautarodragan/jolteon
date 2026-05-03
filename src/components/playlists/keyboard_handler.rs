@@ -1,9 +1,17 @@
 use super::Playlists;
-use crate::actions::{Action, OnAction, OnActionMut, PlaylistsAction};
+use crate::actions::{Action, NavigationAction, OnAction, OnActionMut, PlaylistsAction};
 
 impl OnActionMut for Playlists<'_> {
     fn on_action(&mut self, actions: Vec<Action>) {
         match actions[..] {
+            [Action::Navigation(NavigationAction::Right)] => {
+                // TODO: either prioritize self.focus_group.on_action(actions) or respect focus_stolen
+                self.focus_group.focus_nth(1);
+            }
+            [Action::Navigation(NavigationAction::Left)] => {
+                // TODO: either prioritize self.focus_group.on_action(actions) or respect focus_stolen,
+                self.focus_group.focus_nth(0);
+            }
             [Action::Playlists(playlist_action)] => match playlist_action {
                 PlaylistsAction::ShowHideGraveyard => {
                     log::debug!("PlaylistsAction::ShowHideGraveyard");
