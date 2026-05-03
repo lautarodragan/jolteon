@@ -11,7 +11,6 @@ use ratatui::{
 
 use crate::{
     actions::{Action, Actions, FileBrowserAction, KeyBinding},
-    components::file_browser::AddMode,
     theme::Theme,
 };
 
@@ -24,7 +23,6 @@ impl Display for Action {
             FileBrowserAction::AddToQueue => "add to Queue",
             FileBrowserAction::AddToLibrary => "add to Library",
             FileBrowserAction::AddToPlaylist => "add to Playlist",
-            FileBrowserAction::ToggleMode => "toggle add mode",
             FileBrowserAction::OpenTerminal => "open terminal",
             FileBrowserAction::NavigateUp => "navigate up",
             FileBrowserAction::ToggleShowHidden => "toggle show hidden files",
@@ -44,7 +42,6 @@ impl Display for KeyBinding {
 
 pub struct FileBrowserHelp<'a> {
     pills: Vec<KeyBindingPill<'a>>,
-    actions: &'a Actions,
 }
 
 impl<'a> FileBrowserHelp<'a> {
@@ -63,13 +60,6 @@ impl<'a> FileBrowserHelp<'a> {
             KeyBindingPill::new(
                 theme,
                 actions
-                    .key_by_action(Action::FileBrowser(FileBrowserAction::ToggleMode))
-                    .unwrap(),
-                Action::FileBrowser(FileBrowserAction::ToggleMode),
-            ),
-            KeyBindingPill::new(
-                theme,
-                actions
                     .key_by_action(Action::FileBrowser(FileBrowserAction::OpenTerminal))
                     .unwrap(),
                 Action::FileBrowser(FileBrowserAction::OpenTerminal),
@@ -83,23 +73,7 @@ impl<'a> FileBrowserHelp<'a> {
             ),
         ];
 
-        Self { pills, actions }
-    }
-
-    pub fn set_add_mode(&mut self, add_mode: AddMode) {
-        let kb_secondary = self.actions.list_secondary();
-        let Some(pill) = self.pills.iter_mut().find(|p| p.key_binding == kb_secondary) else {
-            log::error!("Missing pill for {kb_secondary:?}?");
-            return;
-        };
-
-        let action = if add_mode == AddMode::AddToLibrary {
-            Action::FileBrowser(FileBrowserAction::AddToLibrary)
-        } else {
-            Action::FileBrowser(FileBrowserAction::AddToPlaylist)
-        };
-
-        pill.set_action(action);
+        Self { pills }
     }
 }
 
@@ -113,8 +87,6 @@ impl WidgetRef for FileBrowserHelp<'_> {
 }
 
 struct KeyBindingPill<'a> {
-    key_binding: KeyBinding,
-    action: Action,
     theme: Theme,
     span_key_binding: Span<'a>,
     span_action: Span<'a>,
@@ -133,8 +105,6 @@ impl KeyBindingPill<'_> {
         let span_action_width = u16::try_from(span_action.width()).unwrap_or(u16::MAX);
 
         Self {
-            key_binding,
-            action,
             theme,
             span_key_binding,
             span_action,
@@ -145,17 +115,6 @@ impl KeyBindingPill<'_> {
 
     pub fn width(&self) -> u16 {
         self.span_key_binding_width + self.span_action_width + 4
-    }
-
-    // pub fn set_key_binding(&mut self, key_binding: KeyBinding) {
-    //     self.key_binding = key_binding;
-    // }
-
-    pub fn set_action(&mut self, action: Action) {
-        self.action = action;
-        let help_pill_style = Style::new().fg(self.theme.foreground).bg(self.theme.top_bar_background);
-        self.span_action = Span::raw(action.to_string()).style(help_pill_style);
-        self.span_action_width = u16::try_from(self.span_action.width()).unwrap_or(u16::MAX);
     }
 }
 

@@ -147,9 +147,9 @@ impl<'a> Playlists<'a> {
         save(&self.playlist_list, &self.deleted_playlist_list);
     }
 
-    pub fn add_songs(&self, songs: &mut Vec<Song>) {
+    pub fn add_songs(&self, mut songs: Vec<Song>) {
         self.selected_playlist_mut(move |pl| {
-            pl.songs.append(songs);
+            pl.songs.append(&mut songs);
         });
     }
 }

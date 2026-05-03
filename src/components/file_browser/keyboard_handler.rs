@@ -1,6 +1,6 @@
 use std::sync::atomic::Ordering;
 
-use super::{AddMode, FileBrowser};
+use super::FileBrowser;
 use crate::{
     actions::{Action, FileBrowserAction, NavigationAction, OnAction, OnActionMut},
     components::{FileBrowserSelection, directory_to_songs_and_folders},
@@ -40,13 +40,6 @@ impl OnActionMut for FileBrowser<'_> {
                 }
                 FileBrowserAction::AddToPlaylist => {
                     log::error!("FileBrowserAction::AddToPlaylist not implemented");
-                }
-                FileBrowserAction::ToggleMode => {
-                    self.add_mode.set(match self.add_mode.get() {
-                        AddMode::AddToLibrary => AddMode::AddToPlaylist,
-                        AddMode::AddToPlaylist => AddMode::AddToLibrary,
-                    });
-                    self.help.set_add_mode(self.add_mode.get());
                 }
                 FileBrowserAction::ToggleShowHidden => {
                     // TODO: this is mostly duplicated code.

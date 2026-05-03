@@ -7,7 +7,7 @@ use ratatui::{
     widgets::WidgetRef,
 };
 
-use super::{AddMode, FileBrowser, FileBrowserSelection};
+use super::{FileBrowser, FileBrowserSelection};
 
 impl Display for FileBrowserSelection {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -21,15 +21,6 @@ impl Display for FileBrowserSelection {
 impl From<&FileBrowserSelection> for Text<'_> {
     fn from(value: &FileBrowserSelection) -> Self {
         Text::raw(value.to_string())
-    }
-}
-
-impl Display for AddMode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            AddMode::AddToLibrary => "add to Library",
-            AddMode::AddToPlaylist => "add to Playlist",
-        })
     }
 }
 

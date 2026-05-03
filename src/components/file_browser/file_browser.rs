@@ -1,5 +1,5 @@
 use std::{
-    cell::{Cell, RefCell},
+    cell::RefCell,
     collections::HashMap,
     path::PathBuf,
     rc::Rc,
@@ -29,12 +29,6 @@ use crate::{
     ui::{Component, Focusable},
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AddMode {
-    AddToLibrary,
-    AddToPlaylist,
-}
-
 pub struct FileBrowser<'a> {
     #[allow(unused)]
     pub(super) theme: Theme,
@@ -52,8 +46,6 @@ pub struct FileBrowser<'a> {
     pub(super) current_directory: Rc<CurrentDirectory>,
     pub(super) on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
     pub(super) on_add_to_lib_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
-    pub(super) on_add_to_playlist_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>>,
-    pub(super) add_mode: Rc<Cell<AddMode>>,
 
     pub(super) show_hidden_files: Arc<AtomicBool>,
 }
@@ -68,8 +60,6 @@ impl<'a> FileBrowser<'a> {
         let history = Rc::new(RefCell::new(HashMap::new()));
         let on_enqueue_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
         let on_add_to_lib_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
-        let on_add_to_playlist_fn: Rc<RefCell<Option<Box<dyn Fn(Vec<Song>) + 'a>>>> = Rc::new(RefCell::new(None));
-        let add_mode = Rc::new(Cell::new(AddMode::AddToLibrary));
 
         let (io_thread, files_from_io_thread) = {
             let (tx, rx) = channel::<PathBuf>();
@@ -140,15 +130,9 @@ impl<'a> FileBrowser<'a> {
         });
         children_list.on_confirm_alt({
             let on_add_to_lib_fn = Rc::clone(&on_add_to_lib_fn);
-            let on_add_to_playlist_fn = Rc::clone(&on_add_to_playlist_fn);
-            let mode = Rc::clone(&add_mode);
 
             move |item| {
-                let cb = if mode.get() == AddMode::AddToLibrary {
-                    on_add_to_lib_fn.borrow()
-                } else {
-                    on_add_to_playlist_fn.borrow()
-                };
+                let cb = on_add_to_lib_fn.borrow();
 
                 let Some(cb) = &*cb else {
                     return;
@@ -270,16 +254,10 @@ impl<'a> FileBrowser<'a> {
             }
         });
         parents_list.on_confirm_alt({
-            let mode = Rc::clone(&add_mode);
             let on_add_to_lib_fn = Rc::clone(&on_add_to_lib_fn);
-            let on_add_to_playlist_fn = Rc::clone(&on_add_to_playlist_fn);
 
             move |item| {
-                let cb = if mode.get() == AddMode::AddToLibrary {
-                    on_add_to_lib_fn.borrow()
-                } else {
-                    on_add_to_playlist_fn.borrow()
-                };
+                let cb = on_add_to_lib_fn.borrow();
 
                 let Some(cb) = &*cb else {
                     return;
@@ -321,9 +299,7 @@ impl<'a> FileBrowser<'a> {
             current_directory,
             on_enqueue_fn,
             on_add_to_lib_fn,
-            on_add_to_playlist_fn,
             history,
-            add_mode,
             help: FileBrowserHelp::new(actions, theme),
 
             show_hidden_files,
@@ -347,10 +323,6 @@ impl<'a> FileBrowser<'a> {
 
     pub fn on_add_to_lib(&self, cb: impl Fn(Vec<Song>) + 'a) {
         *self.on_add_to_lib_fn.borrow_mut() = Some(Box::new(cb));
-    }
-
-    pub fn on_add_to_playlist(&self, cb: impl Fn(Vec<Song>) + 'a) {
-        *self.on_add_to_playlist_fn.borrow_mut() = Some(Box::new(cb));
     }
 
     pub fn navigate_up(&self) {

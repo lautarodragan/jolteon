@@ -124,7 +124,6 @@ pub enum FileBrowserAction {
     AddToQueue,
     AddToLibrary,
     AddToPlaylist,
-    ToggleMode,
     OpenTerminal,
     NavigateUp,
     ToggleShowHidden,
