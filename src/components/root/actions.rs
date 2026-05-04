@@ -1,79 +1,10 @@
 use super::Root;
-use crate::{
-    actions::{Action, NavigationAction, OnActionMut, ScreenAction},
-    components::{Query, QueryAddSongsArg1},
-};
+use crate::actions::{Action, OnActionMut, ScreenAction};
 
 impl OnActionMut for Root<'_> {
     fn on_action(&mut self, actions: Vec<Action>) {
-        if self.query.borrow().is_some() {
-            let mut query_error = self.query_error.borrow_mut();
-            if query_error.is_some() {
-                for action in actions {
-                    match action {
-                        Action::Confirm | Action::Cancel => {
-                            *query_error = None;
-                            return;
-                        }
-                        _ => {}
-                    }
-                }
-            } else {
-                for action in actions {
-                    match action {
-                        Action::Cancel => {
-                            *self.query.borrow_mut() = None;
-                            return;
-                        }
-                        Action::Confirm => {
-                            let query = self.query.borrow_mut().take();
-                            match query {
-                                None => {}
-                                Some(Query::AddSongs { songs, target }) => match target {
-                                    QueryAddSongsArg1::Library => {
-                                        self.library_screen.borrow_mut().add_songs(songs);
-                                    }
-                                    QueryAddSongsArg1::Soundtracks => {
-                                        let (songs_soundtracks, songs_etc): (Vec<_>, Vec<_>) =
-                                            songs.into_iter().partition(|song| song.soundtrack_subject.is_some());
-
-                                        if !songs_soundtracks.is_empty() {
-                                            self.soundtracks_screen.borrow_mut().add_songs(songs_soundtracks);
-                                        }
-                                        if !songs_etc.is_empty() {
-                                            *query_error = Some(format!(
-                                                "{} song(s) could not be added to soundtracks!",
-                                                songs_etc.len()
-                                            ));
-                                            *self.query.borrow_mut() = Some(Query::AddSongs {
-                                                songs: songs_etc,
-                                                target: QueryAddSongsArg1::Soundtracks,
-                                            });
-                                        }
-                                    }
-                                    QueryAddSongsArg1::Playlist => {
-                                        self.playlists_screen.borrow_mut().add_songs(songs);
-                                    }
-                                },
-                            }
-                            return;
-                        }
-                        Action::Navigation(NavigationAction::Right) => {
-                            if let Some(Query::AddSongs { target, .. }) = self.query.borrow_mut().as_mut() {
-                                *target = target.next();
-                            }
-                            return;
-                        }
-                        Action::Navigation(NavigationAction::Left) => {
-                            if let Some(Query::AddSongs { target, .. }) = self.query.borrow_mut().as_mut() {
-                                *target = target.prev();
-                            }
-                            return;
-                        }
-                        _ => {}
-                    }
-                }
-            }
+        if self.command_line.borrow().query().is_some() {
+            self.command_line.borrow_mut().on_action(actions);
         } else {
             match actions[0] {
                 Action::Screen(action) if !self.is_focus_trapped.get() => match action {

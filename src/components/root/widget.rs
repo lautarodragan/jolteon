@@ -1,14 +1,12 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Margin, Offset, Rect},
+    layout::{Constraint, Layout, Margin, Rect},
     prelude::{Style, Widget},
-    style::Modifier,
-    text::{Line, Span},
     widgets::Block,
 };
 
 use super::root::Root;
-use crate::{components::Query, ui::TopBar};
+use crate::ui::TopBar;
 
 impl Widget for &mut Root<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
@@ -46,25 +44,9 @@ impl Widget for &mut Root<'_> {
         //     .style(Style::new().fg(self.theme.foreground))
         //     .render(area_noti, buf);
 
-        if let Some(query) = self.query.borrow().as_ref() {
+        if self.command_line.borrow().query().is_some() {
             let area = area_player.inner(Margin::new(1, 1));
-            let line = match query {
-                Query::AddSongs { songs, target } => {
-                    let s1 = Span::from(format!("Add {} song(s) to", songs.len()));
-                    let s2 = Span::from(target.to_string()).style(Style::default().bg(self.theme.background_selected));
-                    let s3 = Span::from("Enter to confirm, Left/Right Arrows to change selection, Esc to cancel")
-                        .style(Style::default().add_modifier(Modifier::DIM));
-                    Line::from(vec![s1, Span::from(" "), s2, Span::from("?"), Span::from(" "), s3])
-                }
-            };
-            line.render(area, buf);
-            let query_error = self.query_error.borrow();
-            if let Some(error) = query_error.as_ref() {
-                let area = area.offset(Offset::new(0, 1));
-                Line::from(error.as_ref())
-                    .style(Style::default().fg(self.theme.search))
-                    .render(area, buf);
-            }
+            self.command_line.borrow().render(area, buf);
         } else {
             let Some(player) = self.player.upgrade() else {
                 return;

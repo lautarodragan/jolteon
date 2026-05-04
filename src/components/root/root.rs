@@ -6,11 +6,17 @@ use std::{
     sync::Weak,
 };
 
-use strum::Display;
-
 use crate::{
     actions::Actions,
-    components::{FileBrowser, Help, Library, Playlists, Queue as QueueScreen, Soundtracks},
+    components::{
+        FileBrowser,
+        Help,
+        Library,
+        Playlists,
+        Queue as QueueScreen,
+        Soundtracks,
+        query::{CommandLine, Query, QueryAddSongsTarget},
+    },
     main_player::MainPlayer,
     settings::Settings,
     state::State,
@@ -27,7 +33,7 @@ pub enum QueueChange {
     Remove(usize),
 }
 
-struct Callback<'a, T>(RefCell<Option<Box<dyn Fn(T) + 'a>>>);
+pub struct Callback<'a, T>(RefCell<Option<Box<dyn Fn(T) + 'a>>>);
 
 impl<'a, T> Callback<'a, T> {
     pub fn call(&self, v: T) {
@@ -45,38 +51,6 @@ impl<T> Default for Callback<'_, T> {
     }
 }
 
-#[derive(Debug, Display)]
-pub enum Query {
-    AddSongs {
-        songs: Vec<Song>,
-        target: QueryAddSongsArg1,
-    },
-}
-#[derive(Debug, Display, Clone, Copy, PartialEq, Eq)]
-pub enum QueryAddSongsArg1 {
-    Library,
-    Soundtracks,
-    Playlist,
-}
-
-impl QueryAddSongsArg1 {
-    pub fn next(self) -> Self {
-        match self {
-            Self::Library => Self::Soundtracks,
-            Self::Soundtracks => Self::Playlist,
-            Self::Playlist => Self::Playlist,
-        }
-    }
-
-    pub fn prev(self) -> Self {
-        match self {
-            Self::Library => Self::Library,
-            Self::Soundtracks => Self::Library,
-            Self::Playlist => Self::Soundtracks,
-        }
-    }
-}
-
 pub struct Root<'a> {
     pub(super) settings: Settings,
     pub(super) theme: Theme,
@@ -85,16 +59,12 @@ pub struct Root<'a> {
     pub(super) screens: Vec<(String, Rc<RefCell<dyn 'a + ComponentMut<'a>>>)>,
     pub(super) focused_screen: usize,
     pub(super) is_focus_trapped: Rc<Cell<bool>>,
-    pub(super) query: Rc<RefCell<Option<Query>>>,
-    pub(super) query_error: Rc<RefCell<Option<String>>>,
 
     pub(super) player: Weak<MainPlayer>,
+    pub(super) command_line: Rc<RefCell<CommandLine<'a>>>,
 
     pub(super) queue_screen: Rc<RefCell<QueueScreen<'a>>>,
     browser_screen: Rc<RefCell<FileBrowser<'a>>>,
-    pub(super) library_screen: Rc<RefCell<Library<'a>>>,
-    pub(super) soundtracks_screen: Rc<RefCell<Soundtracks<'a>>>,
-    pub(super) playlists_screen: Rc<RefCell<Playlists<'a>>>,
 
     on_queue_changed_fn: Rc<Callback<'a, QueueChange>>,
 }
@@ -115,7 +85,7 @@ impl<'a> Root<'a> {
         let soundtracks = Rc::new(RefCell::new(Soundtracks::new(theme)));
         let playlist = Rc::new(RefCell::new(Playlists::new(theme)));
         let browser = Rc::new(RefCell::new(FileBrowser::new(actions, theme, current_directory)));
-        let query = Rc::new(RefCell::new(None));
+        let command_line = Rc::new(RefCell::new(CommandLine::new(theme)));
 
         let on_queue_changed_fn = Rc::new(Callback::default());
 
@@ -249,17 +219,43 @@ impl<'a> Root<'a> {
                 }
             });
             browser.on_add_to_lib({
-                let query = Rc::clone(&query);
+                let command_line = Rc::clone(&command_line);
                 move |songs| {
-                    *query.borrow_mut() = Some(Query::AddSongs {
+                    command_line.borrow_mut().set_query(Some(Query::AddSongs {
                         songs,
-                        target: QueryAddSongsArg1::Library,
-                    });
+                        target: QueryAddSongsTarget::Library,
+                    }));
                 }
             });
         }
 
         let help = Rc::new(RefCell::new(Help::new(actions, settings, theme)));
+
+        {
+            let command_line = command_line.borrow();
+            let library = Rc::clone(&library);
+            let soundtracks = Rc::clone(&soundtracks);
+            let playlist = Rc::clone(&playlist);
+
+            command_line.on_confirm({
+                move |query| match query {
+                    Query::AddSongs { songs, target } => match target {
+                        QueryAddSongsTarget::Library => {
+                            let library = library.borrow_mut();
+                            library.add_songs(songs);
+                        }
+                        QueryAddSongsTarget::Soundtracks => {
+                            let soundtracks = soundtracks.borrow_mut();
+                            soundtracks.add_songs(songs);
+                        }
+                        QueryAddSongsTarget::Playlist => {
+                            let playlist = playlist.borrow_mut();
+                            playlist.add_songs(songs);
+                        }
+                    },
+                }
+            });
+        }
 
         Self {
             settings,
@@ -276,16 +272,12 @@ impl<'a> Root<'a> {
             ],
             focused_screen: 0,
             is_focus_trapped,
-            query,
-            query_error: Rc::new(RefCell::new(None)),
+            command_line,
 
             player,
 
             queue_screen,
             browser_screen: browser,
-            library_screen: library,
-            soundtracks_screen: soundtracks,
-            playlists_screen: playlist,
 
             on_queue_changed_fn,
         }

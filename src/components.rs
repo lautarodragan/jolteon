@@ -4,6 +4,7 @@ mod help;
 mod library;
 mod list;
 mod playlists;
+mod query;
 mod queue;
 mod root;
 mod song_list;
