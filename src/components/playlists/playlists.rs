@@ -142,6 +142,14 @@ impl<'a> Playlists<'a> {
         self.playlist_list.on_request_focus_trap_fn(cb);
     }
 
+    pub fn playlists<T>(&self, f: impl FnOnce(Vec<&Playlist>) -> T) -> T {
+        self.playlist_list.with_items(f)
+    }
+
+    pub fn selected_playlist<T>(&self, f: impl FnOnce(&Playlist) -> T) -> T {
+        self.playlist_list.with_selected_item(f)
+    }
+
     pub fn selected_playlist_mut(&self, f: impl FnOnce(&mut Playlist)) {
         self.playlist_list.with_selected_item_mut(f);
         save(&self.playlist_list, &self.deleted_playlist_list);

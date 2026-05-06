@@ -36,10 +36,13 @@ impl<'a> CommandLine<'a> {
 pub enum Query {
     AddSongs {
         songs: Vec<Song>,
+        step: usize,
         target: QueryAddSongsTarget,
+        target_name: Option<String>,
+        playlists: Vec<String>,
     },
 }
-#[derive(Debug, Display, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Display, Clone, PartialEq, Eq)]
 pub enum QueryAddSongsTarget {
     Library,
     Soundtracks,
@@ -47,7 +50,7 @@ pub enum QueryAddSongsTarget {
 }
 
 impl QueryAddSongsTarget {
-    pub fn next(self) -> Self {
+    pub fn next(&self) -> Self {
         match self {
             Self::Library => Self::Soundtracks,
             Self::Soundtracks => Self::Playlist,
@@ -55,7 +58,7 @@ impl QueryAddSongsTarget {
         }
     }
 
-    pub fn prev(self) -> Self {
+    pub fn prev(&self) -> Self {
         match self {
             Self::Library => Self::Library,
             Self::Soundtracks => Self::Library,

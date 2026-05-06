@@ -19,6 +19,14 @@ impl OnActionMut for CommandLine<'_> {
             for action in actions {
                 match action {
                     Action::Cancel => {
+                        if let Some(query) = self.query.as_mut() {
+                            if let Query::AddSongs { step, .. } = query
+                                && *step > 0
+                            {
+                                *step -= 1;
+                                return;
+                            }
+                        }
                         self.query = None;
                         return;
                     }
@@ -27,9 +35,21 @@ impl OnActionMut for CommandLine<'_> {
                             continue;
                         };
                         match query {
-                            Query::AddSongs { songs, target } => match target {
+                            Query::AddSongs {
+                                songs,
+                                step,
+                                target,
+                                target_name,
+                                playlists,
+                            } => match target {
                                 QueryAddSongsTarget::Library => {
-                                    self.on_confirm_fn.call(Query::AddSongs { songs, target });
+                                    self.on_confirm_fn.call(Query::AddSongs {
+                                        songs,
+                                        step,
+                                        target,
+                                        target_name,
+                                        playlists,
+                                    });
                                 }
                                 QueryAddSongsTarget::Soundtracks => {
                                     let (songs_soundtracks, songs_etc): (Vec<_>, Vec<_>) =
@@ -43,32 +63,88 @@ impl OnActionMut for CommandLine<'_> {
                                         ));
                                         self.query = Some(Query::AddSongs {
                                             songs: songs_etc,
+                                            step,
                                             target: QueryAddSongsTarget::Soundtracks,
+                                            target_name: target_name.clone(),
+                                            playlists: playlists.clone(),
                                         });
                                     }
                                     if !songs_soundtracks.is_empty() {
                                         self.on_confirm_fn.call(Query::AddSongs {
                                             songs: songs_soundtracks,
+                                            step,
                                             target,
+                                            target_name,
+                                            playlists,
                                         });
                                     }
                                 }
                                 QueryAddSongsTarget::Playlist => {
-                                    self.on_confirm_fn.call(Query::AddSongs { songs, target });
+                                    if step == 0 {
+                                        self.query = Some(Query::AddSongs {
+                                            songs,
+                                            step: step + 1,
+                                            target,
+                                            target_name,
+                                            playlists,
+                                        });
+                                    } else if step == 1 {
+                                        self.on_confirm_fn.call(Query::AddSongs {
+                                            songs,
+                                            step,
+                                            target,
+                                            target_name,
+                                            playlists,
+                                        });
+                                    }
                                 }
                             },
                         }
                         return;
                     }
                     Action::Navigation(NavigationAction::Right) => {
-                        if let Some(Query::AddSongs { target, .. }) = self.query.as_mut() {
-                            *target = target.next();
+                        if let Some(Query::AddSongs {
+                            step,
+                            target,
+                            target_name,
+                            playlists,
+                            ..
+                        }) = self.query.as_mut()
+                        {
+                            if *step == 0 {
+                                *target = target.next();
+                            } else if *step == 1 && *target == QueryAddSongsTarget::Playlist {
+                                let tn = target_name.clone().unwrap_or_default();
+                                let i = playlists.iter().position(|pl| *pl == tn).unwrap();
+                                let i = if i + 1 < playlists.len() {
+                                    i + 1
+                                } else {
+                                    playlists.len() - 1
+                                };
+                                let tn = playlists.get(i).unwrap().clone();
+                                *target_name = Some(tn);
+                            }
                         }
                         return;
                     }
                     Action::Navigation(NavigationAction::Left) => {
-                        if let Some(Query::AddSongs { target, .. }) = self.query.as_mut() {
-                            *target = target.prev();
+                        if let Some(Query::AddSongs {
+                            step,
+                            target,
+                            target_name,
+                            playlists,
+                            ..
+                        }) = self.query.as_mut()
+                        {
+                            if *step == 0 {
+                                *target = target.prev();
+                            } else if *step == 1 && *target == QueryAddSongsTarget::Playlist {
+                                let tn = target_name.clone().unwrap_or_default();
+                                let i = playlists.iter().position(|pl| *pl == tn).unwrap();
+                                let i = if i > 0 { i - 1 } else { 0 };
+                                let tn = playlists.get(i).unwrap().clone();
+                                *target_name = Some(tn);
+                            }
                         }
                         return;
                     }

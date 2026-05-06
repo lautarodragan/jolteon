@@ -220,10 +220,18 @@ impl<'a> Root<'a> {
             });
             browser.on_add_to_lib({
                 let command_line = Rc::clone(&command_line);
+                let playlist = Rc::clone(&playlist);
                 move |songs| {
+                    let pl = playlist.borrow().selected_playlist(|pl| pl.name.clone());
+                    let pls = playlist
+                        .borrow()
+                        .playlists(|pls| pls.iter().map(|pl| pl.name.clone()).collect());
                     command_line.borrow_mut().set_query(Some(Query::AddSongs {
                         songs,
+                        step: 0,
                         target: QueryAddSongsTarget::Library,
+                        target_name: Some(pl),
+                        playlists: pls,
                     }));
                 }
             });
@@ -239,7 +247,7 @@ impl<'a> Root<'a> {
 
             command_line.on_confirm({
                 move |query| match query {
-                    Query::AddSongs { songs, target } => match target {
+                    Query::AddSongs { songs, target, .. } => match target {
                         QueryAddSongsTarget::Library => {
                             let library = library.borrow_mut();
                             library.add_songs(songs);
