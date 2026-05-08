@@ -109,7 +109,11 @@ impl SingleTrackPlayer {
                 };
 
                 move || {
-                    let output_stream = DeviceSinkBuilder::open_default_sink().unwrap(); // TODO: do not unwrap()
+                    let output_stream = DeviceSinkBuilder::from_default_device()
+                        .unwrap() // TODO: do not unwrap()
+                        .with_error_callback(|err| log::error!("audio stream error: {err}"))
+                        .open_stream()
+                        .unwrap(); // TODO: do not unwrap()
 
                     let wait_until_song_ends = || {
                         let target = "::wait_until_song_ends";
