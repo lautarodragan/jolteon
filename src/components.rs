@@ -11,7 +11,13 @@ mod song_list;
 mod soundtracks;
 mod tree;
 
-pub use file_browser::{FileBrowser, FileBrowserSelection, dir_entry_is_song, directory_to_songs_and_folders};
+pub use file_browser::{
+    FileBrowser,
+    FileBrowserSelection,
+    dir_entry_is_song,
+    directory_to_songs_and_folders,
+    path_is_chiptune,
+};
 pub use focus_group::*;
 pub use help::Help;
 pub use library::*;

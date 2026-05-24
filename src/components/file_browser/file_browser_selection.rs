@@ -5,12 +5,28 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use constcat::concat_slices;
+
 use crate::{
     cue::CueSheet,
     structs::{Jolt, Song},
 };
 
-pub const VALID_EXTENSIONS: [&str; 7] = ["mp3", "mp4", "m4a", "wav", "flac", "ogg", "aac"];
+const BASE_EXTENSIONS: [&str; 7] = ["mp3", "mp4", "m4a", "wav", "flac", "ogg", "aac"];
+
+pub const CHIPTUNE_EXTENSIONS: [&str; 11] = [
+    "nsf", "nsfe", "spc", "gbs", "vgm", "vgz", "ay", "hes", "kss", "sap", "gym",
+];
+
+const VALID_EXTENSIONS: &[&str; BASE_EXTENSIONS.len() + CHIPTUNE_EXTENSIONS.len()] =
+    concat_slices!([&str]: &BASE_EXTENSIONS, &CHIPTUNE_EXTENSIONS);
+
+pub fn path_is_chiptune(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .is_some_and(|e| CHIPTUNE_EXTENSIONS.iter().any(|c| *c == e))
+}
 
 #[derive(Debug, Clone, Eq)]
 pub enum FileBrowserSelection {

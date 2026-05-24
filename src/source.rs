@@ -2,7 +2,7 @@ use std::{
     fs::File,
     io::BufReader,
     num::NonZero,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -13,7 +13,16 @@ use rodio::{
     source::{Amplify, Pausable, PeriodicAccess, SeekError, Skippable, Speed, Stoppable, TrackPosition},
 };
 
-type FullRodioSource = Stoppable<Skippable<Amplify<Pausable<TrackPosition<Speed<Decoder<BufReader<File>>>>>>>>;
+use crate::components::path_is_chiptune;
+
+mod chiptune;
+mod chiptune_ffi;
+
+use chiptune::ChiptuneSource;
+pub use chiptune_ffi::read_track_info as read_chiptune_track_info;
+
+type InnerSource = Box<dyn RodioSource<Item = f32> + Send>;
+type FullRodioSource = Stoppable<Skippable<Amplify<Pausable<TrackPosition<Speed<InnerSource>>>>>>;
 type PeriodicRodioSource<F> = PeriodicAccess<FullRodioSource, F>;
 
 pub struct Controls<'a> {
@@ -69,6 +78,17 @@ pub struct Source<F> {
     on_playback_end: Option<Box<dyn FnOnce() + Send + 'static>>,
 }
 
+fn build_inner(path: &Path) -> Result<InnerSource, String> {
+    if path_is_chiptune(path) {
+        let src = ChiptuneSource::from_file(path).map_err(|e| e.to_string())?;
+        Ok(Box::new(src))
+    } else {
+        let file = BufReader::new(File::open(path).map_err(|e| e.to_string())?);
+        let decoder = Decoder::new(file).map_err(|e| e.to_string())?;
+        Ok(Box::new(decoder))
+    }
+}
+
 impl Source<()> {
     pub fn from_file(
         path: PathBuf,
@@ -87,8 +107,7 @@ impl Source<()> {
             })
         };
 
-        let file = BufReader::new(File::open(path.clone()).map_err(|e| e.to_string())?);
-        let source = Decoder::new(file).map_err(|e| e.to_string())?;
+        let source = build_inner(&path)?;
         let input = source
             .speed(1.0)
             .track_position()

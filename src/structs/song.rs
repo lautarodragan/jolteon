@@ -15,10 +15,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    components::{FileBrowserSelection, dir_entry_is_song, directory_to_songs_and_folders},
+    components::{FileBrowserSelection, dir_entry_is_song, directory_to_songs_and_folders, path_is_chiptune},
     cue::{CueFile, CueSheet},
+    source::read_chiptune_track_info,
     structs::Jolt,
 };
+
+/// Default playback length for chiptune tracks when libgme reports no duration.
+const CHIPTUNE_DEFAULT_LENGTH: Duration = Duration::from_secs(150);
 
 #[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct Song {
@@ -40,35 +44,91 @@ fn find_closest_jolt(path: &Path) -> Option<Jolt> {
         .find_map(|ancestor| Jolt::from_path(ancestor.join(".jolt")).ok())
 }
 
+#[derive(Default)]
+struct RawMeta {
+    title: Option<String>,
+    artist: Option<String>,
+    album: Option<String>,
+    soundtrack_subject: Option<String>,
+    length: Duration,
+    track: Option<u32>,
+    disc_number: Option<u32>,
+    year: Option<u32>,
+}
+
+fn read_chiptune_meta(path: &Path) -> RawMeta {
+    match read_chiptune_track_info(path, 0) {
+        Ok(i) => RawMeta {
+            title: i.song,
+            artist: i.author,
+            album: i.game,
+            soundtrack_subject: i.system,
+            length: if i.play_length > Duration::ZERO {
+                i.play_length
+            } else {
+                CHIPTUNE_DEFAULT_LENGTH
+            },
+            ..Default::default()
+        },
+        Err(err) => {
+            log::warn!("chiptune metadata read failed for {path:?}: {err}");
+            RawMeta {
+                length: CHIPTUNE_DEFAULT_LENGTH,
+                ..Default::default()
+            }
+        }
+    }
+}
+
+fn read_lofty_meta(path: &Path) -> Result<RawMeta, LoftyError> {
+    let tagged_file = Probe::open(path)?.read()?;
+    let length = tagged_file.properties().duration();
+    let raw = match tagged_file.primary_tag() {
+        Some(t) => RawMeta {
+            title: t.title().map(String::from),
+            artist: t.artist().map(String::from),
+            album: t.album().map(String::from),
+            track: t.track(),
+            year: t.year(),
+            // TODO: disc number is sometimes stored as a Text, including disk sides ("A1"). `.disk` returns `None` in these cases.
+            disc_number: t.disk(),
+            length,
+            ..Default::default()
+        },
+        None => RawMeta {
+            length,
+            ..Default::default()
+        },
+    };
+    Ok(raw)
+}
+
 impl Song {
     pub fn from_file(path: &Path) -> Result<Self, LoftyError> {
-        let tagged_file = Probe::open(path)?.read()?;
-        let jolt = find_closest_jolt(path);
-
-        let (artist, album, title, track, year, disc_number) = match tagged_file.primary_tag() {
-            Some(primary_tag) => (
-                primary_tag.artist().map(String::from),
-                primary_tag.album().map(String::from),
-                primary_tag.title().map(String::from),
-                primary_tag.track(),
-                primary_tag.year(),
-                primary_tag.disk(), // TODO: disc number is sometimes stored as a Text, including disk sides ("A1"). `.disk` returns `None` in these cases.
-            ),
-            _ => (None, None, None, None, None, None),
+        let meta = if path_is_chiptune(path) {
+            read_chiptune_meta(path)
+        } else {
+            read_lofty_meta(path)?
         };
+        let jolt = find_closest_jolt(path);
 
         Ok(Song {
             library_id: None,
             path: PathBuf::from(path),
             start_time: Duration::ZERO,
-            length: tagged_file.properties().duration(),
-            title: title.unwrap_or(path.file_name().unwrap().to_str().unwrap().to_string()),
-            artist: jolt.as_ref().and_then(|j| j.artist.clone()).or(artist),
-            album: jolt.as_ref().and_then(|j| j.album.clone()).or(album),
-            soundtrack_subject: jolt.as_ref().and_then(|j| j.soundtrack_subject.clone()),
-            disc_number,
-            track,
-            year: jolt.as_ref().and_then(|j| j.year).or(year),
+            length: meta.length,
+            title: meta
+                .title
+                .unwrap_or_else(|| path.file_name().unwrap().to_str().unwrap().to_string()),
+            artist: jolt.as_ref().and_then(|j| j.artist.clone()).or(meta.artist),
+            album: jolt.as_ref().and_then(|j| j.album.clone()).or(meta.album),
+            soundtrack_subject: jolt
+                .as_ref()
+                .and_then(|j| j.soundtrack_subject.clone())
+                .or(meta.soundtrack_subject),
+            disc_number: meta.disc_number,
+            track: meta.track,
+            year: jolt.as_ref().and_then(|j| j.year).or(meta.year),
         })
     }
 
@@ -204,8 +264,19 @@ impl Song {
     }
 
     pub fn get_tags(&self) -> Vec<lofty::tag::Tag> {
-        let tagged_file = Probe::open(&self.path).unwrap().read().unwrap();
-        tagged_file.tags().to_vec()
+        if path_is_chiptune(&self.path) {
+            return Vec::new();
+        }
+        let Ok(probe) = Probe::open(&self.path) else {
+            return Vec::new();
+        };
+        match probe.read() {
+            Ok(tagged_file) => tagged_file.tags().to_vec(),
+            Err(err) => {
+                log::warn!("get_tags: lofty read failed for {:?}: {err:?}", self.path);
+                Vec::new()
+            }
+        }
     }
 }
 
