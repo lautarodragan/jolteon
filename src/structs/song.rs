@@ -217,7 +217,7 @@ impl Song {
 
         log::debug!("DATE from cue sheet: {cue_date:?}");
 
-        let cue_year: Option<u32> = cue_date.unwrap()[5..].parse().ok(); // TODO: 100% not safe lol
+        let cue_year: Option<u32> = cue_date.and_then(|date| date[5..].parse().ok());
 
         log::debug!("DATE from cue sheet: {cue_year:?}");
 
