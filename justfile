@@ -17,4 +17,4 @@ format force="":
 format_force: (format "-f")
 
 install:
-  cargo install --path .
+  cargo install --locked --path .
