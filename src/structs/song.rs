@@ -6,7 +6,7 @@ use std::{
 };
 
 use lofty::{
-    error::LoftyError,
+    error::FileParseError,
     file::{AudioFile, TaggedFileExt},
     probe::Probe,
     tag::Accessor,
@@ -80,7 +80,7 @@ fn read_chiptune_meta(path: &Path) -> RawMeta {
     }
 }
 
-fn read_lofty_meta(path: &Path) -> Result<RawMeta, LoftyError> {
+fn read_lofty_meta(path: &Path) -> Result<RawMeta, FileParseError> {
     let tagged_file = Probe::open(path)?.read()?;
     let length = tagged_file.properties().duration();
     let raw = match tagged_file.primary_tag() {
@@ -89,7 +89,7 @@ fn read_lofty_meta(path: &Path) -> Result<RawMeta, LoftyError> {
             artist: t.artist().map(String::from),
             album: t.album().map(String::from),
             track: t.track(),
-            year: t.year(),
+            year: t.date().map(|date| u32::from(date.year)),
             // TODO: disc number is sometimes stored as a Text, including disk sides ("A1"). `.disk` returns `None` in these cases.
             disc_number: t.disk(),
             length,
@@ -104,7 +104,7 @@ fn read_lofty_meta(path: &Path) -> Result<RawMeta, LoftyError> {
 }
 
 impl Song {
-    pub fn from_file(path: &Path) -> Result<Self, LoftyError> {
+    pub fn from_file(path: &Path) -> Result<Self, FileParseError> {
         let meta = if path_is_chiptune(path) {
             read_chiptune_meta(path)
         } else {

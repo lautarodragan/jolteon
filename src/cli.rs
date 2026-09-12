@@ -1,4 +1,4 @@
-use std::{borrow::Cow, io::stdout, path::PathBuf, sync::Arc, time::Duration};
+use std::{io::stdout, path::PathBuf, sync::Arc, time::Duration};
 
 use clap::{Parser, Subcommand, ValueEnum};
 use crossterm::{
@@ -12,9 +12,8 @@ use crossterm::{
 };
 use lofty::{
     file::TaggedFileExt,
-    prelude::ItemKey,
     probe::Probe,
-    tag::{ItemValue, Tag},
+    tag::ItemValue,
 };
 use log::error;
 
@@ -278,34 +277,21 @@ pub fn cli() {
                 }
             }
 
-            let print_tag = |longest_key: usize| {
-                move |(key, value): (Cow<str>, &ItemValue)| {
-                    let key = format!("  {key: <padding$}", padding = longest_key + 2);
-                    styled!(key, SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
-                    let value = tag_value_to_string(value);
-                    println!("    {value:?}");
-                }
-            };
+            for tag in tags {
+                let items = tag
+                    .items()
+                    .map(|item| (format!("{key:?}", key = item.key()), item.value()));
 
-            let print_tag_items = |tag: &Tag, known: bool| {
-                let tags = tag.items().filter_map(|item| match item.key() {
-                    ItemKey::Unknown(_) if known => None,
-                    key if known => Some((Cow::from(format!("{key:?}")), item.value())),
-                    ItemKey::Unknown(key) if !known => Some((Cow::from(key), item.value())),
-                    _ => None,
-                });
-
-                if let Some(longest_key) = tags.clone().map(|(k, _)| k.len()).max() {
-                    let word = if known { "Standard" } else { "Unknown" };
-                    println!("{word} {tag_type:?} tags:", tag_type = tag.tag_type());
-                    tags.for_each(print_tag(longest_key));
+                if let Some(longest_key) = items.clone().map(|(key, _)| key.len()).max() {
+                    println!("Standard {tag_type:?} tags:", tag_type = tag.tag_type());
+                    for (key, value) in items {
+                        let key = format!("  {key: <padding$}", padding = longest_key + 2);
+                        styled!(key, SetForegroundColor(Color::Green), SetAttribute(Attribute::Bold));
+                        let value = tag_value_to_string(value);
+                        println!("    {value:?}");
+                    }
                     println!();
                 }
-            };
-
-            for tag in tags {
-                print_tag_items(tag, true);
-                print_tag_items(tag, false);
             }
         }
         Command::Cue { path, flat, output } => {
