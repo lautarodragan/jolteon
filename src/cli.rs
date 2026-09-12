@@ -1,4 +1,4 @@
-use std::{io::stdout, path::PathBuf, sync::Arc, time::Duration};
+use std::{error::Error, io::stdout, path::PathBuf, sync::Arc, time::Duration};
 
 use clap::{Parser, Subcommand, ValueEnum};
 use crossterm::{
@@ -15,7 +15,6 @@ use lofty::{
     probe::Probe,
     tag::ItemValue,
 };
-use log::error;
 
 use crate::{
     actions::{Action, Actions, DEFAULT_ACTIONS_STR},
@@ -86,7 +85,7 @@ enum ColorOption {
 
 /// Parses cli arguments. If a command is passed, this function will run it and exit the process.
 ///
-/// This function returns no value, but it will directly exit the process if
+/// Errors are returned to the caller. This function directly exits the process if
 /// either the arguments are invalid (which is done by Clap itself),
 /// or if they are valid, and, by design, the TUI version of Jolteon isn't expected
 /// to run after the command finishes running (such as `jolteon version`).
@@ -94,7 +93,7 @@ enum ColorOption {
 /// Jolteon uses the `aws` cli style (or `kubectl`): the first argument is always a jolteon command.
 /// Commands are not prefixed with dashes (`jolteon play <file>`, not `jolteon --play <file>`).
 /// This distinguishes commands from options (`jolteon play <file> --volume .2`)
-pub fn cli() {
+pub fn cli() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let command = match args.command {
@@ -111,7 +110,7 @@ pub fn cli() {
                     Command::Play { path, volume: 0.5 }
                 }
             } else {
-                return;
+                return Ok(());
             }
         }
     };
@@ -122,13 +121,7 @@ pub fn cli() {
             println!("Playing {path:?}");
             println!("Volume set to {volume}");
             println!();
-            let song = match Song::from_file(&path) {
-                Ok(song) => song,
-                Err(err) => {
-                    eprintln!("{err}");
-                    std::process::exit(1);
-                }
-            };
+            let song = Song::from_file(&path)?;
 
             #[cfg(debug_assertions)]
             {
@@ -218,9 +211,7 @@ pub fn cli() {
             )
             .unwrap();
 
-            disable_raw_mode().unwrap_or_else(|e| {
-                log::error!("tried to disable_raw_mode but couldn't :( {e}");
-            });
+            disable_raw_mode()?;
         }
         Command::PrintDefaultConfig => {
             println!("# default {} configuration:", env!("CARGO_PKG_NAME"));
@@ -260,7 +251,7 @@ pub fn cli() {
             println!(" in {path:?}:");
             println!();
 
-            let tagged_file = Probe::open(path).unwrap().read().unwrap();
+            let tagged_file = Probe::open(path)?.read()?;
             let tags = tagged_file.tags();
 
             fn tag_value_to_string(value: &ItemValue) -> String {
@@ -295,39 +286,23 @@ pub fn cli() {
             }
         }
         Command::Cue { path, flat, output } => {
-            let cue = CueSheet::from_file(path.as_path());
-            match cue {
-                Ok(cue) => {
-                    if flat {
-                        let cue = cue.flat();
-                        if output == OutputFormat::Text {
-                            println!("{cue:#?}");
-                        } else {
-                            match serde_json::to_string_pretty(&cue) {
-                                Ok(cue) => {
-                                    println!("{cue}");
-                                }
-                                Err(err) => {
-                                    error!("{err:#?}");
-                                }
-                            };
-                        }
-                    } else if output == OutputFormat::Text {
-                        println!("{cue:#?}");
-                    } else {
-                        match serde_json::to_string_pretty(&cue) {
-                            Ok(cue) => {
-                                println!("{cue}");
-                            }
-                            Err(err) => {
-                                error!("{err:#?}");
-                            }
-                        };
-                    }
+            fn print_cue<T: std::fmt::Debug + serde::Serialize>(
+                cue: &T,
+                output: OutputFormat,
+            ) -> Result<(), serde_json::Error> {
+                if output == OutputFormat::Text {
+                    println!("{cue:#?}");
+                } else {
+                    println!("{}", serde_json::to_string_pretty(cue)?);
                 }
-                Err(err) => {
-                    error!("{err:#?}");
-                }
+                Ok(())
+            }
+
+            let cue = CueSheet::from_file(path.as_path())?;
+            if flat {
+                print_cue(&cue.flat(), output)?;
+            } else {
+                print_cue(&cue, output)?;
             }
         }
     }

@@ -75,7 +75,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     info!("Starting");
 
-    cli();
+    cli()?;
 
     let _auto_update = auto_update().await;
 
