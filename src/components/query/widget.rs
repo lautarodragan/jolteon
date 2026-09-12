@@ -55,7 +55,7 @@ impl Widget for &CommandLine<'_> {
         line.render(area, buf);
         if let Some(error) = self.query_error.as_ref() {
             let area = area.offset(Offset::new(0, 1));
-            Line::from(error.as_ref())
+            Line::from(error.as_str())
                 .style(Style::default().fg(self.theme.search))
                 .render(area, buf);
         }
