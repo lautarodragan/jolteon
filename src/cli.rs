@@ -161,9 +161,9 @@ pub fn cli() -> Result<(), Box<dyn Error>> {
             let tick_rate = Duration::from_millis(100);
             let mut last_tick = std::time::Instant::now();
 
-            enable_raw_mode().unwrap();
+            enable_raw_mode()?;
 
-            execute!(stdout(), crossterm::cursor::Hide).unwrap();
+            execute!(stdout(), crossterm::cursor::Hide)?;
 
             loop {
                 let playing_position = player.playing_position();
@@ -178,8 +178,7 @@ pub fn cli() -> Result<(), Box<dyn Error>> {
                     crossterm::cursor::MoveToColumn(0),
                     Clear(ClearType::CurrentLine),
                     Print(time),
-                )
-                .unwrap();
+                )?;
 
                 if !playing_position.is_zero() && player.playing_song().is_none() {
                     break;
@@ -187,8 +186,8 @@ pub fn cli() -> Result<(), Box<dyn Error>> {
 
                 let timeout = tick_rate.saturating_sub(last_tick.elapsed());
 
-                if event::poll(timeout).unwrap()
-                    && let Event::Key(key) = event::read().unwrap()
+                if event::poll(timeout)?
+                    && let Event::Key(key) = event::read()?
                     && let actions = actions.action_by_key(key)
                     && !actions.is_empty()
                     && actions.contains(&Action::Quit)
@@ -208,8 +207,7 @@ pub fn cli() -> Result<(), Box<dyn Error>> {
                 Print("Bye"),
                 SetAttribute(Attribute::Reset),
                 crossterm::cursor::Show
-            )
-            .unwrap();
+            )?;
 
             disable_raw_mode()?;
         }
@@ -236,13 +234,13 @@ pub fn cli() -> Result<(), Box<dyn Error>> {
             macro_rules! styled {
                     ($text:expr $(, $command:expr)* $(,)?) => {{
                         if color {
-                            queue!(stdout() $(, $command)*).unwrap();
+                            queue!(stdout() $(, $command)*)?;
                         }
 
-                        queue!(stdout(), Print($text)).unwrap();
+                        queue!(stdout(), Print($text))?;
 
                         if color {
-                            queue!(stdout(), SetAttribute(Attribute::Reset)).unwrap();
+                            queue!(stdout(), SetAttribute(Attribute::Reset))?;
                         }
                     }}
                 }
