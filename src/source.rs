@@ -1,6 +1,5 @@
 use std::{
     fs::File,
-    io::BufReader,
     num::NonZero,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -83,8 +82,8 @@ fn build_inner(path: &Path) -> Result<InnerSource, String> {
         let src = ChiptuneSource::from_file(path).map_err(|e| e.to_string())?;
         Ok(Box::new(src))
     } else {
-        let file = BufReader::new(File::open(path).map_err(|e| e.to_string())?);
-        let decoder = Decoder::new(file).map_err(|e| e.to_string())?;
+        let file = File::open(path).map_err(|e| e.to_string())?;
+        let decoder = Decoder::try_from(file).map_err(|e| e.to_string())?;
         Ok(Box::new(decoder))
     }
 }
