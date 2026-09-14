@@ -18,3 +18,6 @@ format_force: (format "-f")
 
 install:
   cargo install --locked --path .
+
+test-audio:
+  cargo test --locked --test audio -- --ignored --nocapture
