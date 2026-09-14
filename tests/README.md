@@ -91,3 +91,9 @@ Number of samples: 96000
  » $stats."Peak level dB"
 -18.063656
 ```
+
+Simple audio files for testing can be generated like this:
+
+```nushell
+ffmpeg -v error -nostdin -f lavfi -i sine=frequency=440:sample_rate=48000:duration=2 -c:a pcm_s16le tests/fixtures/tone-440.wav
+```
