@@ -1,4 +1,10 @@
-use std::{error::Error, io::stdout, path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    error::Error,
+    io::{stdin, stdout},
+    path::PathBuf,
+    sync::Arc,
+    time::Duration,
+};
 
 use clap::{Parser, Subcommand, ValueEnum};
 use crossterm::{
@@ -10,11 +16,7 @@ use crossterm::{
     terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode},
     tty::IsTty,
 };
-use lofty::{
-    file::TaggedFileExt,
-    probe::Probe,
-    tag::ItemValue,
-};
+use lofty::{file::TaggedFileExt, probe::Probe, tag::ItemValue};
 
 use crate::{
     actions::{Action, Actions, DEFAULT_ACTIONS_STR},
@@ -153,32 +155,36 @@ pub fn cli() -> Result<(), Box<dyn Error>> {
 
             player.single_track_player().set_volume(volume);
 
-            println!();
-            println!("Ctrl+C to exit");
-            println!();
-
-            let actions = Actions::from_file_or_default();
+            let interactive = stdin().is_tty() && stdout().is_tty();
+            let actions = if interactive {
+                println!();
+                println!("Ctrl+C to exit");
+                println!();
+                enable_raw_mode()?;
+                execute!(stdout(), crossterm::cursor::Hide)?;
+                Some(Actions::from_file_or_default())
+            } else {
+                None
+            };
             let tick_rate = Duration::from_millis(100);
             let mut last_tick = std::time::Instant::now();
 
-            enable_raw_mode()?;
-
-            execute!(stdout(), crossterm::cursor::Hide)?;
-
             loop {
                 let playing_position = player.playing_position();
-                let time = format!(
-                    "{time_played} / {current_song_length}",
-                    time_played = duration_to_string(playing_position),
-                    current_song_length = duration_to_string(song_length),
-                );
+                if interactive {
+                    let time = format!(
+                        "{time_played} / {current_song_length}",
+                        time_played = duration_to_string(playing_position),
+                        current_song_length = duration_to_string(song_length),
+                    );
 
-                execute!(
-                    stdout(),
-                    crossterm::cursor::MoveToColumn(0),
-                    Clear(ClearType::CurrentLine),
-                    Print(time),
-                )?;
+                    execute!(
+                        stdout(),
+                        crossterm::cursor::MoveToColumn(0),
+                        Clear(ClearType::CurrentLine),
+                        Print(time),
+                    )?;
+                }
 
                 if !playing_position.is_zero() && player.playing_song().is_none() {
                     break;
@@ -186,13 +192,17 @@ pub fn cli() -> Result<(), Box<dyn Error>> {
 
                 let timeout = tick_rate.saturating_sub(last_tick.elapsed());
 
-                if event::poll(timeout)?
-                    && let Event::Key(key) = event::read()?
-                    && let actions = actions.action_by_key(key)
-                    && !actions.is_empty()
-                    && actions.contains(&Action::Quit)
-                {
-                    break;
+                if let Some(actions) = &actions {
+                    if event::poll(timeout)?
+                        && let Event::Key(key) = event::read()?
+                        && let actions = actions.action_by_key(key)
+                        && !actions.is_empty()
+                        && actions.contains(&Action::Quit)
+                    {
+                        break;
+                    }
+                } else {
+                    std::thread::sleep(timeout);
                 }
 
                 if last_tick.elapsed() >= tick_rate {
@@ -200,16 +210,19 @@ pub fn cli() -> Result<(), Box<dyn Error>> {
                 }
             }
 
-            execute!(
-                stdout(),
-                crossterm::cursor::MoveToNextLine(5),
-                Print("\n"),
-                Print("Bye"),
-                SetAttribute(Attribute::Reset),
-                crossterm::cursor::Show
-            )?;
-
-            disable_raw_mode()?;
+            if interactive {
+                execute!(
+                    stdout(),
+                    crossterm::cursor::MoveToNextLine(5),
+                    Print("\n"),
+                    Print("Bye"),
+                    SetAttribute(Attribute::Reset),
+                    crossterm::cursor::Show
+                )?;
+                disable_raw_mode()?;
+            } else {
+                println!("Bye");
+            }
         }
         Command::PrintDefaultConfig => {
             println!("# default {} configuration:", env!("CARGO_PKG_NAME"));
